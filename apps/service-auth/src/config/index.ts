@@ -6,8 +6,6 @@ function loadEnv(){
     console.log(`Environment variables loaded`);
 }
 
-
-
 loadEnv();
 
 export const serverConfig = validateEnv();
