@@ -7,6 +7,7 @@ import {
   RefreshTokenSchema,
 } from '../validators/user.validator';
 import { catchAsync } from '../utils/helpers/catch-async';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = RegisterSchema.parse(req.body);
@@ -34,6 +35,15 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     data: authTokens,
   });
 });
+
+export const getProfile = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await userService.getProfile(req.user!.user_id)
+
+  res.status(200).json({
+    success: true,
+    data: user
+  })
+})
 
 export const refresh = catchAsync(async (req: Request, res: Response) => {
   const validatedData = RefreshTokenSchema.parse(req.body);
