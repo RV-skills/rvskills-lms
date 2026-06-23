@@ -69,3 +69,11 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
     message: 'Logout successful',
   });
 });
+
+
+export const adminOnlyTest = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "You have admin access"
+  });
+});
