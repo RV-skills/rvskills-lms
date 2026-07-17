@@ -16,10 +16,9 @@ export interface UpdateCourseInput {
     thumbnail_url?: string;
     language?: string;
     difficulty?: string;
-    status?: CourseStatus;
 }
 
-export const CourseRepository = {
+export const courseRepository = {
 
     async findById(course_id: string, tenant_id: string) {
         return prisma.course.findFirst({
@@ -62,7 +61,7 @@ export const CourseRepository = {
                     orderBy: { order_index: "asc" },
                     include: {
                         lessons: {
-                            where:{ deleted_At: null },
+                            where:{ deleted_at: null },
                             orderBy: { order_index: "asc" },
                         },
                     },
@@ -78,14 +77,14 @@ export const CourseRepository = {
     },
 
     async update(course_id: string, tenant_id:string, data: UpdateCourseInput){
-        return prisma.course.update({
-            where: { course_id },
+        return prisma.course.updateMany({
+            where: { course_id ,tenant_id},
             data,
         });
     },
 
     async publish(course_id: string, tenant_id: string) {
-        return prisma.course.update({
+        return prisma.course.updateMany({
             where: { course_id },
             data: {
                 is_published: true,
@@ -96,7 +95,7 @@ export const CourseRepository = {
     },
 
     async unpublish(course_id: string, tenant_id: string){
-        return prisma.course.update({
+        return prisma.course.updateMany({
             where: { course_id },
             data: {
                 is_published: false,
@@ -110,6 +109,8 @@ export const CourseRepository = {
             where: { course_id },
             data: {
                 deleted_at: new Date(),
+                is_published: false,
+                status: CourseStatus.ARCHIVED,
             },
         });
     },
