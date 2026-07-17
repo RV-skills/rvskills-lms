@@ -8,7 +8,7 @@ export interface CourseFacultyDTO {
 export interface CourseDTO {
     course_id: string;
     tenant_id: string;
-    titile: string;
+    title: string;
     description: string | null;
     thumbnail_url: string | null;
     language: string;

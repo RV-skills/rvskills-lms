@@ -82,7 +82,7 @@ model Lesson {
   estimated_duration_mins Int?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  deleted_At DateTime?
+  deleted_at DateTime?
 
   module Module @relation(fields: [module_id], references: [module_id])
   content_metadata  ContentMetadata?
