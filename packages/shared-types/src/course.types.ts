@@ -1,3 +1,5 @@
+import { ModuleDTO } from './module.types';
+
 export interface CourseFacultyDTO {
     course_id: string;
     faculty_id: string;
@@ -14,8 +16,10 @@ export interface CourseDTO {
     language: string;
     difficulty: string;
     status: string;
-    is_published: Date | null;
+    is_published: boolean;
+    published_at: Date | null;
     created_at: Date;
     updated_at: Date;
-    faculty?: CourseFacultyDTO;
+    faculty?: CourseFacultyDTO[];
+    modules?: ModuleDTO[];
 }
