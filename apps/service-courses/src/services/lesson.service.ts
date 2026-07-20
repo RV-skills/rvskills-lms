@@ -35,7 +35,7 @@ export const lessonService = {
         const lesson = await lessonRepository.findWithContent(lesson_id);
 
         if (!lesson) {
-        throw new NotFoundError('Lesson not found');
+        throw new NotFoundError("Lesson not found");
         }
 
         return mapToLessonDTO(lesson);
@@ -53,7 +53,7 @@ export const lessonService = {
         const existing = await lessonRepository.findById(lesson_id);
 
         if (!existing) {
-        throw new NotFoundError('Lesson not found');
+        throw new NotFoundError("Lesson not found");
         }
 
         await lessonRepository.update(lesson_id, data);
@@ -66,7 +66,7 @@ export const lessonService = {
         const existing = await lessonRepository.findById(lesson_id);
 
         if (!existing) {
-        throw new NotFoundError('Lesson not found');
+        throw new NotFoundError("Lesson not found");
         }
 
         await lessonRepository.softDetele(lesson_id);

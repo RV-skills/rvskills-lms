@@ -74,7 +74,7 @@ export const moduleService = {
         const existing = await moduleRepository.findById(module_id);
 
         if (!existing) {
-        throw new NotFoundError('Module not found');
+        throw new NotFoundError("Module not found");
         }
 
         await moduleRepository.softDelete(module_id);

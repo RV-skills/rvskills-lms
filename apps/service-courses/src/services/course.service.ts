@@ -2,7 +2,7 @@ import { CourseDTO } from "@rv-lms/shared-types";
 import { courseRepository, CreateCourseInput, UpdateCourseInput } from "../repositories/course.repository";
 import { NotFoundError } from "@rv-lms/shared-utils";
 
-const DEFAULT_TENANT_ID = 'rv-skills-tenant';
+const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
 const mapToCourseDTO = (course: any): CourseDTO => ({
     course_id: course.course_id,
@@ -14,6 +14,7 @@ const mapToCourseDTO = (course: any): CourseDTO => ({
     difficulty: course.difficulty,
     status:  course.status,
     is_published: course.is_published,
+    published_at: course.published_at,
     created_at: course.created_at,
     updated_at: course.updates_at,
     faculty: course.faculty ?? undefined,
