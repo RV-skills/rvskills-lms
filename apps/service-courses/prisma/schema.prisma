@@ -1,13 +1,10 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
-    previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
-  schemas = ["courses"]
 }
 
 enum ContentType {
@@ -32,6 +29,12 @@ enum ProcessingStatus {
   FAILED
 }
 
+enum FacultyRole {
+  primary
+  co_faculty
+  ta
+}
+
 model Course {
   course_id String @id @default(uuid())
   tenant_id String  // References Tenant in service-auth — no FK by design
@@ -54,7 +57,8 @@ model Course {
 model CourseFaculty {
   course_id String
   faculty_id String  // References User in service-auth — no FK by design
-  role String @default("primary")
+  tenant_id  String
+  role FacultyRole @default(primary)
 
   course Course @relation(fields: [course_id], references: [course_id])
   @@id([course_id, faculty_id])
