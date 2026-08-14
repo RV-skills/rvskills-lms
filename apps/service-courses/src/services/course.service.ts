@@ -16,7 +16,7 @@ const mapToCourseDTO = (course: any): CourseDTO => ({
     is_published: course.is_published,
     published_at: course.published_at,
     created_at: course.created_at,
-    updated_at: course.updates_at,
+    updated_at: course.updated_at,
     faculty: course.faculty ?? undefined,
 })
 
