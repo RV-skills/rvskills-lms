@@ -15,6 +15,7 @@ const mapToCourseDTO = (course: any): CourseDTO => ({
     status:  course.status,
     is_published: course.is_published,
     published_at: course.published_at,
+    max_seats: course.max_seats,
     created_at: course.created_at,
     updated_at: course.updated_at,
     faculty: course.faculty ?? undefined,

@@ -18,6 +18,7 @@ export interface CourseDTO {
     status: string;
     is_published: boolean;
     published_at: Date | null;
+    max_seats: number | null;
     created_at: Date;
     updated_at: Date;
     faculty?: CourseFacultyDTO[];
