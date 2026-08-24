@@ -19,6 +19,7 @@ const mapToCourseDTO = (course: any): CourseDTO => ({
     created_at: course.created_at,
     updated_at: course.updated_at,
     faculty: course.faculty ?? undefined,
+    modules: course.modules ?? undefined,
 })
 
 export const courseService = {
