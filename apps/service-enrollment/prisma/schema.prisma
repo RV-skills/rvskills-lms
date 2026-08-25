@@ -1,0 +1,59 @@
+generator client {
+    provider = "prisma-client"
+    output = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum PaymentStatus {
+    PENDING
+    PAID
+    FREE
+    REFUNDED
+}
+
+enum EnrollmentStatus {
+    ACTIVE
+    COMPLETED
+    DROPPED
+}
+
+model Enrollment {
+    enrollment_id String @id @default(uuid())
+    student_id String
+    course_id String
+    tenant_id String
+    status EnrollmentStatus @default(ACTIVE)
+    payment_status PaymentStatus @default(PENDING)
+    enrolled_at DateTime @default(now())
+    completed_at DateTime?
+    dropped_at DateTime?
+    rating CourseRating?
+    lesson_progress LessonProgress[]
+    @@unique([student_id, course_id])
+    @@index([tenant_id, course_id])
+    @@index([tenant_id, student_id])
+}
+
+model LessonProgress {
+    progress_id String @id @default(uuid())
+    enrollment_id String
+    lesson_id String
+    completed_at DateTime @default(now())
+    enrollment Enrollment @relation(fields: [enrollment_id], references: [enrollment_id], onDelete: Cascade)
+    @@unique([enrollment_id, lesson_id])
+}
+
+model CourseRating {
+    rating_id String @id @default(uuid())
+    enrollment_id String @unique
+    course_id String
+    tenant_id String
+    stars Int
+    comment String?
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    enrollment Enrollment @relation(fields: [enrollment_id], references: [enrollment_id], onDelete: Cascade)
+}
