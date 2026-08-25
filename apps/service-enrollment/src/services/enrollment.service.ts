@@ -69,5 +69,15 @@ export const enrollmentService = {
         }
 
         return enrollmentRepository.markDropped(enrollment_id);
-    }
+    },
+
+    async getEnrollment(enrollment_id: string) {
+        const enrollment = await enrollmentRepository.findById(enrollment_id);
+
+        if (!enrollment) {
+            throw new NotFoundError("Enrollment not found");
+        }
+
+        return enrollment;
+    },
 };
