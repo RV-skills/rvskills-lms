@@ -1,6 +1,11 @@
 module.exports = {
     plugins: {
         tailwindcss: {},
-        autoprefixer: {}
+        autoprefixer: {},
+        reactDOM: {},
+        reactTypescript: {},
+        nextjs: {},
+        postcssConfig: {},
+        
     },
 };
