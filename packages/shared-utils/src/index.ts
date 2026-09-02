@@ -5,8 +5,9 @@ export {
     ForbiddenError,
     NotFoundError,
     ConflictError,
-    InternalServerError
-
+    InternalServerError,
+    BadGatewayError,
+    GatewayTimeoutError
 } from "./app-error";
 
 export type {IAppError} from "./app-error";
