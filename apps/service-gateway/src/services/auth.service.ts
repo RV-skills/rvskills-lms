@@ -62,3 +62,21 @@ export async function refreshTokens(refreshToken: string): Promise<AuthTokenDTO>
   const body = (await res.json()) as { success: boolean; data: AuthTokenDTO };
   return body.data as AuthTokenDTO;
 }
+
+export async function login(email: string, password: string): Promise<AuthTokenDTO> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    throw new UnauthorizedError("Invalid email or password");
+  }
+
+  const body = (await res.json()) as { success: boolean; data: AuthTokenDTO };
+  return body.data;
+}

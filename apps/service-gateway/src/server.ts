@@ -6,6 +6,7 @@ import { appErrorHandler, genericErrorHandler } from "./middlewares/error.middle
 import logger from "./config/logger.config";
 import { attachCorrelationIdMiddleware } from "./middlewares/correlation.middleware";
 import { requestLoggerMiddleware } from "./middlewares/request.logger.middleware";
+import v1Router from "./routers/v1/index.router";
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.use(
 
 app.use(attachCorrelationIdMiddleware);
 app.use(requestLoggerMiddleware);
+
+app.use("/api/v1", v1Router);
 
 app.use(appErrorHandler);
 app.use(genericErrorHandler);
