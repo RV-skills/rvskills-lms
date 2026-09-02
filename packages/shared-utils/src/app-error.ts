@@ -77,5 +77,22 @@ export class InternalServerError extends AppError {
     }
 }
 
+export class BadGatewayError extends AppError {
+    constructor(
+        message: string = "Bad gateway"
+    ){
+        super(message, 502);
+        Object.setPrototypeOf(this, BadGatewayError.prototype);
+    }
+}
+
+export class GatewayTimeoutError extends AppError {
+    constructor(
+        message: string = "Gateway timeout"
+    ){
+        super(message, 504);
+        Object.setPrototypeOf(this, GatewayTimeoutError.prototype);
+    }
+}
 
 
