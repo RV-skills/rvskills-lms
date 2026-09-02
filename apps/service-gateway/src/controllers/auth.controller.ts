@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { login } from "../services/auth.service";
-import { setSessionCookie } from "../utils/session-cookie.util";
+import { register as registerService, logout as logoutService, login } from "../services/auth.service";
+import { setSessionCookie, getSessionFromRequest, clearSessionCookie } from "../utils/session-cookie.util";
+
 
 export async function loginController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,8 +13,6 @@ export async function loginController(req: Request, res: Response, next: NextFun
       refreshToken: tokens.refresh_token,
     });
 
-    // deliberately NOT sending tokens back in the response body \u2014 the whole
-    // point of this architecture is that the browser never sees them
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -21,5 +20,29 @@ export async function loginController(req: Request, res: Response, next: NextFun
     });
   } catch (err) {
     next(err);
+  }
+}
+
+
+export async function registerController(req: Request, res: Response, next: NextFunction) {
+  try {
+    await registerService(req.body);
+    res.status(201).json({ success: true, message: "Registration successful" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function logoutController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session = getSessionFromRequest(req);
+    if (session) {
+      await logoutService(session.refreshToken);
+    }
+    clearSessionCookie(res);
+    res.status(200).json({ success: true, message: "Logout successful" });
+  } catch (err) {
+    clearSessionCookie(res);
+    res.status(200).json({ success: true, message: "Logout successful" });
   }
 }

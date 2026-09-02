@@ -1,6 +1,6 @@
 import { serverConfig } from "../config";
 import { getCorrelationId } from "../utils/helpers/request.helpers";
-import { BadGatewayError, GatewayTimeoutError, UnauthorizedError } from "@rv-lms/shared-utils";
+import { BadGatewayError, GatewayTimeoutError, UnauthorizedError, ConflictError } from "@rv-lms/shared-utils";
 import type { AuthTokenDTO, UserDTO } from "@rv-lms/shared-types";
 
 const TIMEOUT_MS = 5000;
@@ -79,4 +79,43 @@ export async function login(email: string, password: string): Promise<AuthTokenD
 
   const body = (await res.json()) as { success: boolean; data: AuthTokenDTO };
   return body.data;
+}
+
+export interface RegisterInput {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+}
+
+export async function register(input: RegisterInput): Promise<void> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    const body = (await res.json()) as { message?: string };
+    throw new ConflictError(body.message || "Registration failed");
+  }
+}
+
+export async function logout(refreshToken: string): Promise<void> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/auth/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError("Failed to log out");
+  }
 }
