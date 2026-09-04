@@ -13,11 +13,11 @@ export interface AggregatedCourse {
   instructorName: string;
 }
 
-async function fetchCoursesFromService(accessToken: string): Promise<CourseDTO[]> {
+async function fetchCoursesFromService(accessToken?: string): Promise<CourseDTO[]> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
+     headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...correlationHeaders(),
     },
   });
@@ -30,14 +30,17 @@ async function fetchCoursesFromService(accessToken: string): Promise<CourseDTO[]
   return body.data;
 }
 
-export async function listCourses(accessToken: string): Promise<AggregatedCourse[]> {
+export async function listCourses(accessToken?: string): Promise<AggregatedCourse[]> {
   const courses = await fetchCoursesFromService(accessToken);
 
   const facultyIds = courses
     .flatMap((c) => c.faculty ?? [])
     .map((f) => f.faculty_id);
 
-  const users = facultyIds.length > 0 ? await getUsersByIds(facultyIds, accessToken) : [];
+  const users = accessToken && facultyIds.length > 0
+    ? await getUsersByIds(facultyIds, accessToken)
+    : [];
+
   const nameById = new Map(users.map((u) => [u.user_id, `${u.first_name} ${u.last_name}`]));
 
   return courses.map((course) => {

@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { authMiddleware } from "../../middlewares/auth.middleware"
+import { publicRouteMiddleware } from "../../middlewares/public-route.middleware";
 import { listCoursesController } from "../../controllers/courses.controller";
 
 const coursesRouter: Router = Router();
 
-coursesRouter.get("/", authMiddleware, listCoursesController);
+coursesRouter.get("/", publicRouteMiddleware, listCoursesController);
 
 export default coursesRouter;
