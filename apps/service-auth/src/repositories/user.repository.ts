@@ -194,4 +194,20 @@ export const userRepository = {
         });
     },
 
+    async findManyByIds(user_ids: string[], tenant_id: string) {
+        return prisma.user.findMany({
+            where: {
+                user_id: { in: user_ids },
+                tenant_id,
+                deleted_at: null,
+            },
+            select: {
+                user_id: true,
+                first_name: true,
+                last_name: true,
+                username: true,
+            },
+        });
+    },
+
 };
