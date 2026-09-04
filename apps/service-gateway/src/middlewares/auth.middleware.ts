@@ -22,13 +22,11 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     req.accessToken = session.accessToken;
     return next();
   } catch (err) {
-    // service-auth itself unreachable/timed out \u2014 don't mask this as "please log
-    // in again", that's misleading when the real problem is an outage, not
-    // an expired session
+    
     if (err instanceof BadGatewayError || err instanceof GatewayTimeoutError) {
       return next(err);
     }
-    // otherwise the token itself was rejected \u2014 fall through and try refreshing
+    
   }
 
   try {
