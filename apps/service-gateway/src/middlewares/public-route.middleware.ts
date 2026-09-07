@@ -1,20 +1,15 @@
-import { NextFunction, Request, Response } from "express";
-import { BadGatewayError, GatewayTimeoutError, UnauthorizedError } from "@rv-lms/shared-utils";
-import type { UserDTO } from "@rv-lms/shared-types";
+// apps/service-gateway/src/middlewares/public-route.middleware.ts
+import { Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "./auth.middleware";
 import { getSessionFromRequest, setSessionCookie, clearSessionCookie } from "../utils/session-cookie.util";
 import { verifyAccessToken, refreshTokens } from "../services/auth.service";
+import { BadGatewayError, GatewayTimeoutError } from "@rv-lms/shared-utils";
 
-export interface AuthenticatedRequest extends Request {
-  user?: UserDTO;
-  accessToken?: string;
-}
-
-export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const publicRouteMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const session = getSessionFromRequest(req);
 
   if (!session) {
-    clearSessionCookie(res);
-    return next(new UnauthorizedError("No session found"));
+    return next(); 
   }
 
   try {
@@ -22,11 +17,9 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     req.accessToken = session.accessToken;
     return next();
   } catch (err) {
-    
     if (err instanceof BadGatewayError || err instanceof GatewayTimeoutError) {
-      return next(err);
+      return next();
     }
-    
   }
 
   try {
@@ -37,12 +30,9 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     });
     req.user = newTokens.user;
     req.accessToken = newTokens.access_token;
-    return next();
-  } catch (err) {
-    if (err instanceof BadGatewayError || err instanceof GatewayTimeoutError) {
-      return next(err);
-    }
+  } catch {
     clearSessionCookie(res);
-    return next(new UnauthorizedError("Session expired, please log in again"));
   }
+
+  next();
 };

@@ -1,24 +1,25 @@
-import { getCourses, type CourseFilters } from "@/lib/courses";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { getCourses, type CourseListItem } from "@/lib/courses";
 import { CourseCard } from "@/components/ui/course-card";
 import { FilterBar } from "@/components/catalog/filter-bar";
 
-interface CatalogPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
+export default function CatalogPage() {
+  const searchParams = useSearchParams();
+  const [courses, setCourses] = useState<CourseListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-function toSingleValue(param: string | string[] | undefined): string | undefined {
-  return Array.isArray(param) ? param[0] : param;
-}
-
-export default async function CatalogPage({ searchParams }: CatalogPageProps) {
-  const params = await searchParams;
-
-  const filters: CourseFilters = {
-    search: toSingleValue(params.search),
-    difficulty: toSingleValue(params.difficulty),
-  };
-
-  const courses = await getCourses(filters);
+  useEffect(() => {
+    setLoading(true);
+    getCourses({
+      search: searchParams.get("search") ?? undefined,
+      difficulty: searchParams.get("difficulty") ?? undefined,
+    })
+      .then(setCourses)
+      .finally(() => setLoading(false));
+  }, [searchParams]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -28,7 +29,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <FilterBar />
       </div>
 
-      {courses.length === 0 ? (
+      {loading ? (
+        <p className="mt-16 text-center text-sm text-neutral-500">Loading courses...</p>
+      ) : courses.length === 0 ? (
         <div className="mt-16 flex flex-col items-center text-center">
           <p className="text-lg text-neutral-900">No courses match your filters</p>
           <p className="mt-1 text-sm text-neutral-500">

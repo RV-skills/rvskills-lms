@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { userRepository } from "../repositories/user.repository";
 import { ConflictError, NotFoundError } from "@rv-lms/shared-utils";
-import type { CreateUserDTO, UpdateUserDTO, UserDTO } from "@rv-lms/shared-types";
+import type { CreateUserDTO, UpdateUserDTO, UserDTO, UserSummaryDTO } from "@rv-lms/shared-types";
 
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
@@ -114,6 +114,11 @@ export const userService = {
         );
 
         return mapToUserDTO(updatedUser);
+    },
+
+    async getUsersByIds(user_ids: string[]): Promise<UserSummaryDTO[]> {
+        if (user_ids.length === 0) return [];
+        return userRepository.findManyByIds(user_ids, DEFAULT_TENANT_ID);
     },
 
 }

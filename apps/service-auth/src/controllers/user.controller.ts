@@ -8,6 +8,7 @@ import {
 } from '../validators/user.validator';
 import { catchAsync } from '../utils/helpers/catch-async';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+import { ValidationError } from '@rv-lms/shared-utils';
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const validatedData = RegisterSchema.parse(req.body);
@@ -75,5 +76,22 @@ export const adminOnlyTest = catchAsync(async (req: AuthenticatedRequest, res: R
   res.status(200).json({
     success: true,
     message: "You have admin access"
+  });
+});
+
+export const getUsersByIds = catchAsync(async (req: Request, res: Response) => {
+  const idsParam = req.query.ids;
+
+  if (typeof idsParam !== "string" || idsParam.trim() === "") {
+    throw new ValidationError("Query parameter 'ids' is required (comma-separated)");
+  }
+
+  const user_ids = idsParam.split(",").map((id) => id.trim()).filter(Boolean);
+
+  const users = await userService.getUsersByIds(user_ids);
+
+  res.status(200).json({
+    success: true,
+    data: users,
   });
 });
