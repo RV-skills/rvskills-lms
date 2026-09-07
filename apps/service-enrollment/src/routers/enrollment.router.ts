@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment } from "../controllers/enrollment.controller";
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment, getMyEnrollments } from "../controllers/enrollment.controller";
 import { markLessonComplete } from "../controllers/lesson-progress.controller";
 import {
     submitRating,
@@ -9,6 +10,8 @@ import {
 } from "../controllers/course-rating.controller";
 
 const enrollmentRouter: Router = Router();
+
+enrollmentRouter.get("/my-enrollments", authMiddleware, getMyEnrollments);
 
 // Enrollment routes
 enrollmentRouter.post("/", enrollCourse);

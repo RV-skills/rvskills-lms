@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { enrollmentService } from "../services/enrollment.service";
 import { catchAsync } from "../utils/catch-async";
 import { EnrollCourseSchema, BulkEnrollCourseSchema } from "../validators/enrollment.validator";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
@@ -42,5 +43,15 @@ export const getEnrollment = catchAsync(async (req: Request, res: Response) => {
     res.status(200).json({
         success: true,
         data: enrollment,
+    });
+});
+
+export const getMyEnrollments = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const student_id = authReq.user!.user_id;
+    const enrollments = await enrollmentService.getStudentEnrollments(student_id, DEFAULT_TENANT_ID);
+    res.status(200).json({
+        success: true,
+        data: enrollments,
     });
 });

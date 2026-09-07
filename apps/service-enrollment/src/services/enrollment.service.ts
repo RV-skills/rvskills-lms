@@ -45,7 +45,7 @@ export const enrollmentService = {
         const entries = students.map((s) => ({
             student_id: s.student_id,
             course_id,
-            tenant_id: s.student_id
+            tenant_id: s.tenant_id
         }));
 
         const result = await enrollmentRepository.createMany(entries);
@@ -79,5 +79,9 @@ export const enrollmentService = {
         }
 
         return enrollment;
+    },
+
+    async getStudentEnrollments(student_id: string, tenant_id: string) {
+        return enrollmentRepository.findByStudent(student_id, tenant_id);
     },
 };
