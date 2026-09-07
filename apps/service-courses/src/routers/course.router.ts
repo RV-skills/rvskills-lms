@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middlewares/auth.middleware';
+import { publicRouteMiddleware } from '../middlewares/public-route.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 import {
   createCourse,
   getCourse,
@@ -28,26 +31,26 @@ import {
 const courseRouter: Router = Router();
 
 // Course routes
-courseRouter.get('/', listCourses);
-courseRouter.post('/', createCourse);
-courseRouter.get('/:course_id', getCourse);
-courseRouter.patch('/:course_id', updateCourse);
-courseRouter.delete('/:course_id', deleteCourse);
-courseRouter.patch('/:course_id/publish', publishCourse);
-courseRouter.patch('/:course_id/unpublish', unpublishCourse);
+courseRouter.get('/', publicRouteMiddleware, listCourses);
+courseRouter.post('/', authMiddleware, requirePermission('course:write'), createCourse);
+courseRouter.get('/:course_id', publicRouteMiddleware, getCourse);
+courseRouter.patch('/:course_id', authMiddleware, requirePermission('course:write'), updateCourse);
+courseRouter.delete('/:course_id', authMiddleware, requirePermission('course:write'), deleteCourse);
+courseRouter.patch('/:course_id/publish', authMiddleware, requirePermission('course:write'), publishCourse);
+courseRouter.patch('/:course_id/unpublish', authMiddleware, requirePermission('course:write'), unpublishCourse);
 
 // Module routes
-courseRouter.get('/:course_id/modules', listModules);
-courseRouter.post('/:course_id/modules', createModule);
-courseRouter.get('/:course_id/modules/:module_id', getModule);
-courseRouter.patch('/:course_id/modules/:module_id', updateModule);
-courseRouter.delete('/:course_id/modules/:module_id', deleteModule);
+courseRouter.get('/:course_id/modules', publicRouteMiddleware, listModules);
+courseRouter.post('/:course_id/modules', authMiddleware, requirePermission('course:write'), createModule);
+courseRouter.get('/:course_id/modules/:module_id', publicRouteMiddleware, getModule);
+courseRouter.patch('/:course_id/modules/:module_id', authMiddleware, requirePermission('course:write'), updateModule);
+courseRouter.delete('/:course_id/modules/:module_id', authMiddleware, requirePermission('course:write'), deleteModule);
 
 // Lesson routes
-courseRouter.get('/:course_id/modules/:module_id/lessons', listLessons);
-courseRouter.post('/:course_id/modules/:module_id/lessons', createLesson);
-courseRouter.get('/:course_id/modules/:module_id/lessons/:lesson_id', getLesson);
-courseRouter.patch('/:course_id/modules/:module_id/lessons/:lesson_id', updateLesson);
-courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id', deleteLesson);
+courseRouter.get('/:course_id/modules/:module_id/lessons', publicRouteMiddleware, listLessons);
+courseRouter.post('/:course_id/modules/:module_id/lessons', authMiddleware, requirePermission('course:write'), createLesson);
+courseRouter.get('/:course_id/modules/:module_id/lessons/:lesson_id', publicRouteMiddleware, getLesson);
+courseRouter.patch('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), updateLesson);
+courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), deleteLesson);
 
 export default courseRouter;

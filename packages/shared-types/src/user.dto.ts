@@ -26,3 +26,10 @@ export interface UpdateUserDTO {
     last_name?: string;
     username?: string;
 }
+
+export interface UserSummaryDTO {
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+}

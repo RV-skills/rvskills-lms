@@ -6,3 +6,4 @@ export type { AuthTokenDTO, RefreshTokenDTO } from "./auth.dto";
 export type { CourseDTO, CourseFacultyDTO } from "./course.types"
 export type { ModuleDTO } from "./module.types"
 export type { LessonDTO, ContentMetadataDTO } from "./lesson.types"
+export type { UserSummaryDTO } from "./user.dto";
