@@ -7,8 +7,9 @@ import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
 export const enrollCourse = catchAsync(async (req: Request, res: Response) => {
-    const { student_id, course_id } = EnrollCourseSchema.parse(req.body);
-    const enrollment = await enrollmentService.enrollCourse(student_id, course_id, DEFAULT_TENANT_ID);
+    const authReq = req as AuthenticatedRequest;
+    const { course_id } = EnrollCourseSchema.parse(req.body);
+    const enrollment = await enrollmentService.enrollCourse(authReq.user!.user_id, course_id, DEFAULT_TENANT_ID);
     res.status(201).json({
         success: true,
         message: "Enrolled successfully",
@@ -28,8 +29,9 @@ export const bulkEnrollCourse = catchAsync(async (req: Request, res: Response) =
 });
 
 export const dropCourse = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     const enrollment_id = req.params.enrollment_id as string;
-    const enrollment = await enrollmentService.dropCourse(enrollment_id);
+    const enrollment = await enrollmentService.dropCourse(enrollment_id, authReq.user!.user_id);
     res.status(200).json({
         success: true,
         message: "Enrollment dropped successfully",

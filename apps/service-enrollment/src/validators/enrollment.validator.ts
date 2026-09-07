@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const EnrollCourseSchema = z.object({
-    student_id: z.string().uuid("Invalid student_id"),
     course_id: z.string().uuid("Invalid course_id"),
 });
 

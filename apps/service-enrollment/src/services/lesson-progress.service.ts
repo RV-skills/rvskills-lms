@@ -2,7 +2,7 @@ import  { prisma } from "../db/prisma";
 import { lessonProgressRepository } from "../repositories/lesson-progress.repository";
 import { enrollmentRepository } from "../repositories/enrollment.repository";
 import { courseServiceClient } from "../clients/course-service.client";
-import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { NotFoundError, ValidationError, ForbiddenError } from "@rv-lms/shared-utils";
 import { EnrollmentStatus } from "../generated/prisma/enums";
 
 const courseLessonCountCache = new Map<string, {count: number; expiresAt: number }>();
@@ -24,13 +24,15 @@ async function getTotalLessonCount(course_id: string): Promise<number> {
 }
 
 export const lessonProgressService = {
-    async markLessonComplete(enrollment_id: string, lesson_id: string) {
+    async markLessonComplete(enrollment_id: string, lesson_id: string, student_id: string) {
         const enrollment = await enrollmentRepository.findById(enrollment_id);
 
         if(!enrollment) {
             throw new NotFoundError("Enrollment not found");
         }
-
+        if(enrollment.student_id !== student_id) {
+            throw new ForbiddenError("You do not have permission to update this enrollment");
+        }
         if(enrollment.status !== EnrollmentStatus.ACTIVE) {
             throw new ValidationError("Cannot update progress on an inactive enrollment");
         }

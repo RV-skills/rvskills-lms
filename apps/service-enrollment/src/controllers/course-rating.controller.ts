@@ -2,13 +2,15 @@ import { Request, Response } from "express";
 import { courseRatingService } from "../services/course-rating.service";
 import { catchAsync } from "../utils/catch-async";
 import { SubmitRatingSchema, UpdateRatingSchema } from "../validators/course-rating.validator";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
 export const submitRating = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     const enrollment_id = req.params.enrollment_id as string;
     const { stars, comment } = SubmitRatingSchema.parse(req.body);
-    const rating = await courseRatingService.submitRating(enrollment_id, stars, comment);
+    const rating = await courseRatingService.submitRating(enrollment_id, authReq.user!.user_id, stars, comment);
     res.status(201).json({
         success: true,
         message: "Rating submitted successfully",
@@ -17,9 +19,10 @@ export const submitRating = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateRating = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     const enrollment_id = req.params.enrollment_id as string;
     const data = UpdateRatingSchema.parse(req.body);
-    const rating = await courseRatingService.updateRating(enrollment_id, data);
+    const rating = await courseRatingService.updateRating(enrollment_id, authReq.user!.user_id, data);
     res.status(200).json({
         success: true,
         data: rating,
