@@ -3,6 +3,7 @@ import { enrollmentRepository } from "../repositories/enrollment.repository";
 import { courseServiceClient } from "../clients/course-service.client";
 import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from "@rv-lms/shared-utils";
 import { EnrollmentStatus } from "../generated/prisma/enums";
+import { lessonProgressService } from "./lesson-progress.service";
 
 export const enrollmentService = {
     async enrollCourse(student_id: string, course_id:string, tenant_id:string) {
@@ -86,6 +87,16 @@ export const enrollmentService = {
     },
 
     async getStudentEnrollments(student_id: string, tenant_id: string) {
-        return enrollmentRepository.findByStudent(student_id, tenant_id);
+        const enrollments = await enrollmentRepository.findByStudent(student_id, tenant_id);
+
+        return Promise.all(
+            enrollments.map(async (enrollment) => {
+                const progress = await lessonProgressService.getProgress(
+                    enrollment.enrollment_id,
+                    enrollment.course_id
+                );
+                return { ...enrollment, ...progress };
+            })
+        )
     },
 };

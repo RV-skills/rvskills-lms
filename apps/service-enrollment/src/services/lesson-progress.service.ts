@@ -24,6 +24,12 @@ async function getTotalLessonCount(course_id: string): Promise<number> {
 }
 
 export const lessonProgressService = {
+    async getProgress(enrollment_id: string, course_id: string) {
+        const totalLessons = await getTotalLessonCount(course_id);
+        const completedCount = await lessonProgressRepository.count(enrollment_id);
+        return { completedCount, totalLessons };
+    },
+
     async markLessonComplete(enrollment_id: string, lesson_id: string, student_id: string) {
         const enrollment = await enrollmentRepository.findById(enrollment_id);
 
@@ -39,8 +45,7 @@ export const lessonProgressService = {
 
         await lessonProgressRepository.markComplete(enrollment_id, lesson_id);
 
-        const totalLessons = await getTotalLessonCount(enrollment.course_id);
-        const completedCount = await lessonProgressRepository.count(enrollment_id);
+        const { completedCount, totalLessons } = await lessonProgressService.getProgress(enrollment_id, enrollment.course_id);
 
         if(totalLessons > 0 && completedCount >= totalLessons) {
             await enrollmentRepository.markCompleted(enrollment_id);
