@@ -23,7 +23,7 @@ export const lessonProgressRepository = {
         return !!record;
     },
 
-    async getCompletedLessonIds(enrollment_id:string, lesson_id: string) {
+    async getCompletedLessonIds(enrollment_id:string) {
         const records = await prisma.lessonProgress.findMany({
             where: { enrollment_id },
             select: { lesson_id: true }
