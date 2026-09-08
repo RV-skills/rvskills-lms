@@ -1,12 +1,11 @@
-import { notFound } from "next/navigation";
-import { getCourseDetail, moduleDurationMins } from "@/lib/course-details";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
-interface CourseDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+import { getCourseDetail, moduleDurationMins, type CourseDetail } from "@/lib/course-details";
 
 function difficultyToTone(difficulty: string): BadgeTone {
   switch (difficulty.toLowerCase()) {
@@ -21,12 +20,28 @@ function difficultyToTone(difficulty: string): BadgeTone {
   }
 }
 
-export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const { id } = await params;
-  const course = await getCourseDetail(id);
+export default function CourseDetailPage() {
+  const params = useParams();
+  const courseId = params.id as string;
+  const [course, setCourse] = useState<CourseDetail | null | undefined>(undefined);
 
-  if (!course) {
-    notFound();
+  useEffect(() => {
+    getCourseDetail(courseId).then(setCourse);
+  }, [courseId]);
+
+  if (course === undefined) {
+    return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
+  }
+
+  if (course === null) {
+    return (
+      <main className="p-10 text-center">
+        <h1 className="text-xl text-neutral-900">Course not found</h1>
+        <p className="mt-2 text-sm text-neutral-500">
+          This course may have been removed or is no longer available.
+        </p>
+      </main>
+    );
   }
 
   return (
