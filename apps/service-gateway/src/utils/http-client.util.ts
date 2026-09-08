@@ -2,7 +2,7 @@ import { serverConfig } from "../config";
 import { getCorrelationId } from "./helpers/request.helpers";
 import { BadGatewayError, GatewayTimeoutError } from "@rv-lms/shared-utils";
 
-const TIMEOUT_MS = 5000;
+const TIMEOUT_MS = 15000;
 
 export async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController();

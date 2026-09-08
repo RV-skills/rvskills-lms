@@ -1,8 +1,9 @@
 import { prisma } from "../db/prisma";
 import { enrollmentRepository } from "../repositories/enrollment.repository";
 import { courseServiceClient } from "../clients/course-service.client";
-import { ConflictError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from "@rv-lms/shared-utils";
 import { EnrollmentStatus } from "../generated/prisma/enums";
+import { lessonProgressService } from "./lesson-progress.service";
 
 export const enrollmentService = {
     async enrollCourse(student_id: string, course_id:string, tenant_id:string) {
@@ -45,7 +46,7 @@ export const enrollmentService = {
         const entries = students.map((s) => ({
             student_id: s.student_id,
             course_id,
-            tenant_id: s.student_id
+            tenant_id: s.tenant_id
         }));
 
         const result = await enrollmentRepository.createMany(entries);
@@ -57,11 +58,15 @@ export const enrollmentService = {
         }
     },
 
-    async dropCourse(enrollment_id: string) {
+    async dropCourse(enrollment_id: string, student_id: string) {
         const enrollment = await enrollmentRepository.findById(enrollment_id);
 
         if(!enrollment) {
             throw new NotFoundError("Enrollment not found");
+        }
+
+        if(enrollment.student_id !== student_id) {
+            throw new ForbiddenError("You do not have permission to drop this enrollment");
         }
 
         if(enrollment.status !== EnrollmentStatus.ACTIVE) {
@@ -79,5 +84,19 @@ export const enrollmentService = {
         }
 
         return enrollment;
+    },
+
+    async getStudentEnrollments(student_id: string, tenant_id: string) {
+        const enrollments = await enrollmentRepository.findByStudent(student_id, tenant_id);
+
+        return Promise.all(
+            enrollments.map(async (enrollment) => {
+                const progress = await lessonProgressService.getProgress(
+                    enrollment.enrollment_id,
+                    enrollment.course_id
+                );
+                return { ...enrollment, ...progress };
+            })
+        )
     },
 };
