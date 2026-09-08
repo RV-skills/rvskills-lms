@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/user-session";
-import { getMyLearning, type MyLearningCourse } from "@/lib/my-learning";
+import { getMyLearning, type DashboardCourse } from "@/lib/my-learning";
 import { CourseCard } from "@/components/ui/course-card";
 
 export default function DashboardPage() {
   const { user, loading: sessionLoading } = useSession();
-  const [inProgress, setInProgress] = useState<MyLearningCourse[]>([]);
-  const [completed, setCompleted] = useState<MyLearningCourse[]>([]);
+  const [inProgress, setInProgress] = useState<DashboardCourse[]>([]);
+  const [completed, setCompleted] = useState<DashboardCourse[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    getMyLearning().then((data) => {
-      setInProgress(data.inProgress);
-      setCompleted(data.completed);
-    });
+    getMyLearning()
+      .then((data) => {
+        setInProgress(data.inProgress);
+        setCompleted(data.completed);
+      })
+      .finally(() => setDataLoading(false));
   }, [user]);
 
   if (sessionLoading) {
@@ -38,7 +41,9 @@ export default function DashboardPage() {
 
       <section className="mt-8">
         <h2 className="text-xl text-neutral-900">In progress</h2>
-        {inProgress.length === 0 ? (
+        {dataLoading ? (
+          <p className="mt-4 text-sm text-neutral-500">Loading courses...</p>
+        ) : inProgress.length === 0 ? (
           <p className="mt-4 text-sm text-neutral-500">
             You haven&apos;t started any courses yet.
           </p>
@@ -52,14 +57,14 @@ export default function DashboardPage() {
                 thumbnailUrl={course.thumbnail_url}
                 difficulty={course.difficulty}
                 instructorName={course.instructorName}
-                footer={{ kind: "progress", value: course.progress }}
+                footer={{ kind: "progress", value: course.progressPercent }}
               />
             ))}
           </div>
         )}
       </section>
 
-      {completed.length > 0 && (
+      {!dataLoading && completed.length > 0 && (
         <section className="mt-10">
           <h2 className="text-xl text-neutral-900">Completed</h2>
           <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
