@@ -57,3 +57,13 @@ export const getMyEnrollments = catchAsync(async (req: Request, res: Response) =
         data: enrollments,
     });
 });
+
+export const getCompletedLessons = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const enrollment_id = req.params.enrollment_id as string;
+    const lessonIds = await enrollmentService.getCompletedLessonIds(enrollment_id, authReq.user!.user_id);
+    res.status(200).json({
+        success: true,
+        data: lessonIds,
+    });
+});

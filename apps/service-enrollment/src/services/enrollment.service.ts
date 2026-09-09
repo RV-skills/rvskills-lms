@@ -1,5 +1,6 @@
 import { prisma } from "../db/prisma";
 import { enrollmentRepository } from "../repositories/enrollment.repository";
+import { lessonProgressRepository } from "../repositories/lesson-progress.repository";
 import { courseServiceClient } from "../clients/course-service.client";
 import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from "@rv-lms/shared-utils";
 import { EnrollmentStatus } from "../generated/prisma/enums";
@@ -98,5 +99,18 @@ export const enrollmentService = {
                 return { ...enrollment, ...progress };
             })
         )
+    },
+
+    async getCompletedLessonIds(enrollment_id: string, student_id: string) {
+        const enrollment = await enrollmentRepository.findById(enrollment_id);
+
+        if (!enrollment) {
+            throw new NotFoundError("Enrollment not found");
+        }
+        if (enrollment.student_id !== student_id) {
+            throw new ForbiddenError("You do not have permission to view this enrollment");
+        }
+
+        return lessonProgressRepository.getCompletedLessonIds(enrollment_id);
     },
 };

@@ -6,6 +6,7 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getCourseDetail, moduleDurationMins, type CourseDetail } from "@/lib/course-details";
+import Link from "next/link";
 
 function difficultyToTone(difficulty: string): BadgeTone {
   switch (difficulty.toLowerCase()) {
@@ -88,7 +89,9 @@ export default function CourseDetailPage() {
       </div>
 
       <div className="mt-8 flex justify-end border-t border-neutral-100 pt-6">
-        <Button>Enroll now</Button>
+        <Link href={`/courses/${courseId}/checkout`}>
+          <Button>Enroll now</Button>
+        </Link>
       </div>
     </main>
   );

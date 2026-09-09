@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment, getMyEnrollments } from "../controllers/enrollment.controller";
+import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment, getMyEnrollments, getCompletedLessons } from "../controllers/enrollment.controller";
 import { markLessonComplete } from "../controllers/lesson-progress.controller";
 import {
     submitRating,
@@ -23,6 +23,7 @@ enrollmentRouter.post("/:enrollment_id/lessons/:lesson_id/complete", authMiddlew
 // Rating routes
 enrollmentRouter.post("/:enrollment_id/rating", authMiddleware, submitRating);
 enrollmentRouter.patch("/:enrollment_id/rating", authMiddleware, updateRating);
+enrollmentRouter.get("/:enrollment_id/completed-lessons", authMiddleware, getCompletedLessons);
 enrollmentRouter.get("/courses/:course_id/ratings", listCourseRatings);
 enrollmentRouter.get("/courses/:course_id/ratings/average", getAverageRating);
 enrollmentRouter.get("/:enrollment_id", getEnrollment);
