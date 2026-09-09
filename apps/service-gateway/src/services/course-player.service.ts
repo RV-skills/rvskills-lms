@@ -1,6 +1,6 @@
 import { getCourseDetail } from "./courses.service";
-import { getCompletedLessonIds } from "./enrollment.service";
-import { NotFoundError } from "@rv-lms/shared-utils";
+import { getCompletedLessonIds, getMyEnrollments } from "./enrollment.service";
+import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 
 export interface PlayerLesson {
   lesson_id: string;
@@ -23,18 +23,23 @@ export interface CoursePlayerData {
 
 export async function getCoursePlayerData(
   course_id: string,
-  enrollment_id: string,
   accessToken: string
 ): Promise<CoursePlayerData | null> {
-  const [course, completedIds] = await Promise.all([
+  const [course, enrollments] = await Promise.all([
     getCourseDetail(course_id, accessToken),
-    getCompletedLessonIds(enrollment_id, accessToken),
+    getMyEnrollments(accessToken),
   ]);
 
   if (!course) {
     return null;
   }
 
+  const enrollment = enrollments.find((e) => e.course_id === course_id);
+  if (!enrollment) {
+    throw new ValidationError("You are not enrolled in this course");
+  }
+
+  const completedIds = await getCompletedLessonIds(enrollment.enrollment_id, accessToken);
   const completedSet = new Set(completedIds);
   let foundCurrent = false;
 
