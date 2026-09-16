@@ -43,7 +43,7 @@ async function main() {
     });
 
     const studentRole = await prisma.role.upsert({
-        where: { role_id: "role-student" },
+        where: { role_id: "role_student" },
         update: {},
         create: {
             role_id: "role_student",
@@ -69,6 +69,7 @@ async function main() {
         { permission_id: "perm-assignment-write", resource: "assignment", action: "write" },
         { permission_id: "perm-enrollment-read",  resource: "enrollment", action: "read"   },
         { permission_id: "perm-enrollment-write", resource: "enrollment", action: "write"  },
+        { permission_id: "perm-assignment-grade", resource: "assignment", action: "grade" },
     ]
 
     for( const perm of permissions ){
@@ -87,7 +88,8 @@ async function main() {
         "perm-exam-read",
         "perm-exam-write",
         "perm-assignment-read",
-        "perm-assignment-write"
+        "perm-assignment-write",
+        "perm-assignment-grade"
     ]
 
     const studentPermissions = [

@@ -1,0 +1,87 @@
+generator client {
+    provider = "prisma-client"
+    output = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum QuestionType {
+    MCQ
+    MANUAL
+}
+
+enum AttemptStatus {
+    IN_PROGRESS
+    SUBMITTED
+    PENDING_REVIEW
+    GRADED
+}
+
+model Assessment {
+    assessment_id String @id @default(uuid())
+    course_id String
+    tenant_id String
+    title String
+    passing_percentage Int
+    max_attempts Int?
+    questions Question[]
+    attempts AssessmentAttempt[]
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    @@index([tenant_id, course_id])
+}
+
+model Question {
+    question_id String @id @default(uuid())
+    assessment_id String
+    type QuestionType
+    prompt String
+    points Int @default(1)
+    order_index Int
+    is_locked Boolean @default(false)
+    options QuestionOption[]
+    answers Answer[]
+    assessment Assessment @relation(fields: [assessment_id], references: [assessment_id], onDelete: Cascade)
+    @@index([assessment_id, order_index])
+}
+
+model QuestionOption {
+    option_id String @id @default(uuid())
+    question_id String
+    text String
+    is_correct Boolean @default(false)
+    question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+}
+
+model AssessmentAttempt {
+    attempt_id String @id @default(uuid())
+    assessment_id String
+    student_id String
+    tenant_id String
+    attempt_number Int
+    status AttemptStatus @default(IN_PROGRESS)
+    score_percentage Int?
+    passed Boolean?
+    started_at DateTime @default(now())
+    submitted_at DateTime?
+    graded_at DateTime?
+    assessment Assessment @relation(fields: [assessment_id], references: [assessment_id], onDelete: Cascade)
+    answers Answer[]
+    @@unique([assessment_id, student_id, attempt_number])
+    @@index([tenant_id, student_id])
+}
+
+model Answer {
+    answer_id String @id @default(uuid())
+    attempt_id String
+    question_id String
+    selected_option_id String?
+    text_response String?
+    is_correct Boolean?
+    points_awarded Int?
+    attempt AssessmentAttempt @relation(fields: [attempt_id], references: [attempt_id], onDelete: Cascade)
+    question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+    @@unique([attempt_id, question_id])
+}
