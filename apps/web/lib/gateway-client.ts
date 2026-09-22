@@ -29,6 +29,7 @@ export async function gatewayFetch<T>(
   const res = await fetch(`${GATEWAY_URL}${path}`, {
     ...options,
     credentials: "include",
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,

@@ -9,6 +9,7 @@ import {
   getAssessmentFullController,
 } from "../../controllers/assessment.controller";
 import {
+    getMyAttemptsController,
   startAttemptController,
   submitAnswerController,
   submitAttemptController,
@@ -34,5 +35,7 @@ assessmentsRouter.get("/:assessment_id", authMiddleware, getAssessmentController
 assessmentsRouter.post("/:assessment_id/attempts", authMiddleware, startAttemptController);
 assessmentsRouter.post("/attempts/:attempt_id/answers", authMiddleware, submitAnswerController);
 assessmentsRouter.post("/attempts/:attempt_id/submit", authMiddleware, submitAttemptController);
+
+assessmentsRouter.get("/:assessment_id/attempts/mine", authMiddleware, getMyAttemptsController);
 
 export default assessmentsRouter;

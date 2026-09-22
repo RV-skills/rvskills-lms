@@ -78,4 +78,7 @@ export const assessmentService = {
 
   gradeAnswer: (answer_id: string, data: unknown, accessToken: string) =>
     forward(`/api/v1/assessments/attempts/answers/${answer_id}/grade`, "PATCH", accessToken, data),
+
+  getMyAttempts: (assessment_id: string, accessToken: string) =>
+    forward(`/api/v1/assessments/${assessment_id}/attempts/mine`, "GET", accessToken),
 };
