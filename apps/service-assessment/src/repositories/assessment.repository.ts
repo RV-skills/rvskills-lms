@@ -20,8 +20,8 @@ export const assessmentRepository = {
         });
     },
 
-    async findByCourseId(course_id: string, tenant_id: string, client: Prisma.TransactionClient = prisma) {
-        return client.assessment.findFirst({
+    async findManyByCourseId(course_id: string, tenant_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.assessment.findMany({
             where: { course_id, tenant_id },
         });
     },

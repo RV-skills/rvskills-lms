@@ -2,7 +2,7 @@ import { prisma } from "../db/prisma";
 import { Prisma } from "../generated/prisma/client";
 
 export const answerRepository = { 
-    async update (
+    async upsert (
         data: {
             attempt_id: string,
             question_id: string,
