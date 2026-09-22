@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { gatewayFetch, GatewayError } from "@/lib/gateway-client";
@@ -15,7 +14,6 @@ interface LoginResponse {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +29,7 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       if (err instanceof GatewayError) {
         setErrorMessage(err.message);

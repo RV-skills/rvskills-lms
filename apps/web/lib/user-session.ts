@@ -17,7 +17,12 @@ interface UseSessionResult {
   loading: boolean;
 }
 
-export function useSession(): UseSessionResult {
+interface UseSessionOptions {
+  redirectOnUnauthorized?: boolean;
+}
+
+export function useSession(options: UseSessionOptions = {}): UseSessionResult {
+  const { redirectOnUnauthorized = true } = options;
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +40,11 @@ export function useSession(): UseSessionResult {
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof GatewayError && err.statusCode === 401) {
-          router.push("/login");
+          if (redirectOnUnauthorized) {
+            router.push("/login");
+          } else {
+            setLoading(false);
+          }
         } else {
           setLoading(false);
         }
@@ -44,7 +53,11 @@ export function useSession(): UseSessionResult {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, redirectOnUnauthorized]);
 
   return { user, loading };
+}
+
+export async function logout(): Promise<void> {
+  await gatewayFetch("/api/v1/auth/logout", { method: "POST" });
 }
