@@ -21,6 +21,9 @@ const gatewayEnvSchema = z.object({
   SERVICE_ENROLLMENT_URL: z
     .string({ required_error: 'SERVICE_ENROLLMENT_URL is required' })
     .url(),
+  SERVICE_ASSESSMENT_URL: z
+    .string({ required_error: 'SERVICE_ASSESSMENT_URL is required' })
+    .url(),
   COOKIE_SECRET: z
     .string({ required_error: 'COOKIE_SECRET is required' })
     .min(32, 'COOKIE_SECRET should be at least 32 characters'),

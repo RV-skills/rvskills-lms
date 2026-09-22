@@ -5,6 +5,7 @@ import usersRouter from "./users.router";
 import coursesRouter from "./courses.router";
 import dashboardRouter from "./dashboard.router";
 import enrollmentsRouter from "./enrollments.router";
+import assessmentsRouter from "./assessments.router";
 
 const v1Router: Router = Router();
 
@@ -14,5 +15,6 @@ v1Router.use("/users", usersRouter);
 v1Router.use("/courses", coursesRouter);
 v1Router.use("/dashboard", dashboardRouter);
 v1Router.use("/enrollments", enrollmentsRouter);
+v1Router.use("/assessments", assessmentsRouter);
 
 export default v1Router;
