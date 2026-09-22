@@ -61,4 +61,15 @@ export const attemptRepository = {
             include: { answers: true },
         });
     },
+
+    async findByAssessmentAndStudent(
+        assessment_id: string,
+        student_id: string,
+        client: Prisma.TransactionClient = prisma
+    ) {
+        return client.assessmentAttempt.findMany({
+            where: { assessment_id, student_id },
+            orderBy: { attempt_number: "desc" },
+        });
+    },
 }

@@ -156,4 +156,8 @@ export const attemptService = {
             );
         });
     },
+
+    async getMyAttempts(assessment_id: string, student_id: string) {
+        return attemptRepository.findByAssessmentAndStudent(assessment_id, student_id);
+    },
 };

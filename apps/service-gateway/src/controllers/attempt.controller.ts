@@ -31,3 +31,13 @@ export async function submitAttemptController(req: AuthenticatedRequest, res: Re
     next(err);
   }
 }
+
+export async function getMyAttemptsController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const assessment_id = req.params.assessment_id as string;
+    const data = await assessmentService.getMyAttempts(assessment_id, req.accessToken!);
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}

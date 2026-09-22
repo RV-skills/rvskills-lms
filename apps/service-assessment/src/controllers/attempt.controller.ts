@@ -37,3 +37,13 @@ export async function submitAttemptController(req: AuthenticatedRequest, res: Re
         next(err);
     }
 }
+
+export async function getMyAttemptsController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const assessment_id = req.params.assessment_id as string;
+        const attempts = await attemptService.getMyAttempts(assessment_id, req.user!.user_id);
+        res.status(200).json({ success: true, data: attempts });
+    } catch (err) {
+        next(err);
+    }
+}
