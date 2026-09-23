@@ -52,3 +52,9 @@ export async function getCoursePlayerData(courseId: string): Promise<CoursePlaye
     throw err;
   }
 }
+
+export async function markLessonComplete(courseId: string, lessonId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/lessons/${lessonId}/complete`, {
+    method: "POST",
+  });
+}

@@ -7,6 +7,7 @@ import {
   getAverageRatingController,
   submitRatingController,
   updateRatingController,
+  markLessonCompleteController,
 } from "../../controllers/courses.controller";
 import { getCoursePlayerController } from "../../controllers/course-player.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
@@ -20,5 +21,5 @@ coursesRouter.get("/:course_id/ratings/average", publicRouteMiddleware, getAvera
 coursesRouter.post("/:course_id/ratings", authMiddleware, submitRatingController);
 coursesRouter.patch("/:course_id/ratings", authMiddleware, updateRatingController);
 coursesRouter.get("/:course_id", publicRouteMiddleware, getCourseDetailController);
-
+coursesRouter.post("/:course_id/lessons/:lesson_id/complete", authMiddleware, markLessonCompleteController);
 export default coursesRouter;

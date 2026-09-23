@@ -8,6 +8,7 @@ import {
   submitRating as submitCourseRating,
   updateRating as updateCourseRating,
 } from "../services/enrollment.service";
+import { markLessonComplete as markLessonCompleteService } from "../services/enrollment.service";
 
 export async function listCoursesController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
@@ -66,6 +67,17 @@ export async function updateRatingController(req: AuthenticatedRequest, res: Res
     const course_id = req.params.course_id as string;
     const rating = await updateCourseRating(course_id, req.body, req.accessToken!);
     res.status(200).json({ success: true, data: rating });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markLessonCompleteController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const lesson_id = req.params.lesson_id as string;
+    await markLessonCompleteService(course_id, lesson_id, req.accessToken!);
+    res.status(200).json({ success: true });
   } catch (err) {
     next(err);
   }

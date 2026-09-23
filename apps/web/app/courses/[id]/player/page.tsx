@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   getCoursePlayerData,
+  markLessonComplete,
   type CoursePlayerResult,
   type PlayerLesson,
 } from "@/lib/course-player";
@@ -33,6 +34,8 @@ export default function CoursePlayerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+
+  const [completing, setCompleting] = useState(false);
 
   const load = useCallback(() => {
     getCoursePlayerData(courseId).then(setResult);
@@ -108,6 +111,16 @@ export default function CoursePlayerPage() {
     (r) => r.resource_id === selectedResourceId
   );
 
+  async function handleMarkComplete() {
+    setCompleting(true);
+    try {
+      await markLessonComplete(courseId, displayedLesson.lesson_id);
+      load();
+    } finally {
+      setCompleting(false);
+    }
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "resources", label: "Resources" },
@@ -142,6 +155,11 @@ export default function CoursePlayerPage() {
           <p className="mt-1 text-sm text-neutral-500">
             {displayedLesson.estimated_duration_mins} min
           </p>
+        )}
+        {displayedLesson.status !== "completed" && (
+          <Button size="sm" className="mt-4" onClick={handleMarkComplete} loading={completing}>
+            Mark as complete
+          </Button>
         )}
 
         <div className="mt-6 flex gap-6 border-b border-neutral-100">
