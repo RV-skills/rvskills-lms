@@ -31,6 +31,7 @@ export default function CoursePlayerPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     getCoursePlayerData(courseId).then(setResult);
@@ -100,6 +101,8 @@ export default function CoursePlayerPage() {
   const allLessons = modules.flatMap((m) => m.lessons);
   const completedCount = allLessons.filter((l) => l.status === "completed").length;
   const progressPct = allLessons.length > 0 ? (completedCount / allLessons.length) * 100 : 0;
+  const displayedLesson =
+    allLessons.find((l) => l.lesson_id === selectedLessonId) ?? currentLesson;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
@@ -111,12 +114,23 @@ export default function CoursePlayerPage() {
   return (
     <main className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
       <div className="flex-1">
-        <div className="aspect-video w-full rounded-lg bg-neutral-900" />
+        {displayedLesson.video_url ? (
+          <video
+            key={displayedLesson.lesson_id}
+            controls
+            className="aspect-video w-full rounded-lg bg-neutral-900"
+            src={displayedLesson.video_url}
+          />
+        ) : (
+          <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-neutral-900 text-sm text-neutral-500">
+            No video available for this lesson
+          </div>
+        )}
 
-        <h2 className="mt-4 text-lg text-neutral-900">{currentLesson.title}</h2>
-        {currentLesson.estimated_duration_mins !== null && (
+        <h2 className="mt-4 text-lg text-neutral-900">{displayedLesson.title}</h2>
+        {displayedLesson.estimated_duration_mins !== null && (
           <p className="mt-1 text-sm text-neutral-500">
-            {currentLesson.estimated_duration_mins} min
+            {displayedLesson.estimated_duration_mins} min
           </p>
         )}
 
@@ -179,21 +193,22 @@ export default function CoursePlayerPage() {
               </h2>
               <div className="mt-2 flex flex-col gap-1">
                 {module.lessons.map((lesson) => (
-                  <div
+                  <button
                     key={lesson.lesson_id}
-                    className="flex items-center gap-3 rounded-md px-2 py-2"
+                    onClick={() => setSelectedLessonId(lesson.lesson_id)}
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-neutral-100"
                   >
                     <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${dotColor(lesson.status)}`} />
                     <span
                       className={
-                        lesson.lesson_id === currentLesson.lesson_id
+                        lesson.lesson_id === displayedLesson.lesson_id
                           ? "text-sm text-neutral-900"
                           : "text-sm text-neutral-500"
                       }
                     >
                       {lesson.title}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
