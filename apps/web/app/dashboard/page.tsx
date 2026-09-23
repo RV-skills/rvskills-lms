@@ -57,6 +57,8 @@ export default function DashboardPage() {
                 thumbnailUrl={course.thumbnail_url}
                 difficulty={course.difficulty}
                 instructorName={course.instructorName}
+                totalLessons={course.totalLessons}
+                totalDurationMins={null}
                 footer={{ kind: "progress", value: course.progressPercent }}
               />
             ))}
@@ -76,6 +78,8 @@ export default function DashboardPage() {
                 thumbnailUrl={course.thumbnail_url}
                 difficulty={course.difficulty}
                 instructorName={course.instructorName}
+                totalLessons={course.totalLessons}
+                totalDurationMins={null}
                 footer={{ kind: "completed" }}
               />
             ))}

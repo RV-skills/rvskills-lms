@@ -44,6 +44,14 @@ export const courseRepository = {
                 ...(filters?.is_published !== undefined && { is_published: filters.is_published }),
             },
             orderBy: { created_at: "desc" },
+            include: {
+                modules: {
+                    where: { deleted_at: null },
+                    include: {
+                        lessons: { where: { deleted_at: null } },
+                    },
+                },
+            },
         });
     },
 
