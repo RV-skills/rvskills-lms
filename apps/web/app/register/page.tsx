@@ -16,13 +16,20 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ field: string; message: string }[]>([]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors([]);
 
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters.");
       return;
     }
 
@@ -41,7 +48,11 @@ export default function RegisterPage() {
       router.push("/login?registered=true");
     } catch (err) {
       if (err instanceof GatewayError) {
-        setErrorMessage(err.message);
+        if (err.fieldErrors && err.fieldErrors.length > 0) {
+          setFieldErrors(err.fieldErrors);
+        } else {
+          setErrorMessage(err.message);
+        }
       } else {
         setErrorMessage("Something went wrong. Please try again.");
       }
@@ -86,6 +97,7 @@ export default function RegisterPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          helperText="At least 8 characters."
         />
         <FormField
           label="Confirm password"
@@ -99,6 +111,16 @@ export default function RegisterPage() {
           <p className="text-sm text-danger" role="alert">
             {errorMessage}
           </p>
+        )}
+
+        {fieldErrors.length > 0 && (
+          <ul className="flex flex-col gap-1" role="alert">
+            {fieldErrors.map((fe, i) => (
+              <li key={i} className="text-sm text-danger">
+                {fe.field}: {fe.message}
+              </li>
+            ))}
+          </ul>
         )}
 
         <Button type="submit" loading={loading}>

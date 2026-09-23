@@ -19,6 +19,7 @@ export interface PlayerLesson {
 export interface PlayerModule {
   module_id: string;
   title: string;
+  is_locked: boolean;
   lessons: PlayerLesson[];
 }
 

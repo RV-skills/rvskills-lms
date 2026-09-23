@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Gelasio } from "next/font/google";
 import "./globals.css";
-import { SidebarNav } from "@/components/sidebar-nav";
+import { AppShell } from "@/components/app-shell";
 
 const gelasio = Gelasio({
   subsets: ["latin"],
@@ -15,10 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={gelasio.variable}>
       <body>
-        <div className="flex min-h-screen">
-          <SidebarNav />
-          <div className="flex-1 overflow-x-hidden">{children}</div>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

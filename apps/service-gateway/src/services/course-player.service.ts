@@ -21,6 +21,7 @@ export interface PlayerLesson {
 export interface PlayerModule {
   module_id: string;
   title: string;
+  is_locked: boolean;
   lessons: PlayerLesson[];
 }
 
@@ -52,10 +53,12 @@ export async function getCoursePlayerData(
   const completedSet = new Set(completedIds);
   let foundCurrent = false;
 
-  const modules: PlayerModule[] = course.modules.map((module) => ({
-    module_id: module.module_id,
-    title: module.title,
-    lessons: module.lessons.map((lesson) => {
+    let previousModuleComplete = true;
+
+  const modules: PlayerModule[] = course.modules.map((module) => {
+    const moduleUnlocked = previousModuleComplete;
+
+    const lessons = module.lessons.map((lesson) => {
       const isCompleted = completedSet.has(lesson.lesson_id);
       let status: PlayerLesson["status"];
 
@@ -77,8 +80,17 @@ export async function getCoursePlayerData(
         resources: lesson.resources,
         status,
       };
-    }),
-  }));
+    });
+
+    previousModuleComplete = lessons.every((l) => l.status === "completed");
+
+    return {
+      module_id: module.module_id,
+      title: module.title,
+      is_locked: !moduleUnlocked,
+      lessons,
+    };
+  });
 
   const allLessons = modules.flatMap((m) => m.lessons);
   const currentLesson = allLessons.find((l) => l.status === "current") ?? allLessons[0];
