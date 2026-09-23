@@ -16,6 +16,7 @@ export interface LessonDTO {
     lesson_id: string;
     module_id: string;
     title: string;
+    description: string | null;
     content_type: string;
     order_index: number;
     is_preview: boolean;

@@ -32,6 +32,7 @@ export interface CourseDetail {
       is_preview: boolean;
       estimated_duration_mins: number | null;
       video_url: string | null;
+      description: string | null;
     }[];
   }[];
 }
@@ -127,7 +128,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
         is_preview: l.is_preview,
         estimated_duration_mins: l.estimated_duration_mins,
         video_url: l.content_metadata?.video_url ?? null,
-
+        description: l.description
       })),
     })),
   };

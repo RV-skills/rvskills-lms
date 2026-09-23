@@ -7,6 +7,7 @@ export interface PlayerLesson {
   title: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
+  description: string | null;
   status: "completed" | "current" | "upcoming";
 }
 
@@ -65,6 +66,7 @@ export async function getCoursePlayerData(
         title: lesson.title,
         estimated_duration_mins: lesson.estimated_duration_mins,
         video_url: lesson.video_url,
+        description: lesson.description,
         status,
       };
     }),

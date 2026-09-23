@@ -13,6 +13,7 @@ const mapToLessonDTO = (lesson: any): LessonDTO => ({
     created_at: lesson.created_at,
     updated_at: lesson.updated_at,
     content_metadata: lesson.content_metadata ?? null,
+    description: lesson.description
 });
 
 export const lessonService = {

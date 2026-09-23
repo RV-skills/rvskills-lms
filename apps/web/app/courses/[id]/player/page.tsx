@@ -153,7 +153,7 @@ export default function CoursePlayerPage() {
         <div className="mt-6">
           {activeTab === "overview" && (
             <p className="text-sm text-neutral-500">
-              Lesson overview isn&apos;t available yet. Check back soon.
+              {displayedLesson.description ?? "No overview has been added for this lesson yet."}
             </p>
           )}
           {activeTab === "resources" && (

@@ -5,6 +5,7 @@ export interface PlayerLesson {
   title: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
+  description: string | null;
   status: "completed" | "current" | "upcoming";
 }
 
