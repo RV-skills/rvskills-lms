@@ -29,3 +29,5 @@ Thumbs.db
 # Next.js
 .next/
 cookies.txt
+
+apps/web/public/videos/

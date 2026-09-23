@@ -100,6 +100,7 @@ model ContentMetadata {
   content_id String @id @default(uuid())
   lesson_id String @unique 
   s3_key String
+  video_url String?
   mime_type String
   file_size Int
   duration_secs Int?

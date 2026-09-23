@@ -1,7 +1,8 @@
 export interface ContentMetadataDTO {
     content_id: string;
     lesson_id: string;
-    s3_key: string;
+    s3_key: string | null;
+    video_url: string | null;
     mime_type: string;
     file_size: number;
     duration_secs: number | null;

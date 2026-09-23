@@ -9,14 +9,15 @@ const config: Config  = {
         extend: {
             colors: {
                 primary: {
-                    DEFAULT: "#0f6e56",
+                    DEFAULT: "#007979",
                     50: "#E1F5EE",
                     100: "#9FE1CB",
                     400: "#24B1B1",
-                    500: "#0F6E56",
-                    600: "#0B5A46",
-                    700: "#085041",
+                    500: "#007979",
+                    600: "#005C5C",
+                    700: "#004545",
                 },
+                accent: "#FFE2AF",
                 neutral: {
                     50: "#FAF9F6",
                     100: "#F1EFE8",
@@ -24,12 +25,15 @@ const config: Config  = {
                     900: "#2C2C2A",
                 },
                 success: "#639922",
-                    warning: "#BA7517",
+                    warning: "#E37434",
                     danger: {
                     DEFAULT: "#791F1F",
                     hover: "#A32D2D",
                     light: "#F7C1C1",
                 },
+            },
+            fontFamily: {
+                sans: ["var(--font-gelasio)", "Georgia", "serif"],
             },
             fontSize: {
                 xs: ["12px", { lineHeight: "1.4" }],
