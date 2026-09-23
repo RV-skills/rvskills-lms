@@ -23,4 +23,6 @@ export interface CourseDTO {
     updated_at: Date;
     faculty?: CourseFacultyDTO[];
     modules?: ModuleDTO[];
+    total_lessons?: number;
+    total_duration_mins?: number | null;
 }

@@ -4,23 +4,32 @@ import { NotFoundError } from "@rv-lms/shared-utils";
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
-const mapToCourseDTO = (course: any): CourseDTO => ({
-    course_id: course.course_id,
-    tenant_id: course.tenant_id,
-    title: course.title,
-    description: course.description,
-    thumbnail_url: course.thumbnail_url,
-    language:  course.language,
-    difficulty: course.difficulty,
-    status:  course.status,
-    is_published: course.is_published,
-    published_at: course.published_at,
-    max_seats: course.max_seats,
-    created_at: course.created_at,
-    updated_at: course.updated_at,
-    faculty: course.faculty ?? undefined,
-    modules: course.modules ?? undefined,
-})
+const mapToCourseDTO = (course: any): CourseDTO => {
+    const allLessons = (course.modules ?? []).flatMap((m: any) => m.lessons ?? []);
+    const durations = allLessons
+        .map((l: any) => l.estimated_duration_mins)
+        .filter((d: any): d is number => d !== null && d !== undefined);
+
+    return {
+        course_id: course.course_id,
+        tenant_id: course.tenant_id,
+        title: course.title,
+        description: course.description,
+        thumbnail_url: course.thumbnail_url,
+        language:  course.language,
+        difficulty: course.difficulty,
+        status:  course.status,
+        is_published: course.is_published,
+        published_at: course.published_at,
+        max_seats: course.max_seats,
+        created_at: course.created_at,
+        updated_at: course.updated_at,
+        faculty: course.faculty ?? undefined,
+        modules: course.modules ?? undefined,
+        total_lessons: allLessons.length,
+        total_duration_mins: durations.length > 0 ? durations.reduce((a: number, b: number) => a + b, 0) : null,
+    };
+}
 
 export const courseService = {
     async createCourse(data: CreateCourseInput): Promise<CourseDTO> {

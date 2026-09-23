@@ -19,6 +19,12 @@ function difficultyToTone(difficulty: string): BadgeTone {
   }
 }
 
+function formatDuration(mins: number | null): string | null {
+  if (mins === null || mins === 0) return null;
+  const hours = Math.round(mins / 60);
+  return hours > 0 ? `${hours}h` : `${mins} min`;
+}
+
 export interface CourseCardProps {
   href: string;
   title: string;
@@ -26,6 +32,8 @@ export interface CourseCardProps {
   difficulty: string;
   instructorName: string;
   instructorAvatarUrl?: string | null;
+  totalLessons: number;
+  totalDurationMins: number | null;
   footer:
     | { kind: "enroll" }
     | { kind: "progress"; value: number }
@@ -40,9 +48,13 @@ export function CourseCard({
   difficulty,
   instructorName,
   instructorAvatarUrl,
+  totalLessons,
+  totalDurationMins,
   footer,
   className,
 }: CourseCardProps) {
+  const duration = formatDuration(totalDurationMins);
+
   return (
     <div
       className={cn(
@@ -67,6 +79,14 @@ export function CourseCard({
         <div className="flex items-center gap-2">
           <Avatar name={instructorName} src={instructorAvatarUrl} size="sm" />
           <span className="text-sm text-neutral-500">{instructorName}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-neutral-500">
+          <span>
+            {duration && `${duration} \u00b7 `}
+            {totalLessons} lesson{totalLessons !== 1 ? "s" : ""}
+          </span>
+          <span>Free</span>
         </div>
 
         {footer.kind === "enroll" && <Button size="sm">Enroll now</Button>}

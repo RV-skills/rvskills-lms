@@ -48,6 +48,8 @@ export default function CatalogPage() {
               thumbnailUrl={course.thumbnail_url}
               difficulty={course.difficulty}
               instructorName={course.instructorName}
+              totalLessons={course.total_lessons}
+              totalDurationMins={course.total_duration_mins}
               footer={{ kind: "enroll" }}
             />
           ))}

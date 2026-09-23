@@ -11,6 +11,8 @@ export interface AggregatedCourse {
   thumbnail_url: string | null;
   difficulty: string;
   instructorName: string;
+  total_lessons: number;
+  total_duration_mins: number | null;
 }
 
 export interface CourseDetail {
@@ -75,6 +77,8 @@ export async function listCourses(accessToken?: string): Promise<AggregatedCours
       thumbnail_url: course.thumbnail_url,
       difficulty: course.difficulty,
       instructorName: instructorName ?? "Unknown instructor",
+      total_lessons: course.total_lessons ?? 0,
+      total_duration_mins: course.total_duration_mins ?? null,
     };
   });
 }

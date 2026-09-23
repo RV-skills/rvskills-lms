@@ -7,6 +7,8 @@ export interface CourseListItem {
   thumbnail_url: string | null;
   difficulty: string;
   instructorName: string;
+  total_lessons: number;
+  total_duration_mins: number | null;
 }
 
 export interface CourseFilters {
