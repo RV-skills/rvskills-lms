@@ -12,6 +12,15 @@ export interface ContentMetadataDTO {
     created_At: Date;
 }
 
+export interface LessonResourceDTO {
+    resource_id: string;
+    lesson_id: string;
+    title: string;
+    pdf_url: string;
+    order_index: number;
+    created_at: Date;
+}
+
 export interface LessonDTO {
     lesson_id: string;
     module_id: string;
@@ -24,4 +33,5 @@ export interface LessonDTO {
     created_at: Date;
     updated_at: Date;
     content_metadata?: ContentMetadataDTO | null;
+    resources?: LessonResourceDTO[];
 }

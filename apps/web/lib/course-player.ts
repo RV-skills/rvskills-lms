@@ -1,11 +1,18 @@
 import { gatewayFetch, GatewayError } from "./gateway-client";
 
+export interface PlayerResource {
+  resource_id: string;
+  title: string;
+  pdf_url: string;
+}
+
 export interface PlayerLesson {
   lesson_id: string;
   title: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
   description: string | null;
+  resources: PlayerResource[];
   status: "completed" | "current" | "upcoming";
 }
 

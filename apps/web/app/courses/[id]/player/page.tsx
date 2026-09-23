@@ -32,6 +32,7 @@ export default function CoursePlayerPage() {
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     getCoursePlayerData(courseId).then(setResult);
@@ -103,6 +104,9 @@ export default function CoursePlayerPage() {
   const progressPct = allLessons.length > 0 ? (completedCount / allLessons.length) * 100 : 0;
   const displayedLesson =
     allLessons.find((l) => l.lesson_id === selectedLessonId) ?? currentLesson;
+  const displayedResource = displayedLesson.resources.find(
+    (r) => r.resource_id === selectedResourceId
+  );
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
@@ -114,7 +118,13 @@ export default function CoursePlayerPage() {
   return (
     <main className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
       <div className="flex-1">
-        {displayedLesson.video_url ? (
+        {displayedResource ? (
+          <iframe
+            key={displayedResource.resource_id}
+            src={displayedResource.pdf_url}
+            className="aspect-video w-full rounded-lg border border-neutral-100 bg-white"
+          />
+        ) : displayedLesson.video_url ? (
           <video
             key={displayedLesson.lesson_id}
             controls
@@ -157,9 +167,27 @@ export default function CoursePlayerPage() {
             </p>
           )}
           {activeTab === "resources" && (
-            <p className="text-sm text-neutral-500">
-              No resources have been added for this lesson yet.
-            </p>
+            displayedLesson.resources.length === 0 ? (
+              <p className="text-sm text-neutral-500">
+                No resources have been added for this lesson yet.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {displayedLesson.resources.map((resource) => (
+                  <button
+                    key={resource.resource_id}
+                    onClick={() => setSelectedResourceId(resource.resource_id)}
+                    className={`flex items-center justify-between rounded-md px-4 py-3 text-left text-sm ${
+                      resource.resource_id === selectedResourceId
+                        ? "bg-primary-100 text-primary-700"
+                        : "bg-neutral-50 text-neutral-900 hover:bg-neutral-100"
+                    }`}
+                  >
+                    {resource.title}
+                  </button>
+                ))}
+              </div>
+            )
           )}
           {activeTab === "discussion" && (
             <p className="text-sm text-neutral-500">
@@ -195,7 +223,10 @@ export default function CoursePlayerPage() {
                 {module.lessons.map((lesson) => (
                   <button
                     key={lesson.lesson_id}
-                    onClick={() => setSelectedLessonId(lesson.lesson_id)}
+                    onClick={() => {
+                      setSelectedLessonId(lesson.lesson_id);
+                      setSelectedResourceId(null);
+                    }}
                     className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-neutral-100"
                   >
                     <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${dotColor(lesson.status)}`} />

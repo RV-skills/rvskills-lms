@@ -95,6 +95,18 @@ model Lesson {
 
   module Module @relation(fields: [module_id], references: [module_id])
   content_metadata  ContentMetadata?
+  resources LessonResource[]
+}
+
+model LessonResource {
+  resource_id String @id @default(uuid())
+  lesson_id String
+  title String
+  pdf_url String
+  order_index Int @default(0)
+  created_at DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lesson_id], references: [lesson_id])
 }
 
 model ContentMetadata {

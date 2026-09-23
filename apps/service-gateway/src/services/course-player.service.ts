@@ -2,12 +2,19 @@ import { getCourseDetail } from "./courses.service";
 import { getCompletedLessonIds, getMyEnrollments } from "./enrollment.service";
 import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 
+export interface PlayerResource {
+  resource_id: string;
+  title: string;
+  pdf_url: string;
+}
+
 export interface PlayerLesson {
   lesson_id: string;
   title: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
   description: string | null;
+  resources: PlayerResource[];
   status: "completed" | "current" | "upcoming";
 }
 
@@ -67,6 +74,7 @@ export async function getCoursePlayerData(
         estimated_duration_mins: lesson.estimated_duration_mins,
         video_url: lesson.video_url,
         description: lesson.description,
+        resources: lesson.resources,
         status,
       };
     }),

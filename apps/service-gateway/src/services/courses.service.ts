@@ -33,6 +33,7 @@ export interface CourseDetail {
       estimated_duration_mins: number | null;
       video_url: string | null;
       description: string | null;
+      resources: { resource_id: string; title: string; pdf_url: string }[];
     }[];
   }[];
 }
@@ -122,13 +123,18 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
       module_id: m.module_id,
       title: m.title,
       is_locked: m.is_locked,
-      lessons: m.lessons.map((l) => ({
+         lessons: m.lessons.map((l) => ({
         lesson_id: l.lesson_id,
         title: l.title,
         is_preview: l.is_preview,
         estimated_duration_mins: l.estimated_duration_mins,
         video_url: l.content_metadata?.video_url ?? null,
-        description: l.description
+        description: l.description,
+        resources: (l.resources ?? []).map((r) => ({
+          resource_id: r.resource_id,
+          title: r.title,
+          pdf_url: r.pdf_url,
+        })),
       })),
     })),
   };
