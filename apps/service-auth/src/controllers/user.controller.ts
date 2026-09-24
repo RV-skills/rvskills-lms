@@ -95,3 +95,27 @@ export const getUsersByIds = catchAsync(async (req: Request, res: Response) => {
     data: users,
   });
 });
+
+export const listUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await userService.listAllUsers();
+  res.status(200).json({ success: true, data: users });
+});
+
+export const listRoles = catchAsync(async (req: Request, res: Response) => {
+  const roles = await userService.listAllRoles();
+  res.status(200).json({ success: true, data: roles });
+});
+
+export const assignRole = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const { role_id } = req.body as { role_id: string };
+  const user = await userService.assignRoleToUser(user_id, role_id);
+  res.status(200).json({ success: true, data: user });
+});
+
+export const removeRole = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const role_id = req.params.role_id as string;
+  const user = await userService.removeRoleFromUser(user_id, role_id);
+  res.status(200).json({ success: true, data: user });
+});

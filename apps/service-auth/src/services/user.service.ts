@@ -121,4 +121,39 @@ export const userService = {
         return userRepository.findManyByIds(user_ids, DEFAULT_TENANT_ID);
     },
 
+        async listAllUsers(): Promise<any[]> {
+        return userRepository.findAll(DEFAULT_TENANT_ID);
+    },
+
+    async listAllRoles(): Promise<{ role_id: string; role_name: string }[]> {
+        return userRepository.findAllRoles(DEFAULT_TENANT_ID);
+    },
+
+    async assignRoleToUser(user_id: string, role_id: string): Promise<UserDTO> {
+        const user = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!user) {
+            throw new NotFoundError("User not found");
+        }
+
+        const alreadyHasRole = await userRepository.hasRole(user_id, role_id);
+        if (!alreadyHasRole) {
+            await userRepository.assignRole(user_id, role_id);
+        }
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return mapToUserDTO(updated);
+    },
+
+    async removeRoleFromUser(user_id: string, role_id: string): Promise<UserDTO> {
+        const user = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!user) {
+            throw new NotFoundError("User not found");
+        }
+
+        await userRepository.removeRole(user_id, role_id);
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return mapToUserDTO(updated);
+    },
+
 }

@@ -210,4 +210,45 @@ export const userRepository = {
         });
     },
 
+    async findAll(tenant_id: string) {
+        return prisma.user.findMany({
+            where: { tenant_id, deleted_at: null },
+            select: {
+                user_id: true,
+                first_name: true,
+                last_name: true,
+                username: true,
+                email: true,
+                status: true,
+                user_roles: {
+                    select: {
+                        role: {
+                            select: { role_id: true, role_name: true },
+                        },
+                    },
+                },
+            },
+            orderBy: { created_at: "desc" },
+        });
+    },
+
+    async findAllRoles(tenant_id: string) {
+        return prisma.role.findMany({
+            where: { tenant_id },
+            select: { role_id: true, role_name: true },
+        });
+    },
+
+    async removeRole(user_id: string, role_id: string) {
+        return prisma.userRole.deleteMany({
+            where: { user_id, role_id },
+        });
+    },
+
+    async hasRole(user_id: string, role_id: string) {
+        const existing = await prisma.userRole.findFirst({
+            where: { user_id, role_id },
+        });
+        return !!existing;
+    },
 };
