@@ -15,6 +15,16 @@ export interface AdminUser {
   user_roles: { role: AdminRole }[];
 }
 
+export interface AdminCourse {
+  course_id: string;
+  title: string;
+  difficulty: string;
+  status: string;
+  is_published: boolean;
+  instructorName: string;
+}
+
+
 export interface CreatedUserResult {
   user: AdminUser;
   generated_password: string;
@@ -85,4 +95,16 @@ export async function removeRole(userId: string, roleId: string): Promise<void> 
   await gatewayFetch(`/api/v1/users/${userId}/roles/${roleId}`, {
     method: "DELETE",
   });
+}
+
+export async function listCoursesForAdmin(): Promise<AdminCourse[]> {
+  return gatewayFetch<AdminCourse[]>("/api/v1/courses/admin/all");
+}
+
+export async function publishCourse(courseId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/publish`, { method: "PATCH" });
+}
+
+export async function unpublishCourse(courseId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/unpublish`, { method: "PATCH" });
 }

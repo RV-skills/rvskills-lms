@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 
 const LINKS = [
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/courses", label: "Courses" },
 ];
 
 export function AdminSidebarNav() {

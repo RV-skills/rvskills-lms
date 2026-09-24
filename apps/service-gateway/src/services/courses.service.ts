@@ -38,6 +38,15 @@ export interface CourseDetail {
   }[];
 }
 
+export interface AdminCourse {
+  course_id: string;
+  title: string;
+  difficulty: string;
+  status: string;
+  is_published: boolean;
+  instructorName: string;
+}
+
 async function fetchCoursesFromService(accessToken?: string): Promise<CourseDTO[]> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses`, {
     method: "GET",
@@ -138,4 +147,54 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
       })),
     })),
   };
+}
+
+export async function listCoursesForAdmin(accessToken: string): Promise<AdminCourse[]> {
+  const courses = await fetchCoursesFromService(accessToken);
+
+  const facultyIds = courses.flatMap((c) => c.faculty ?? []).map((f) => f.faculty_id);
+  const users = facultyIds.length > 0 ? await getUsersByIds(facultyIds, accessToken) : [];
+  const nameById = new Map(users.map((u) => [u.user_id, `${u.first_name} ${u.last_name}`]));
+
+  return courses.map((course) => {
+    const firstFacultyId = course.faculty?.[0]?.faculty_id;
+    const instructorName = firstFacultyId ? nameById.get(firstFacultyId) : undefined;
+
+    return {
+      course_id: course.course_id,
+      title: course.title,
+      difficulty: course.difficulty,
+      status: course.status,
+      is_published: course.is_published,
+      instructorName: instructorName ?? "Unassigned",
+    };
+  });
+}
+
+export async function publishCourse(course_id: string, accessToken: string): Promise<void> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}/publish`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for publish`);
+  }
+}
+
+export async function unpublishCourse(course_id: string, accessToken: string): Promise<void> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}/unpublish`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for unpublish`);
+  }
 }
