@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getCourseDetail, type CourseDetail } from "@/lib/course-details";
 import { enrollInCourse } from "@/lib/enrollment";
+import { useSession } from "@/lib/user-session";
 
 function difficultyToTone(difficulty: string): BadgeTone {
   switch (difficulty.toLowerCase()) {
@@ -29,6 +30,13 @@ export default function CheckoutPage() {
   const [course, setCourse] = useState<CourseDetail | null | undefined>(undefined);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
+
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      router.push(`/login?redirect=/courses/${courseId}/checkout`);
+    }
+  }, [sessionLoading, user, router, courseId]);
 
   useEffect(() => {
     getCourseDetail(courseId).then(setCourse);
@@ -51,6 +59,10 @@ export default function CheckoutPage() {
   }
 
   if (course === undefined) {
+    return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
+  }
+
+  if (sessionLoading || (!user && !sessionLoading)) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
   }
 

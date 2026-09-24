@@ -5,11 +5,22 @@ import { useSearchParams } from "next/navigation";
 import { getCourses, type CourseListItem } from "@/lib/courses";
 import { CourseCard } from "@/components/ui/course-card";
 import { FilterBar } from "@/components/catalog/filter-bar";
+import { useSession } from "@/lib/user-session";
+import { getMyEnrollments } from "@/lib/enrollment";
 
 export default function CatalogPage() {
   const searchParams = useSearchParams();
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useSession({ redirectOnUnauthorized: false });
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    getMyEnrollments().then((enrollments) => {
+      setEnrolledCourseIds(new Set(enrollments.map((e) => e.course_id)));
+    });
+  }, [user]);
 
   useEffect(() => {
     setLoading(true);
@@ -50,7 +61,11 @@ export default function CatalogPage() {
               instructorName={course.instructorName}
               totalLessons={course.total_lessons}
               totalDurationMins={course.total_duration_mins}
-              footer={{ kind: "enroll" }}
+              footer={
+                enrolledCourseIds.has(course.course_id)
+                  ? { kind: "continue" }
+                  : { kind: "enroll" }
+              }
             />
           ))}
         </div>
