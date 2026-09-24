@@ -15,15 +15,30 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[] | undefined>(undefined);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const load = useCallback(() => {
-    listAllUsers().then(setUsers);
+  const loadRoles = useCallback(() => {
     listAllRoles().then(setRoles);
   }, []);
 
+  const loadUsers = useCallback(() => {
+    listAllUsers({
+      search: search || undefined,
+      role_id: roleFilter || undefined,
+      status: statusFilter || undefined,
+    }).then(setUsers);
+  }, [search, roleFilter, statusFilter]);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    loadRoles();
+  }, [loadRoles]);
+
+  useEffect(() => {
+    const timeout = setTimeout(loadUsers, 300);
+    return () => clearTimeout(timeout);
+  }, [loadUsers]);
 
   async function handleToggle(user: AdminUser, roleId: string, currentlyHasRole: boolean) {
     const key = `${user.user_id}:${roleId}`;
@@ -34,7 +49,7 @@ export default function AdminUsersPage() {
       } else {
         await assignRole(user.user_id, roleId);
       }
-      load();
+      loadUsers();
     } finally {
       setUpdatingKey(null);
     }
@@ -46,8 +61,41 @@ export default function AdminUsersPage() {
       <main className="flex-1 overflow-x-hidden px-8 py-10">
         <h1 className="text-2xl text-neutral-900">Users</h1>
 
+        <div className="mt-6 flex gap-3">
+          <input
+            type="text"
+            placeholder="Search by name, email, or username"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 rounded-md border border-neutral-100 px-3 py-2 text-sm"
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+          >
+            <option value="">All roles</option>
+            {roles.map((role) => (
+              <option key={role.role_id} value={role.role_id}>
+                {role.role_name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
         {users === undefined ? (
           <p className="mt-6 text-sm text-neutral-500">Loading...</p>
+        ) : users.length === 0 ? (
+          <p className="mt-6 text-sm text-neutral-500">No users match your search.</p>
         ) : (
           <div className="mt-6 overflow-x-auto rounded-lg border border-neutral-100">
             <table className="w-full text-left text-sm">

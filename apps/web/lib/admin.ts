@@ -15,8 +15,17 @@ export interface AdminUser {
   user_roles: { role: AdminRole }[];
 }
 
-export async function listAllUsers(): Promise<AdminUser[]> {
-  return gatewayFetch<AdminUser[]>("/api/v1/users/all");
+export async function listAllUsers(filters?: {
+  search?: string;
+  role_id?: string;
+  status?: string;
+}): Promise<AdminUser[]> {
+  const params = new URLSearchParams();
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.role_id) params.set("role_id", filters.role_id);
+  if (filters?.status) params.set("status", filters.status);
+  const query = params.toString();
+  return gatewayFetch<AdminUser[]>(`/api/v1/users/all${query ? `?${query}` : ""}`);
 }
 
 export async function listAllRoles(): Promise<AdminRole[]> {
