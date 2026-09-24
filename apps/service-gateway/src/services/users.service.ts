@@ -18,14 +18,26 @@ export interface RoleSummary {
   role_name: string;
 }
 
-export async function listAllUsers(accessToken: string): Promise<AdminUserSummary[]> {
-  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/all`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...correlationHeaders(),
-    },
-  });
+export async function listAllUsers(
+  accessToken: string,
+  filters?: { search?: string; role_id?: string; status?: string }
+): Promise<AdminUserSummary[]> {
+  const params = new URLSearchParams();
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.role_id) params.set("role_id", filters.role_id);
+  if (filters?.status) params.set("status", filters.status);
+  const query = params.toString();
+
+  const res = await fetchWithTimeout(
+    `${serverConfig.SERVICE_AUTH_URL}/api/v1/users/all${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...correlationHeaders(),
+      },
+    }
+  );
 
   if (!res.ok) {
     throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);

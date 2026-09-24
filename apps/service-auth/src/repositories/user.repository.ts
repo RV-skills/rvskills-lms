@@ -210,9 +210,27 @@ export const userRepository = {
         });
     },
 
-    async findAll(tenant_id: string) {
+    async findAll(
+        tenant_id: string,
+        filters?: { search?: string; role_id?: string; status?: string }
+    ) {
         return prisma.user.findMany({
-            where: { tenant_id, deleted_at: null },
+            where: {
+                tenant_id,
+                deleted_at: null,
+                ...(filters?.status && { status: filters.status }),
+                ...(filters?.search && {
+                    OR: [
+                        { first_name: { contains: filters.search, mode: "insensitive" } },
+                        { last_name: { contains: filters.search, mode: "insensitive" } },
+                        { email: { contains: filters.search, mode: "insensitive" } },
+                        { username: { contains: filters.search, mode: "insensitive" } },
+                    ],
+                }),
+                ...(filters?.role_id && {
+                    user_roles: { some: { role_id: filters.role_id } },
+                }),
+            },
             select: {
                 user_id: true,
                 first_name: true,
