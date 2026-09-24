@@ -5,6 +5,8 @@ import {
   listAllRoles,
   assignRoleToUser,
   removeRoleFromUser,
+  adminCreateUser,
+  adminBatchCreateStudents,
 } from "../services/users.service";
 
 export function meController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -50,6 +52,25 @@ export async function removeRoleController(req: AuthenticatedRequest, res: Respo
     const role_id = req.params.role_id as string;
     await removeRoleFromUser(user_id, role_id, req.accessToken!);
     res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function adminCreateUserController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const result = await adminCreateUser(req.body, req.accessToken!);
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function adminBatchCreateStudentsController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const { rows } = req.body as { rows: any[] };
+    const result = await adminBatchCreateStudents(rows, req.accessToken!);
+    res.status(201).json({ success: true, data: result });
   } catch (err) {
     next(err);
   }

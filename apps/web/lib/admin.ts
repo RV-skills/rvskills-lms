@@ -15,6 +15,48 @@ export interface AdminUser {
   user_roles: { role: AdminRole }[];
 }
 
+export interface CreatedUserResult {
+  user: AdminUser;
+  generated_password: string;
+}
+
+export interface BatchCreateResult {
+  created: CreatedUserResult[];
+  failed: { row: { first_name: string; last_name: string; username: string; email: string }; reason: string }[];
+}
+
+export interface CreatedUserResult {
+  user: AdminUser;
+  generated_password: string;
+}
+
+export interface BatchCreateResult {
+  created: CreatedUserResult[];
+  failed: { row: { first_name: string; last_name: string; username: string; email: string }; reason: string }[];
+}
+
+export async function adminCreateUser(data: {
+  first_name: string;
+  last_name: string;
+  username: string;
+  email: string;
+  role_id: string;
+}): Promise<CreatedUserResult> {
+  return gatewayFetch<CreatedUserResult>("/api/v1/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adminBatchCreateStudents(
+  rows: { first_name: string; last_name: string; username: string; email: string }[]
+): Promise<BatchCreateResult> {
+  return gatewayFetch<BatchCreateResult>("/api/v1/users/batch", {
+    method: "POST",
+    body: JSON.stringify({ rows }),
+  });
+}
+
 export async function listAllUsers(filters?: {
   search?: string;
   role_id?: string;

@@ -1,15 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav";
 import {
   listAllUsers,
   listAllRoles,
   assignRole,
   removeRole,
+  adminCreateUser,
+  adminBatchCreateStudents,
   type AdminUser,
   type AdminRole,
+  type CreatedUserResult,
+  type BatchCreateResult,
 } from "@/lib/admin";
+import { useRouter } from "next/navigation";
+import { GatewayError } from "@/lib/gateway-client";
+import { useSession } from "@/lib/user-session";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[] | undefined>(undefined);
@@ -18,6 +25,39 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newRoleId, setNewRoleId] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createResult, setCreateResult] = useState<CreatedUserResult | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const [batchUploading, setBatchUploading] = useState(false);
+  const [batchResult, setBatchResult] = useState<BatchCreateResult | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const router = useRouter();
+
+  const { user, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
+
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      router.push("/login");
+    }
+  }, [sessionLoading, user, router]);
+
+  function handleAuthError(err: unknown) {
+    if (err instanceof GatewayError && (err.statusCode === 401 || err.statusCode === 403)) {
+      router.push("/login");
+      return true;
+    }
+    return false;
+  }
 
   const loadRoles = useCallback(() => {
     listAllRoles().then(setRoles);
@@ -28,7 +68,11 @@ export default function AdminUsersPage() {
       search: search || undefined,
       role_id: roleFilter || undefined,
       status: statusFilter || undefined,
-    }).then(setUsers);
+    })
+      .then(setUsers)
+      .catch((err) => {
+        if (!handleAuthError(err)) throw err;
+      });
   }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
@@ -50,16 +94,216 @@ export default function AdminUsersPage() {
         await assignRole(user.user_id, roleId);
       }
       loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
     } finally {
       setUpdatingKey(null);
     }
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    setCreateResult(null);
+    try {
+      const result = await adminCreateUser({
+        first_name: newFirstName,
+        last_name: newLastName,
+        username: newUsername,
+        email: newEmail,
+        role_id: newRoleId,
+      });
+      setCreateResult(result);
+      setNewFirstName("");
+      setNewLastName("");
+      setNewUsername("");
+      setNewEmail("");
+      setNewRoleId("");
+      loadUsers();
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      setCreateError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function parseCsv(text: string): { first_name: string; last_name: string; username: string; email: string }[] {
+    const lines = text.trim().split("\n").filter((l) => l.trim().length > 0);
+    const [, ...dataLines] = lines; // skip header row
+    return dataLines.map((line) => {
+      const [first_name, last_name, username, email] = line.split(",").map((v) => v.trim());
+      return { first_name, last_name, username, email };
+    });
+  }
+
+  async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBatchUploading(true);
+    setBatchError(null);
+    setBatchResult(null);
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      const result = await adminBatchCreateStudents(rows);
+      setBatchResult(result);
+      loadUsers();
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      setBatchError(err instanceof Error ? err.message : "Something went wrong.");
+        } finally {
+      setBatchUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+  if (sessionLoading || !user) {
+    return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
   }
 
   return (
     <div className="flex min-h-screen">
       <AdminSidebarNav />
       <main className="flex-1 overflow-x-hidden px-8 py-10">
-        <h1 className="text-2xl text-neutral-900">Users</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl text-neutral-900">Users</h1>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCreateForm((s) => !s)}
+              className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white"
+            >
+              Create user
+            </button>
+            <label className="cursor-pointer rounded-md border border-neutral-500 px-4 py-2 text-sm text-neutral-900">
+              {batchUploading ? "Uploading..." : "Upload CSV (students)"}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                className="hidden"
+                disabled={batchUploading}
+              />
+            </label>
+          </div>
+        </div>
+
+        {showCreateForm && (
+          <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-3 rounded-lg bg-neutral-50 p-4">
+            <div>
+              <label className="text-xs text-neutral-500">First name</label>
+              <input
+                required
+                value={newFirstName}
+                onChange={(e) => setNewFirstName(e.target.value)}
+                className="block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-500">Last name</label>
+              <input
+                required
+                value={newLastName}
+                onChange={(e) => setNewLastName(e.target.value)}
+                className="block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-500">Username</label>
+              <input
+                required
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                className="block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-500">Email</label>
+              <input
+                required
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-500">Role</label>
+              <select
+                required
+                value={newRoleId}
+                onChange={(e) => setNewRoleId(e.target.value)}
+                className="block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+              >
+                <option value="">Select a role</option>
+                {roles.map((role) => (
+                  <option key={role.role_id} value={role.role_id}>
+                    {role.role_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={creating}
+              className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {creating ? "Creating..." : "Create"}
+            </button>
+          </form>
+        )}
+
+        {createError && <p className="mt-3 text-sm text-danger">{createError}</p>}
+
+        {createResult && (
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-md bg-success/10 px-4 py-3 text-sm text-success">
+            <span>
+              Created {createResult.user.first_name} {createResult.user.last_name} ({createResult.user.email}).
+              Generated password: <span className="font-medium">{createResult.generated_password}</span>
+            </span>
+            <button onClick={() => setCreateResult(null)} className="text-success hover:opacity-70">
+              &times;
+            </button>
+          </div>
+        )}
+
+        {batchError && <p className="mt-3 text-sm text-danger">{batchError}</p>}
+
+        {batchResult && (
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="flex justify-end">
+              <button onClick={() => setBatchResult(null)} className="text-sm text-neutral-500 hover:text-neutral-900">
+                Dismiss
+              </button>
+            </div>
+            {batchResult.created.length > 0 && (
+              <div className="rounded-md bg-success/10 p-4 text-sm text-success">
+                <p className="font-medium">{batchResult.created.length} account(s) created:</p>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {batchResult.created.map((c) => (
+                    <li key={c.user.user_id}>
+                      {c.user.email} — password: <span className="font-medium">{c.generated_password}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {batchResult.failed.length > 0 && (
+              <div className="rounded-md bg-danger-light p-4 text-sm text-danger">
+                <p className="font-medium">{batchResult.failed.length} row(s) failed:</p>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {batchResult.failed.map((f, i) => (
+                    <li key={i}>
+                      {f.row.email}: {f.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 flex gap-3">
           <input

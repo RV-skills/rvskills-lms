@@ -1,6 +1,6 @@
 import { serverConfig } from "../config";
 import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import { BadGatewayError } from "@rv-lms/shared-utils";
+import { BadGatewayError, UnauthorizedError, ForbiddenError } from "@rv-lms/shared-utils";
 import type { UserSummaryDTO } from "@rv-lms/shared-types";
 
 export interface AdminUserSummary {
@@ -16,6 +16,23 @@ export interface AdminUserSummary {
 export interface RoleSummary {
   role_id: string;
   role_name: string;
+}
+
+export interface CreatedUserResult {
+  user: AdminUserSummary;
+  generated_password: string;
+}
+
+export interface BatchCreateRow {
+  first_name: string;
+  last_name: string;
+  username: string;
+  email: string;
+}
+
+export interface BatchCreateResult {
+  created: CreatedUserResult[];
+  failed: { row: BatchCreateRow; reason: string }[];
 }
 
 export async function listAllUsers(
@@ -40,6 +57,12 @@ export async function listAllUsers(
   );
 
   if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
     throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 
@@ -57,7 +80,13 @@ export async function listAllRoles(accessToken: string): Promise<RoleSummary[]> 
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-auth returned ${res.status} for list roles`);
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 
   const body = (await res.json()) as { success: boolean; data: RoleSummary[] };
@@ -80,7 +109,13 @@ export async function assignRoleToUser(
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-auth returned ${res.status} for role assignment`);
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 }
 
@@ -101,7 +136,13 @@ export async function removeRoleFromUser(
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-auth returned ${res.status} for role removal`);
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 }
 
@@ -121,9 +162,72 @@ export async function getUsersByIds(userIds: string[], accessToken: string): Pro
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-auth returned ${res.status} for batch user lookup`);
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 
   const body = (await res.json()) as { success: boolean; data: UserSummaryDTO[] };
+  return body.data;
+}
+
+export async function adminCreateUser(
+  data: { first_name: string; last_name: string; username: string; email: string; role_id: string },
+  accessToken: string
+): Promise<CreatedUserResult> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: CreatedUserResult };
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+  }
+
+  return body.data as CreatedUserResult;
+}
+
+export async function adminBatchCreateStudents(
+  rows: BatchCreateRow[],
+  accessToken: string
+): Promise<BatchCreateResult> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ rows }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+  }
+
+  const body = (await res.json()) as { success: boolean; data: BatchCreateResult };
   return body.data;
 }
