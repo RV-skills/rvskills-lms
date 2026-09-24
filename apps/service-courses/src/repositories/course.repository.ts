@@ -45,6 +45,7 @@ export const courseRepository = {
             },
             orderBy: { created_at: "desc" },
             include: {
+                faculty: true,
                 modules: {
                     where: { deleted_at: null },
                     include: {

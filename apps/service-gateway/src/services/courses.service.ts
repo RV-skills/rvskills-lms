@@ -47,6 +47,13 @@ export interface AdminCourse {
   instructorName: string;
 }
 
+export interface CourseFacultyRecord {
+  course_id: string;
+  faculty_id: string;
+  tenant_id: string;
+  role: string;
+}
+
 async function fetchCoursesFromService(accessToken?: string): Promise<CourseDTO[]> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses`, {
     method: "GET",
@@ -196,5 +203,63 @@ export async function unpublishCourse(course_id: string, accessToken: string): P
 
   if (!res.ok) {
     throw new BadGatewayError(`service-courses returned ${res.status} for unpublish`);
+  }
+}
+
+export async function listCourseFaculty(course_id: string, accessToken: string): Promise<CourseFacultyRecord[]> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}/faculty`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for list faculty`);
+  }
+
+  const body = (await res.json()) as { success: boolean; data: CourseFacultyRecord[] };
+  return body.data;
+}
+
+export async function assignCourseFaculty(
+  course_id: string,
+  faculty_id: string,
+  accessToken: string
+): Promise<void> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}/faculty`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ faculty_id }),
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for assign faculty`);
+  }
+}
+
+export async function removeCourseFaculty(
+  course_id: string,
+  faculty_id: string,
+  accessToken: string
+): Promise<void> {
+  const res = await fetchWithTimeout(
+    `${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}/faculty/${faculty_id}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...correlationHeaders(),
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for remove faculty`);
   }
 }

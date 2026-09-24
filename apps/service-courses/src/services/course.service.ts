@@ -1,6 +1,8 @@
 import { CourseDTO } from "@rv-lms/shared-types";
 import { courseRepository, CreateCourseInput, UpdateCourseInput } from "../repositories/course.repository";
 import { NotFoundError } from "@rv-lms/shared-utils";
+import { courseFacultyRepository } from "../repositories/course-faculty.repository";
+import { FacultyRole } from "../generated/prisma/enums";
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
@@ -130,5 +132,17 @@ export const courseService = {
         }
 
         await courseRepository.softDelete(course_id, tenant_id);
+    },
+
+    async listFaculty(course_id: string) {
+        return courseFacultyRepository.findByCourse(course_id);
+    },
+
+    async assignFaculty(course_id: string, faculty_id: string, tenant_id: string, role: FacultyRole = FacultyRole.primary) {
+        return courseFacultyRepository.assign(course_id, faculty_id, tenant_id, role);
+    },
+
+    async removeFaculty(course_id: string, faculty_id: string) {
+        return courseFacultyRepository.remove(course_id, faculty_id);
     },
 }

@@ -10,7 +10,10 @@ import {
   markLessonCompleteController,
   listCoursesForAdminController,
   publishCourseController,
-  unpublishCourseController
+  unpublishCourseController,
+  listCourseFacultyController,
+  assignCourseFacultyController,
+  removeCourseFacultyController
 } from "../../controllers/courses.controller";
 import { getCoursePlayerController } from "../../controllers/course-player.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
@@ -28,4 +31,8 @@ coursesRouter.post("/:course_id/lessons/:lesson_id/complete", authMiddleware, ma
 coursesRouter.get("/admin/all", authMiddleware, listCoursesForAdminController);
 coursesRouter.patch("/:course_id/publish", authMiddleware, publishCourseController);
 coursesRouter.patch("/:course_id/unpublish", authMiddleware, unpublishCourseController);
+coursesRouter.get("/:course_id/faculty", authMiddleware, listCourseFacultyController);
+coursesRouter.post("/:course_id/faculty", authMiddleware, assignCourseFacultyController);
+coursesRouter.delete("/:course_id/faculty/:faculty_id", authMiddleware, removeCourseFacultyController);
+
 export default coursesRouter;

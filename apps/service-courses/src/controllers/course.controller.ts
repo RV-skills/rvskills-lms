@@ -106,3 +106,23 @@ export const deleteCourse = catchAsync(async (req: Request, res: Response) => {
         message: "Course deleted successfully",
     });
 });
+
+export const listFaculty = catchAsync(async (req: Request, res: Response) => {
+    const course_id = req.params.course_id as string;
+    const faculty = await courseService.listFaculty(course_id);
+    res.status(200).json({ success: true, data: faculty });
+});
+
+export const assignFaculty = catchAsync(async (req: Request, res: Response) => {
+    const course_id = req.params.course_id as string;
+    const { faculty_id, role } = req.body as { faculty_id: string; role?: string };
+    const record = await courseService.assignFaculty(course_id, faculty_id, DEFAULT_TENANT_ID, role as any);
+    res.status(201).json({ success: true, data: record });
+});
+
+export const removeFaculty = catchAsync(async (req: Request, res: Response) => {
+    const course_id = req.params.course_id as string;
+    const faculty_id = req.params.faculty_id as string;
+    await courseService.removeFaculty(course_id, faculty_id);
+    res.status(200).json({ success: true });
+});
