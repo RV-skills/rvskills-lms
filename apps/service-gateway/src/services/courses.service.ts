@@ -45,6 +45,7 @@ export interface AdminCourse {
   status: string;
   is_published: boolean;
   instructorName: string;
+  facultyCount: number;
 }
 
 export interface CourseFacultyRecord {
@@ -164,7 +165,8 @@ export async function listCoursesForAdmin(accessToken: string): Promise<AdminCou
   const nameById = new Map(users.map((u) => [u.user_id, `${u.first_name} ${u.last_name}`]));
 
   return courses.map((course) => {
-    const firstFacultyId = course.faculty?.[0]?.faculty_id;
+    const facultyList = course.faculty ?? [];
+    const firstFacultyId = facultyList[0]?.faculty_id;
     const instructorName = firstFacultyId ? nameById.get(firstFacultyId) : undefined;
 
     return {
@@ -174,6 +176,7 @@ export async function listCoursesForAdmin(accessToken: string): Promise<AdminCou
       status: course.status,
       is_published: course.is_published,
       instructorName: instructorName ?? "Unassigned",
+      facultyCount: facultyList.length,
     };
   });
 }

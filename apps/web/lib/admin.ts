@@ -22,6 +22,7 @@ export interface AdminCourse {
   status: string;
   is_published: boolean;
   instructorName: string;
+  facultyCount: number;
 }
 
 
@@ -43,6 +44,13 @@ export interface CreatedUserResult {
 export interface BatchCreateResult {
   created: CreatedUserResult[];
   failed: { row: { first_name: string; last_name: string; username: string; email: string }; reason: string }[];
+}
+
+export interface CourseFacultyRecord {
+  course_id: string;
+  faculty_id: string;
+  tenant_id: string;
+  role: string;
 }
 
 export async function adminCreateUser(data: {
@@ -107,4 +115,21 @@ export async function publishCourse(courseId: string): Promise<void> {
 
 export async function unpublishCourse(courseId: string): Promise<void> {
   await gatewayFetch(`/api/v1/courses/${courseId}/unpublish`, { method: "PATCH" });
+}
+
+export async function listCourseFaculty(courseId: string): Promise<CourseFacultyRecord[]> {
+  return gatewayFetch<CourseFacultyRecord[]>(`/api/v1/courses/${courseId}/faculty`);
+}
+
+export async function assignCourseFaculty(courseId: string, facultyId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/faculty`, {
+    method: "POST",
+    body: JSON.stringify({ faculty_id: facultyId }),
+  });
+}
+
+export async function removeCourseFaculty(courseId: string, facultyId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/faculty/${facultyId}`, {
+    method: "DELETE",
+  });
 }
