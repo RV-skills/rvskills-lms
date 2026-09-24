@@ -36,6 +36,7 @@ export interface CourseCardProps {
   totalDurationMins: number | null;
   footer:
     | { kind: "enroll" }
+    | { kind: "continue" }
     | { kind: "progress"; value: number }
     | { kind: "completed" };
   className?: string;
@@ -89,8 +90,18 @@ export function CourseCard({
           <span>Free</span>
         </div>
 
-        {footer.kind === "enroll" && <Button size="sm">Enroll now</Button>}
-
+        {footer.kind === "enroll" && (
+          <Link href={`${href}/checkout`}>
+            <Button size="sm">Enroll now</Button>
+          </Link>
+        )}
+        {footer.kind === "continue" && (
+          <Link href={`${href}/player`}>
+            <Button size="sm" variant="secondary">
+              Continue learning
+            </Button>
+          </Link>
+        )}
         {footer.kind === "progress" && (
           <div className="flex flex-col gap-1.5">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">

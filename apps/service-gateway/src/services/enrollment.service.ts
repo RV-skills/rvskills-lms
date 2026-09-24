@@ -201,3 +201,34 @@ export async function updateRating(
 
   return body.data as CourseRating;
 }
+
+export async function markLessonComplete(
+  course_id: string,
+  lesson_id: string,
+  accessToken: string
+): Promise<void> {
+  const enrollments = await getMyEnrollments(accessToken);
+  const enrollment = enrollments.find((e) => e.course_id === course_id);
+  if (!enrollment) {
+    throw new ValidationError("You are not enrolled in this course");
+  }
+
+  const res = await fetchWithTimeout(
+    `${serverConfig.SERVICE_ENROLLMENT_URL}/api/v1/enrollments/${enrollment.enrollment_id}/lessons/${lesson_id}/complete`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...correlationHeaders(),
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { message?: string };
+    if (res.status === 400) {
+      throw new ValidationError(body.message ?? "Unable to mark this lesson complete");
+    }
+    throw new BadGatewayError(`service-enrollment returned ${res.status} for mark-complete`);
+  }
+}

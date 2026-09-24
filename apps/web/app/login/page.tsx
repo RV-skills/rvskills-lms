@@ -5,6 +5,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { gatewayFetch, GatewayError } from "@/lib/gateway-client";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 interface LoginResponse {
   user_id: string;
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +31,8 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      window.location.href = "/dashboard";
+      const redirect = searchParams.get("redirect");
+      window.location.href = redirect || "/dashboard";
     } catch (err) {
       if (err instanceof GatewayError) {
         setErrorMessage(err.message);

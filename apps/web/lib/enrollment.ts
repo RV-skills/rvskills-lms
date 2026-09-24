@@ -32,3 +32,7 @@ export async function enrollInCourse(courseId: string): Promise<EnrollResult> {
     throw err;
   }
 }
+
+export async function getMyEnrollments(): Promise<EnrollmentRecord[]> {
+  return gatewayFetch<EnrollmentRecord[]>("/api/v1/enrollments/my-enrollments");
+}

@@ -71,7 +71,7 @@ export const courseRepository = {
                         lessons: {
                             where:{ deleted_at: null },
                             orderBy: { order_index: "asc" },
-                            include: { content_metadata: true },
+                             include: { content_metadata: true, resources: { orderBy: { order_index: "asc" } } },
                         },
                     },
                 },

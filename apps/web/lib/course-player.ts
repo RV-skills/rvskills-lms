@@ -1,16 +1,25 @@
 import { gatewayFetch, GatewayError } from "./gateway-client";
 
+export interface PlayerResource {
+  resource_id: string;
+  title: string;
+  pdf_url: string;
+}
+
 export interface PlayerLesson {
   lesson_id: string;
   title: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
+  description: string | null;
+  resources: PlayerResource[];
   status: "completed" | "current" | "upcoming";
 }
 
 export interface PlayerModule {
   module_id: string;
   title: string;
+  is_locked: boolean;
   lessons: PlayerLesson[];
 }
 
@@ -43,4 +52,10 @@ export async function getCoursePlayerData(courseId: string): Promise<CoursePlaye
     }
     throw err;
   }
+}
+
+export async function markLessonComplete(courseId: string, lessonId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/lessons/${lessonId}/complete`, {
+    method: "POST",
+  });
 }

@@ -52,7 +52,7 @@ export default function DashboardPage() {
             {inProgress.map((course) => (
               <CourseCard
                 key={course.course_id}
-                href={`/courses/${course.course_id}`}
+                href={`/courses/${course.course_id}/player`}
                 title={course.title}
                 thumbnailUrl={course.thumbnail_url}
                 difficulty={course.difficulty}
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             {completed.map((course) => (
               <CourseCard
                 key={course.course_id}
-                href={`/courses/${course.course_id}`}
+                href={`/courses/${course.course_id}/player`}
                 title={course.title}
                 thumbnailUrl={course.thumbnail_url}
                 difficulty={course.difficulty}

@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getCoursePlayerData,
+  markLessonComplete,
   type CoursePlayerResult,
   type PlayerLesson,
 } from "@/lib/course-player";
@@ -32,6 +34,8 @@ export default function CoursePlayerPage() {
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
 
   const load = useCallback(() => {
     getCoursePlayerData(courseId).then(setResult);
@@ -98,11 +102,44 @@ export default function CoursePlayerPage() {
   }
 
   const { courseTitle, modules, currentLesson } = result.data;
-  const allLessons = modules.flatMap((m) => m.lessons);
-  const completedCount = allLessons.filter((l) => l.status === "completed").length;
-  const progressPct = allLessons.length > 0 ? (completedCount / allLessons.length) * 100 : 0;
+
+  const lessonsWithModuleLock = modules.flatMap((m) =>
+    m.lessons.map((l) => ({ ...l, moduleLocked: m.is_locked }))
+  );
+  const completedCount = lessonsWithModuleLock.filter((l) => l.status === "completed").length;
+  const totalCount = lessonsWithModuleLock.length;
+  const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const courseComplete = totalCount > 0 && completedCount === totalCount;
+
   const displayedLesson =
-    allLessons.find((l) => l.lesson_id === selectedLessonId) ?? currentLesson;
+    lessonsWithModuleLock.find((l) => l.lesson_id === selectedLessonId) ?? currentLesson;
+  const displayedResource = displayedLesson.resources.find(
+    (r) => r.resource_id === selectedResourceId
+  );
+
+  function selectLesson(lessonId: string) {
+    setSelectedLessonId(lessonId);
+    setSelectedResourceId(null);
+  }
+
+  async function handleMarkComplete() {
+    setCompleting(true);
+    try {
+      await markLessonComplete(courseId, displayedLesson.lesson_id);
+
+      const currentIndex = lessonsWithModuleLock.findIndex(
+        (l) => l.lesson_id === displayedLesson.lesson_id
+      );
+      const nextLesson = lessonsWithModuleLock[currentIndex + 1];
+
+      load();
+      if (nextLesson) {
+        selectLesson(nextLesson.lesson_id);
+      }
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
@@ -114,7 +151,19 @@ export default function CoursePlayerPage() {
   return (
     <main className="mx-auto flex max-w-6xl gap-8 px-6 py-10">
       <div className="flex-1">
-        {displayedLesson.video_url ? (
+        {courseComplete && (
+          <div className="mb-6 rounded-lg bg-success/10 px-4 py-3 text-sm text-success">
+            You&apos;ve completed this course. Nice work!
+          </div>
+        )}
+
+        {displayedResource ? (
+          <iframe
+            key={displayedResource.resource_id}
+            src={displayedResource.pdf_url}
+            className="aspect-video w-full rounded-lg border border-neutral-100 bg-white"
+          />
+        ) : displayedLesson.video_url ? (
           <video
             key={displayedLesson.lesson_id}
             controls
@@ -132,6 +181,12 @@ export default function CoursePlayerPage() {
           <p className="mt-1 text-sm text-neutral-500">
             {displayedLesson.estimated_duration_mins} min
           </p>
+        )}
+
+        {displayedLesson.status !== "completed" && (
+          <Button size="sm" className="mt-4" onClick={handleMarkComplete} loading={completing}>
+            Mark as complete
+          </Button>
         )}
 
         <div className="mt-6 flex gap-6 border-b border-neutral-100">
@@ -153,13 +208,31 @@ export default function CoursePlayerPage() {
         <div className="mt-6">
           {activeTab === "overview" && (
             <p className="text-sm text-neutral-500">
-              Lesson overview isn&apos;t available yet. Check back soon.
+              {displayedLesson.description ?? "No overview has been added for this lesson yet."}
             </p>
           )}
           {activeTab === "resources" && (
-            <p className="text-sm text-neutral-500">
-              No resources have been added for this lesson yet.
-            </p>
+            displayedLesson.resources.length === 0 ? (
+              <p className="text-sm text-neutral-500">
+                No resources have been added for this lesson yet.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {displayedLesson.resources.map((resource) => (
+                  <button
+                    key={resource.resource_id}
+                    onClick={() => setSelectedResourceId(resource.resource_id)}
+                    className={`flex items-center justify-between rounded-md px-4 py-3 text-left text-sm ${
+                      resource.resource_id === selectedResourceId
+                        ? "bg-primary-100 text-primary-700"
+                        : "bg-neutral-50 text-neutral-900 hover:bg-neutral-100"
+                    }`}
+                  >
+                    {resource.title}
+                  </button>
+                ))}
+              </div>
+            )
           )}
           {activeTab === "discussion" && (
             <p className="text-sm text-neutral-500">
@@ -181,22 +254,28 @@ export default function CoursePlayerPage() {
             />
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            {completedCount} of {allLessons.length} lesson{allLessons.length !== 1 ? "s" : ""} complete
+            {completedCount} of {totalCount} lesson{totalCount !== 1 ? "s" : ""} complete
           </p>
         </div>
 
         <div className="mt-6 flex flex-col gap-4">
           {modules.map((module) => (
             <div key={module.module_id}>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <h2 className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
                 {module.title}
+                {module.is_locked && <Lock size={12} />}
               </h2>
               <div className="mt-2 flex flex-col gap-1">
                 {module.lessons.map((lesson) => (
                   <button
                     key={lesson.lesson_id}
-                    onClick={() => setSelectedLessonId(lesson.lesson_id)}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-neutral-100"
+                    onClick={() => !module.is_locked && selectLesson(lesson.lesson_id)}
+                    disabled={module.is_locked}
+                    className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left ${
+                      module.is_locked
+                        ? "cursor-not-allowed opacity-50"
+                        : "hover:bg-neutral-100"
+                    }`}
                   >
                     <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${dotColor(lesson.status)}`} />
                     <span
