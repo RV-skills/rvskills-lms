@@ -95,3 +95,48 @@ export const getUsersByIds = catchAsync(async (req: Request, res: Response) => {
     data: users,
   });
 });
+
+export const listUsers = catchAsync(async (req: Request, res: Response) => {
+  const { search, role_id, status } = req.query as { search?: string; role_id?: string; status?: string };
+  const users = await userService.listAllUsers({ search, role_id, status });
+  res.status(200).json({ success: true, data: users });
+});
+
+export const listRoles = catchAsync(async (req: Request, res: Response) => {
+  const roles = await userService.listAllRoles();
+  res.status(200).json({ success: true, data: roles });
+});
+
+export const assignRole = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const { role_id } = req.body as { role_id: string };
+  const user = await userService.assignRoleToUser(user_id, role_id);
+  res.status(200).json({ success: true, data: user });
+});
+
+export const removeRole = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const role_id = req.params.role_id as string;
+  const user = await userService.removeRoleFromUser(user_id, role_id);
+  res.status(200).json({ success: true, data: user });
+});
+
+export const adminCreateUser = catchAsync(async (req: Request, res: Response) => {
+  const { first_name, last_name, username, email, role_id } = req.body as {
+    first_name: string;
+    last_name: string;
+    username: string;
+    email: string;
+    role_id: string;
+  };
+  const result = await userService.adminCreateUser({ first_name, last_name, username, email, role_id });
+  res.status(201).json({ success: true, data: result });
+});
+
+export const adminBatchCreateStudents = catchAsync(async (req: Request, res: Response) => {
+  const { rows } = req.body as {
+    rows: { first_name: string; last_name: string; username: string; email: string }[];
+  };
+  const result = await userService.adminBatchCreateStudents(rows);
+  res.status(201).json({ success: true, data: result });
+});

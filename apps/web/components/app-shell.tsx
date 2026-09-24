@@ -11,7 +11,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useSession({ redirectOnUnauthorized: false });
 
   const alwaysPublic = ALWAYS_PUBLIC_PATHS.includes(pathname);
-  const showSidebar = !alwaysPublic && !loading && !!user;
+  const isAdminArea = pathname.startsWith("/admin");
+  const showSidebar = !alwaysPublic && !isAdminArea && !loading && !!user;
+
+  if (isAdminArea) {
+    return <>{children}</>;
+  }
 
   if (!showSidebar) {
     return <div className="min-h-screen">{children}</div>;
