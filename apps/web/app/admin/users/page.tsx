@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/user-session";
+import { GatewayError } from "@/lib/gateway-client";
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav";
 import {
   listAllUsers,
@@ -9,16 +12,17 @@ import {
   removeRole,
   adminCreateUser,
   adminBatchCreateStudents,
+  setUserStatus,
+  resetUserPassword,
   type AdminUser,
   type AdminRole,
   type CreatedUserResult,
   type BatchCreateResult,
 } from "@/lib/admin";
-import { useRouter } from "next/navigation";
-import { GatewayError } from "@/lib/gateway-client";
-import { useSession } from "@/lib/user-session";
 
 export default function AdminUsersPage() {
+  const router = useRouter();
+  const { user: sessionUser, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
   const [users, setUsers] = useState<AdminUser[] | undefined>(undefined);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
@@ -41,17 +45,33 @@ export default function AdminUsersPage() {
   const [batchError, setBatchError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const router = useRouter();
-
-  const { user, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
+  const [resetResult, setResetResult] = useState<{ userId: string; password: string } | null>(null);
 
   useEffect(() => {
-    if (!sessionLoading && !user) {
+    if (!createResult) return;
+    const timeout = setTimeout(() => setCreateResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [createResult]);
+
+  useEffect(() => {
+    if (!resetResult) return;
+    const timeout = setTimeout(() => setResetResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [resetResult]);
+
+  useEffect(() => {
+    if (!batchResult) return;
+    const timeout = setTimeout(() => setBatchResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [batchResult]);
+
+  useEffect(() => {
+    if (!sessionLoading && !sessionUser) {
       router.push("/login");
     }
-  }, [sessionLoading, user, router]);
+  }, [sessionLoading, sessionUser, router]);
 
-  function handleAuthError(err: unknown) {
+  function handleAuthError(err: unknown): boolean {
     if (err instanceof GatewayError && (err.statusCode === 401 || err.statusCode === 403)) {
       router.push("/login");
       return true;
@@ -101,6 +121,31 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function handleToggleStatus(user: AdminUser) {
+    const newStatus = user.status === "active" ? "inactive" : "active";
+    setUpdatingKey(`status:${user.user_id}`);
+    try {
+      await setUserStatus(user.user_id, newStatus);
+      loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setUpdatingKey(null);
+    }
+  }
+
+  async function handleResetPassword(user: AdminUser) {
+    setUpdatingKey(`reset:${user.user_id}`);
+    try {
+      const result = await resetUserPassword(user.user_id);
+      setResetResult({ userId: user.user_id, password: result.generated_password });
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setUpdatingKey(null);
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
@@ -131,7 +176,7 @@ export default function AdminUsersPage() {
 
   function parseCsv(text: string): { first_name: string; last_name: string; username: string; email: string }[] {
     const lines = text.trim().split("\n").filter((l) => l.trim().length > 0);
-    const [, ...dataLines] = lines; // skip header row
+    const [, ...dataLines] = lines;
     return dataLines.map((line) => {
       const [first_name, last_name, username, email] = line.split(",").map((v) => v.trim());
       return { first_name, last_name, username, email };
@@ -154,12 +199,13 @@ export default function AdminUsersPage() {
     } catch (err) {
       if (handleAuthError(err)) return;
       setBatchError(err instanceof Error ? err.message : "Something went wrong.");
-        } finally {
+    } finally {
       setBatchUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
-  if (sessionLoading || !user) {
+
+  if (sessionLoading || !sessionUser) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
   }
 
@@ -352,6 +398,8 @@ export default function AdminUsersPage() {
                       {role.role_name}
                     </th>
                   ))}
+                  <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
+                  <th className="px-4 py-3 font-medium text-neutral-500"></th>
                 </tr>
               </thead>
               <tbody>
@@ -377,6 +425,33 @@ export default function AdminUsersPage() {
                           </td>
                         );
                       })}
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          disabled={updatingKey === `status:${user.user_id}`}
+                          className={
+                            user.status === "active"
+                              ? "rounded-full bg-success/10 px-2.5 py-1 text-xs text-success"
+                              : "rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-500"
+                          }
+                        >
+                          {user.status}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleResetPassword(user)}
+                          disabled={updatingKey === `reset:${user.user_id}`}
+                          className="text-xs text-primary-700 underline disabled:opacity-50"
+                        >
+                          Reset password
+                        </button>
+                        {resetResult?.userId === user.user_id && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            New password: <span className="font-medium">{resetResult.password}</span>
+                          </p>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

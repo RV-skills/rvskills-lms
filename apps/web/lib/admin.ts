@@ -147,3 +147,16 @@ export async function removeCourseFaculty(courseId: string, facultyId: string): 
 export async function getPlatformStats(): Promise<PlatformStats> {
   return gatewayFetch<PlatformStats>("/api/v1/admin/stats");
 }
+
+export async function setUserStatus(userId: string, status: "active" | "inactive"): Promise<void> {
+  await gatewayFetch(`/api/v1/users/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function resetUserPassword(userId: string): Promise<CreatedUserResult> {
+  return gatewayFetch<CreatedUserResult>(`/api/v1/users/${userId}/reset-password`, {
+    method: "POST",
+  });
+}
