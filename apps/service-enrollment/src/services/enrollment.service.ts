@@ -113,4 +113,13 @@ export const enrollmentService = {
 
         return lessonProgressRepository.getCompletedLessonIds(enrollment_id);
     },
+
+    async countAllEnrollments(tenant_id: string): Promise<number> {
+        return enrollmentRepository.countAll(tenant_id);
+    },
+
+    async countEnrollmentsByCourse(tenant_id: string): Promise<{ course_id: string; count: number }[]> {
+        const rows = await enrollmentRepository.countByCourseAll(tenant_id);
+        return rows.map((r) => ({ course_id: r.course_id, count: r._count.course_id }));
+    },
 };

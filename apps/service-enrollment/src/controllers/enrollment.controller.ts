@@ -67,3 +67,13 @@ export const getCompletedLessons = catchAsync(async (req: Request, res: Response
         data: lessonIds,
     });
 });
+
+export const countAllEnrollments = catchAsync(async (req: Request, res: Response) => {
+  const count = await enrollmentService.countAllEnrollments(DEFAULT_TENANT_ID);
+  res.status(200).json({ success: true, data: { count } });
+});
+
+export const countEnrollmentsByCourse = catchAsync(async (req: Request, res: Response) => {
+    const counts = await enrollmentService.countEnrollmentsByCourse(DEFAULT_TENANT_ID);
+    res.status(200).json({ success: true, data: counts });
+});

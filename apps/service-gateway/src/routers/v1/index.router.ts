@@ -6,6 +6,7 @@ import coursesRouter from "./courses.router";
 import dashboardRouter from "./dashboard.router";
 import enrollmentsRouter from "./enrollments.router";
 import assessmentsRouter from "./assessments.router";
+import adminStatsRouter from "./admin-stats.router";
 
 const v1Router: Router = Router();
 
@@ -16,5 +17,6 @@ v1Router.use("/courses", coursesRouter);
 v1Router.use("/dashboard", dashboardRouter);
 v1Router.use("/enrollments", enrollmentsRouter);
 v1Router.use("/assessments", assessmentsRouter);
+v1Router.use("/admin", adminStatsRouter);
 
 export default v1Router;
