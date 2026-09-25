@@ -13,12 +13,18 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
+  updateCourseDetails,
+  setLessonVideo,
+  removeLessonVideo,
+  addLessonResource,
+  removeLessonResource,
   type FacultyCourseDetail,
   type FacultyModule,
   type FacultyLesson,
 } from "@/lib/faculty";
 
 type Selection =
+  | { kind: "course" }
   | { kind: "module"; moduleId: string }
   | { kind: "lesson"; moduleId: string; lessonId: string }
   | null;
@@ -31,6 +37,13 @@ export default function FacultyCourseEditorPage() {
   const [course, setCourse] = useState<FacultyCourseDetail | null | undefined>(undefined);
   const [selection, setSelection] = useState<Selection>(null);
 
+  const [courseTitle, setCourseTitle] = useState("");
+  const [courseDescription, setCourseDescription] = useState("");
+  const [courseThumbnail, setCourseThumbnail] = useState("");
+  const [courseDifficulty, setCourseDifficulty] = useState("beginner");
+  const [courseMaxSeats, setCourseMaxSeats] = useState("");
+  const [savingCourse, setSavingCourse] = useState(false);
+
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDescription, setModuleDescription] = useState("");
   const [moduleLocked, setModuleLocked] = useState(false);
@@ -41,6 +54,13 @@ export default function FacultyCourseEditorPage() {
   const [lessonPreview, setLessonPreview] = useState(false);
   const [lessonDuration, setLessonDuration] = useState("");
   const [savingLesson, setSavingLesson] = useState(false);
+
+  const [videoUrlInput, setVideoUrlInput] = useState("");
+  const [savingVideo, setSavingVideo] = useState(false);
+
+  const [newResourceTitle, setNewResourceTitle] = useState("");
+  const [newResourceUrl, setNewResourceUrl] = useState("");
+  const [addingResource, setAddingResource] = useState(false);
 
   const [addingModule, setAddingModule] = useState(false);
   const [newModuleTitle, setNewModuleTitle] = useState("");
@@ -78,6 +98,16 @@ export default function FacultyCourseEditorPage() {
     selection?.kind === "lesson" ? selectedModule?.lessons.find((l) => l.lesson_id === selection.lessonId) : undefined;
 
   useEffect(() => {
+    if (selection?.kind === "course" && course) {
+      setCourseTitle(course.title);
+      setCourseDescription(course.description ?? "");
+      setCourseThumbnail(course.thumbnail_url ?? "");
+      setCourseDifficulty(course.difficulty);
+      setCourseMaxSeats(course.max_seats?.toString() ?? "");
+    }
+  }, [selection, course]);
+
+  useEffect(() => {
     if (selection?.kind === "module" && selectedModule) {
       setModuleTitle(selectedModule.title);
       setModuleDescription(selectedModule.description ?? "");
@@ -91,8 +121,25 @@ export default function FacultyCourseEditorPage() {
       setLessonDescription(selectedLesson.description ?? "");
       setLessonPreview(selectedLesson.is_preview);
       setLessonDuration(selectedLesson.estimated_duration_mins?.toString() ?? "");
+      setVideoUrlInput(selectedLesson.video_url ?? "");
     }
   }, [selection, selectedLesson]);
+
+  async function handleSaveCourse() {
+    setSavingCourse(true);
+    try {
+      await updateCourseDetails(courseId, {
+        title: courseTitle,
+        description: courseDescription || undefined,
+        thumbnail_url: courseThumbnail || undefined,
+        difficulty: courseDifficulty,
+        max_seats: courseMaxSeats ? parseInt(courseMaxSeats, 10) : undefined,
+      });
+      loadCourse();
+    } finally {
+      setSavingCourse(false);
+    }
+  }
 
   async function handleCreateModule(e: React.FormEvent) {
     e.preventDefault();
@@ -159,6 +206,44 @@ export default function FacultyCourseEditorPage() {
     loadCourse();
   }
 
+  async function handleSaveVideo() {
+    if (selection?.kind !== "lesson" || !videoUrlInput) return;
+    setSavingVideo(true);
+    try {
+      await setLessonVideo(courseId, selection.moduleId, selection.lessonId, videoUrlInput);
+      loadCourse();
+    } finally {
+      setSavingVideo(false);
+    }
+  }
+
+  async function handleRemoveVideo() {
+    if (selection?.kind !== "lesson") return;
+    await removeLessonVideo(courseId, selection.moduleId, selection.lessonId);
+    setVideoUrlInput("");
+    loadCourse();
+  }
+
+  async function handleAddResource(e: React.FormEvent) {
+    e.preventDefault();
+    if (selection?.kind !== "lesson") return;
+    setAddingResource(true);
+    try {
+      await addLessonResource(courseId, selection.moduleId, selection.lessonId, newResourceTitle, newResourceUrl);
+      setNewResourceTitle("");
+      setNewResourceUrl("");
+      loadCourse();
+    } finally {
+      setAddingResource(false);
+    }
+  }
+
+  async function handleRemoveResource(resourceId: string) {
+    if (selection?.kind !== "lesson") return;
+    await removeLessonResource(courseId, selection.moduleId, selection.lessonId, resourceId);
+    loadCourse();
+  }
+
   if (sessionLoading || !user) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
   }
@@ -174,10 +259,17 @@ export default function FacultyCourseEditorPage() {
         <>
           {/* Outline panel */}
           <div className="flex w-80 flex-shrink-0 flex-col border-r border-neutral-100 px-6 py-10">
-            <p className="text-xs text-neutral-500">Editing</p>
-            <h1 className="mt-1 text-lg text-neutral-900">{course.title}</h1>
+            <button
+              onClick={() => setSelection({ kind: "course" })}
+              className={`rounded-md px-2 py-1.5 text-left ${
+                selection?.kind === "course" ? "bg-primary-100" : ""
+              }`}
+            >
+              <p className="text-xs text-neutral-500">Editing</p>
+              <h1 className="mt-1 text-lg text-neutral-900">{course.title}</h1>
+            </button>
             <span
-              className={`mt-2 self-start rounded-full px-2.5 py-1 text-xs ${
+              className={`ml-2 mt-2 self-start rounded-full px-2.5 py-1 text-xs ${
                 course.is_published ? "bg-success/10 text-success" : "bg-neutral-100 text-neutral-500"
               }`}
             >
@@ -190,7 +282,7 @@ export default function FacultyCourseEditorPage() {
                   <button
                     onClick={() => setSelection({ kind: "module", moduleId: module.module_id })}
                     className={`w-full rounded-md px-3 py-2 text-left text-sm ${
-                      selection?.moduleId === module.module_id && selection.kind === "module"
+                      selection?.kind === "module" && selection.moduleId === module.module_id
                         ? "bg-primary-100 text-primary-700"
                         : "text-neutral-900 hover:bg-neutral-50"
                     }`}
@@ -266,7 +358,71 @@ export default function FacultyCourseEditorPage() {
           {/* Detail panel */}
           <main className="flex-1 overflow-x-hidden px-10 py-12">
             {selection === null && (
-              <p className="text-sm text-neutral-500">Select a module or lesson to edit, or add a new one.</p>
+              <p className="text-sm text-neutral-500">Select the course, a module, or a lesson to edit.</p>
+            )}
+
+            {selection?.kind === "course" && (
+              <div className="max-w-lg">
+                <p className="text-sm text-neutral-500">Course details</p>
+                <div className="mt-4 flex flex-col gap-4">
+                  <div>
+                    <label className="text-xs text-neutral-500">Title</label>
+                    <input
+                      value={courseTitle}
+                      onChange={(e) => setCourseTitle(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-neutral-500">Description</label>
+                    <textarea
+                      value={courseDescription}
+                      onChange={(e) => setCourseDescription(e.target.value)}
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-neutral-500">Thumbnail URL</label>
+                    <input
+                      value={courseThumbnail}
+                      onChange={(e) => setCourseThumbnail(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-neutral-500">Difficulty</label>
+                    <select
+                      value={courseDifficulty}
+                      onChange={(e) => setCourseDifficulty(e.target.value)}
+                      className="mt-1 block rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    >
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-neutral-500">Max seats (optional)</label>
+                    <input
+                      type="number"
+                      value={courseMaxSeats}
+                      onChange={(e) => setCourseMaxSeats(e.target.value)}
+                      className="mt-1 block w-32 rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    Publishing and unpublishing is managed by an administrator.
+                  </p>
+                  <button
+                    onClick={handleSaveCourse}
+                    disabled={savingCourse}
+                    className="self-start rounded-md bg-primary-500 px-4 py-2 text-sm text-white disabled:opacity-50"
+                  >
+                    {savingCourse ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
             )}
 
             {selection?.kind === "module" && selectedModule && (
@@ -354,9 +510,6 @@ export default function FacultyCourseEditorPage() {
                     />
                     Free preview (visible without enrolling)
                   </label>
-                  <p className="text-xs text-neutral-500">
-                    Video and downloadable resources aren&apos;t editable here yet.
-                  </p>
                   <div className="flex gap-3">
                     <button
                       onClick={handleSaveLesson}
@@ -368,6 +521,73 @@ export default function FacultyCourseEditorPage() {
                     <button onClick={handleDeleteLesson} className="text-sm text-danger">
                       Delete lesson
                     </button>
+                  </div>
+                </div>
+
+                <div className="mt-10 border-t border-neutral-100 pt-6">
+                  <p className="text-sm text-neutral-500">Video</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Paste a URL to the video file. There&apos;s no upload here yet.
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <input
+                      value={videoUrlInput}
+                      onChange={(e) => setVideoUrlInput(e.target.value)}
+                      placeholder="/videos/lesson.mp4"
+                      className="flex-1 rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                    />
+                    <button
+                      onClick={handleSaveVideo}
+                      disabled={savingVideo || !videoUrlInput}
+                      className="rounded-md bg-primary-500 px-3 py-2 text-sm text-white disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    {selectedLesson.video_url && (
+                      <button onClick={handleRemoveVideo} className="text-sm text-danger">
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-8 border-t border-neutral-100 pt-6">
+                  <p className="text-sm text-neutral-500">Resources</p>
+                  <div className="mt-3 flex flex-col gap-2">
+                    {selectedLesson.resources.map((r) => (
+                      <div key={r.resource_id} className="flex items-center justify-between rounded-md bg-neutral-50 px-3 py-2">
+                        <span className="text-sm text-neutral-900">{r.title}</span>
+                        <button
+                          onClick={() => handleRemoveResource(r.resource_id)}
+                          className="text-xs text-danger underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <form onSubmit={handleAddResource} className="flex flex-col gap-2">
+                      <input
+                        required
+                        placeholder="Resource title"
+                        value={newResourceTitle}
+                        onChange={(e) => setNewResourceTitle(e.target.value)}
+                        className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                      />
+                      <input
+                        required
+                        placeholder="/resources/file.pdf"
+                        value={newResourceUrl}
+                        onChange={(e) => setNewResourceUrl(e.target.value)}
+                        className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="submit"
+                        disabled={addingResource}
+                        className="self-start text-xs text-primary-700 underline disabled:opacity-50"
+                      >
+                        {addingResource ? "Adding..." : "+ Add resource"}
+                      </button>
+                    </form>
                   </div>
                 </div>
               </div>
