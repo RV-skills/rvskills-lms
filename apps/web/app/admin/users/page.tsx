@@ -14,6 +14,7 @@ import {
   adminBatchCreateStudents,
   setUserStatus,
   resetUserPassword,
+  exportUsersToCsv,
   type AdminUser,
   type AdminRole,
   type CreatedUserResult,
@@ -46,6 +47,10 @@ export default function AdminUsersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [resetResult, setResetResult] = useState<{ userId: string; password: string } | null>(null);
+
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkRoleId, setBulkRoleId] = useState("");
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   useEffect(() => {
     if (!createResult) return;
@@ -174,6 +179,42 @@ export default function AdminUsersPage() {
     }
   }
 
+  function toggleUserSelection(userId: string) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!users) return;
+    setSelectedUserIds((prev) =>
+      prev.size === users.length ? new Set() : new Set(users.map((u) => u.user_id))
+    );
+  }
+
+  async function handleBulkAssignRole() {
+    if (!bulkRoleId || selectedUserIds.size === 0) return;
+    setBulkApplying(true);
+    try {
+      for (const userId of selectedUserIds) {
+        await assignRole(userId, bulkRoleId);
+      }
+      setSelectedUserIds(new Set());
+      setBulkRoleId("");
+      loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setBulkApplying(false);
+    }
+  }
+
   function parseCsv(text: string): { first_name: string; last_name: string; username: string; email: string }[] {
     const lines = text.trim().split("\n").filter((l) => l.trim().length > 0);
     const [, ...dataLines] = lines;
@@ -221,6 +262,13 @@ export default function AdminUsersPage() {
               className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white"
             >
               Create user
+            </button>
+            <button
+              onClick={() => users && exportUsersToCsv(users)}
+              disabled={!users || users.length === 0}
+              className="rounded-md border border-neutral-500 px-4 py-2 text-sm text-neutral-900 disabled:opacity-50"
+            >
+              Export CSV
             </button>
             <label className="cursor-pointer rounded-md border border-neutral-500 px-4 py-2 text-sm text-neutral-900">
               {batchUploading ? "Uploading..." : "Upload CSV (students)"}
@@ -382,6 +430,37 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
+        {selectedUserIds.size > 0 && (
+          <div className="mt-4 flex items-center gap-3 rounded-md bg-primary-100 px-4 py-3">
+            <span className="text-sm text-primary-700">{selectedUserIds.size} selected</span>
+            <select
+              value={bulkRoleId}
+              onChange={(e) => setBulkRoleId(e.target.value)}
+              className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+            >
+              <option value="">Assign role...</option>
+              {roles.map((role) => (
+                <option key={role.role_id} value={role.role_id}>
+                  {role.role_name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkAssignRole}
+              disabled={!bulkRoleId || bulkApplying}
+              className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {bulkApplying ? "Applying..." : "Apply"}
+            </button>
+            <button
+              onClick={() => setSelectedUserIds(new Set())}
+              className="text-sm text-primary-700 underline"
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
         {users === undefined ? (
           <p className="mt-6 text-sm text-neutral-500">Loading...</p>
         ) : users.length === 0 ? (
@@ -391,6 +470,13 @@ export default function AdminUsersPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-neutral-100 bg-neutral-50">
                 <tr>
+                  <th className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={users !== undefined && users.length > 0 && selectedUserIds.size === users.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium text-neutral-500">Name</th>
                   <th className="px-4 py-3 font-medium text-neutral-500">Email</th>
                   {roles.map((role) => (
@@ -407,6 +493,13 @@ export default function AdminUsersPage() {
                   const heldRoleIds = new Set(user.user_roles.map((ur) => ur.role.role_id));
                   return (
                     <tr key={user.user_id} className="border-b border-neutral-100 last:border-0">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(user.user_id)}
+                          onChange={() => toggleUserSelection(user.user_id)}
+                        />
+                      </td>
                       <td className="px-4 py-3 text-neutral-900">
                         {user.first_name} {user.last_name}
                       </td>

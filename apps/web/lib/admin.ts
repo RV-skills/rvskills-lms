@@ -160,3 +160,20 @@ export async function resetUserPassword(userId: string): Promise<CreatedUserResu
     method: "POST",
   });
 }
+
+export function exportUsersToCsv(users: AdminUser[]): void {
+  const header = "first_name,last_name,username,email,status,roles";
+  const rows = users.map((u) => {
+    const roleNames = u.user_roles.map((ur) => ur.role.role_name).join(";");
+    return [u.first_name, u.last_name, u.username, u.email, u.status, roleNames].join(",");
+  });
+  const csv = [header, ...rows].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "users.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
