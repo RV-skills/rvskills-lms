@@ -404,3 +404,27 @@ export async function updateLesson(course_id: string, module_id: string, lesson_
 export async function deleteLesson(course_id: string, module_id: string, lesson_id: string, accessToken: string): Promise<void> {
   await coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}`, "DELETE", accessToken);
 }
+
+export async function updateCourseDetails(
+  course_id: string,
+  data: { title?: string; description?: string; thumbnail_url?: string; language?: string; difficulty?: string; max_seats?: number },
+  accessToken: string
+): Promise<MyCourse> {
+  return coursesServiceRequest(`/${course_id}`, "PATCH", accessToken, data);
+}
+
+export async function setLessonVideo(course_id: string, module_id: string, lesson_id: string, video_url: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "PUT", accessToken, { video_url });
+}
+
+export async function removeLessonVideo(course_id: string, module_id: string, lesson_id: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "DELETE", accessToken);
+}
+
+export async function addLessonResource(course_id: string, module_id: string, lesson_id: string, title: string, pdf_url: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, { title, pdf_url });
+}
+
+export async function removeLessonResource(course_id: string, module_id: string, lesson_id: string, resource_id: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources/${resource_id}`, "DELETE", accessToken);
+}

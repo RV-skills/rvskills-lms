@@ -14,6 +14,7 @@ export const UpdateCourseSchema = z.object({
     thumbnail_url: z.string().url().optional(),
     language: z.string().optional(),
     difficulty: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+    max_seats: z.number().int().positive().optional(),
 });
 
 export type CreateCourseInput = z.infer<typeof CreateCourseSchema>;

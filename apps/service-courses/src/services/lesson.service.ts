@@ -1,6 +1,8 @@
 import { LessonDTO } from "@rv-lms/shared-types";
 import { CreateLessonInput, lessonRepository, UpdateLessonInput } from "../repositories/lesson.repository";
 import { NotFoundError } from "@rv-lms/shared-utils";
+import { contentMetadataRepository } from "../repositories/content-metadata.repository";
+import { lessonResourceRepository } from "../repositories/lesson-resource.repository";
 
 const mapToLessonDTO = (lesson: any): LessonDTO => ({
     lesson_id: lesson.lesson_id,
@@ -72,5 +74,48 @@ export const lessonService = {
         }
 
         await lessonRepository.softDetele(lesson_id);
+    },
+
+        async setVideoUrl(lesson_id: string, video_url: string): Promise<LessonDTO> {
+        const existing = await lessonRepository.findById(lesson_id);
+        if (!existing) {
+            throw new NotFoundError("Lesson not found");
+        }
+
+        await contentMetadataRepository.upsertVideoUrl(lesson_id, video_url);
+
+        const updated = await lessonRepository.findWithContent(lesson_id);
+        return mapToLessonDTO(updated);
+    },
+
+    async removeVideo(lesson_id: string): Promise<LessonDTO> {
+        const existing = await lessonRepository.findById(lesson_id);
+        if (!existing) {
+            throw new NotFoundError("Lesson not found");
+        }
+
+        await contentMetadataRepository.remove(lesson_id);
+
+        const updated = await lessonRepository.findWithContent(lesson_id);
+        return mapToLessonDTO(updated);
+    },
+
+    async addResource(lesson_id: string, title: string, pdf_url: string): Promise<LessonDTO> {
+        const existing = await lessonRepository.findById(lesson_id);
+        if (!existing) {
+            throw new NotFoundError("Lesson not found");
+        }
+
+        await lessonResourceRepository.create({ lesson_id, title, pdf_url });
+
+        const updated = await lessonRepository.findWithContent(lesson_id);
+        return mapToLessonDTO(updated);
+    },
+
+    async removeResource(lesson_id: string, resource_id: string): Promise<LessonDTO> {
+        await lessonResourceRepository.remove(resource_id);
+
+        const updated = await lessonRepository.findWithContent(lesson_id);
+        return mapToLessonDTO(updated);
     },
 }

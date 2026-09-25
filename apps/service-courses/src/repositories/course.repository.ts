@@ -16,6 +16,7 @@ export interface UpdateCourseInput {
     thumbnail_url?: string;
     language?: string;
     difficulty?: string;
+    max_seats?: number;
 }
 
 export const courseRepository = {

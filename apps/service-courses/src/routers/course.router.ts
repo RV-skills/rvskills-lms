@@ -30,6 +30,10 @@ import {
   listLessons,
   updateLesson,
   deleteLesson,
+  setVideoUrl,
+  addResource,
+  removeResource,
+  removeVideo,
 } from '../controllers/lesson.controller';
 
 const courseRouter: Router = Router();
@@ -57,6 +61,10 @@ courseRouter.post('/:course_id/modules/:module_id/lessons', authMiddleware, requ
 courseRouter.get('/:course_id/modules/:module_id/lessons/:lesson_id', publicRouteMiddleware, getLesson);
 courseRouter.patch('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), updateLesson);
 courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), deleteLesson);
+courseRouter.put('/:course_id/modules/:module_id/lessons/:lesson_id/video', authMiddleware, requirePermission('course:write'), setVideoUrl);
+courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id/video', authMiddleware, requirePermission('course:write'), removeVideo);
+courseRouter.post('/:course_id/modules/:module_id/lessons/:lesson_id/resources', authMiddleware, requirePermission('course:write'), addResource);
+courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id/resources/:resource_id', authMiddleware, requirePermission('course:write'), removeResource);
 
 courseRouter.get('/:course_id/faculty', authMiddleware, requirePermission('course:write'), listFaculty);
 courseRouter.post('/:course_id/faculty', authMiddleware, requirePermission('course:write'), assignFaculty);
