@@ -10,6 +10,9 @@ import {
   deleteCourse,
   publishCourse,
   unpublishCourse,
+  listFaculty,
+  assignFaculty,
+  removeFaculty,
 } from '../controllers/course.controller';
 
 import {
@@ -52,5 +55,9 @@ courseRouter.post('/:course_id/modules/:module_id/lessons', authMiddleware, requ
 courseRouter.get('/:course_id/modules/:module_id/lessons/:lesson_id', publicRouteMiddleware, getLesson);
 courseRouter.patch('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), updateLesson);
 courseRouter.delete('/:course_id/modules/:module_id/lessons/:lesson_id', authMiddleware, requirePermission('course:write'), deleteLesson);
+
+courseRouter.get('/:course_id/faculty', authMiddleware, requirePermission('course:write'), listFaculty);
+courseRouter.post('/:course_id/faculty', authMiddleware, requirePermission('course:write'), assignFaculty);
+courseRouter.delete('/:course_id/faculty/:faculty_id', authMiddleware, requirePermission('course:write'), removeFaculty);
 
 export default courseRouter;

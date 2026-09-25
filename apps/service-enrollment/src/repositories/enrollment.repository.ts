@@ -78,5 +78,20 @@ export const enrollmentRepository = {
             data: entries,
             skipDuplicates: true
         });
-    }
+    },
+
+    async countAll(tenant_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.enrollment.count({
+            where: { tenant_id },
+        });
+    },
+
+    async countByCourseAll(tenant_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.enrollment.groupBy({
+            by: ["course_id"],
+            where: { tenant_id },
+            _count: { course_id: true },
+        });
+    },
 }
+

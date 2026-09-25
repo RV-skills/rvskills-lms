@@ -9,6 +9,8 @@ import {
   updateRating as updateCourseRating,
 } from "../services/enrollment.service";
 import { markLessonComplete as markLessonCompleteService } from "../services/enrollment.service";
+import { listCoursesForAdmin, publishCourse as publishCourseService, unpublishCourse as unpublishCourseService } from "../services/courses.service";
+import { listCourseFaculty, assignCourseFaculty, removeCourseFaculty } from "../services/courses.service";
 
 export async function listCoursesController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
@@ -77,6 +79,67 @@ export async function markLessonCompleteController(req: AuthenticatedRequest, re
     const course_id = req.params.course_id as string;
     const lesson_id = req.params.lesson_id as string;
     await markLessonCompleteService(course_id, lesson_id, req.accessToken!);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listCoursesForAdminController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const courses = await listCoursesForAdmin(req.accessToken!);
+    res.status(200).json({ success: true, data: courses });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function publishCourseController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    await publishCourseService(course_id, req.accessToken!);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function unpublishCourseController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    await unpublishCourseService(course_id, req.accessToken!);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listCourseFacultyController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const faculty = await listCourseFaculty(course_id, req.accessToken!);
+    res.status(200).json({ success: true, data: faculty });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function assignCourseFacultyController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const { faculty_id } = req.body as { faculty_id: string };
+    await assignCourseFaculty(course_id, faculty_id, req.accessToken!);
+    res.status(201).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeCourseFacultyController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const faculty_id = req.params.faculty_id as string;
+    await removeCourseFaculty(course_id, faculty_id, req.accessToken!);
     res.status(200).json({ success: true });
   } catch (err) {
     next(err);

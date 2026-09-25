@@ -15,6 +15,17 @@ export interface AdminUser {
   user_roles: { role: AdminRole }[];
 }
 
+export interface AdminCourse {
+  course_id: string;
+  title: string;
+  difficulty: string;
+  status: string;
+  is_published: boolean;
+  instructorName: string;
+  facultyCount: number;
+}
+
+
 export interface CreatedUserResult {
   user: AdminUser;
   generated_password: string;
@@ -33,6 +44,23 @@ export interface CreatedUserResult {
 export interface BatchCreateResult {
   created: CreatedUserResult[];
   failed: { row: { first_name: string; last_name: string; username: string; email: string }; reason: string }[];
+}
+
+export interface CourseFacultyRecord {
+  course_id: string;
+  faculty_id: string;
+  tenant_id: string;
+  role: string;
+}
+
+export interface PlatformStats {
+  totalUsers: number;
+  usersByRole: { role_name: string; count: number }[];
+  totalCourses: number;
+  publishedCourses: number;
+  draftCourses: number;
+  coursesWithNoFaculty: number;
+  totalEnrollments: number;
 }
 
 export async function adminCreateUser(data: {
@@ -85,4 +113,37 @@ export async function removeRole(userId: string, roleId: string): Promise<void> 
   await gatewayFetch(`/api/v1/users/${userId}/roles/${roleId}`, {
     method: "DELETE",
   });
+}
+
+export async function listCoursesForAdmin(): Promise<AdminCourse[]> {
+  return gatewayFetch<AdminCourse[]>("/api/v1/courses/admin/all");
+}
+
+export async function publishCourse(courseId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/publish`, { method: "PATCH" });
+}
+
+export async function unpublishCourse(courseId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/unpublish`, { method: "PATCH" });
+}
+
+export async function listCourseFaculty(courseId: string): Promise<CourseFacultyRecord[]> {
+  return gatewayFetch<CourseFacultyRecord[]>(`/api/v1/courses/${courseId}/faculty`);
+}
+
+export async function assignCourseFaculty(courseId: string, facultyId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/faculty`, {
+    method: "POST",
+    body: JSON.stringify({ faculty_id: facultyId }),
+  });
+}
+
+export async function removeCourseFaculty(courseId: string, facultyId: string): Promise<void> {
+  await gatewayFetch(`/api/v1/courses/${courseId}/faculty/${facultyId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getPlatformStats(): Promise<PlatformStats> {
+  return gatewayFetch<PlatformStats>("/api/v1/admin/stats");
 }

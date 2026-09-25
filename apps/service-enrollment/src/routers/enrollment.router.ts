@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment, getMyEnrollments, getCompletedLessons } from "../controllers/enrollment.controller";
+import { enrollCourse, bulkEnrollCourse, dropCourse, getEnrollment, getMyEnrollments, getCompletedLessons, countAllEnrollments, countEnrollmentsByCourse } from "../controllers/enrollment.controller";
 import { markLessonComplete } from "../controllers/lesson-progress.controller";
 import {
     submitRating,
@@ -27,5 +27,6 @@ enrollmentRouter.get("/:enrollment_id/completed-lessons", authMiddleware, getCom
 enrollmentRouter.get("/courses/:course_id/ratings", listCourseRatings);
 enrollmentRouter.get("/courses/:course_id/ratings/average", getAverageRating);
 enrollmentRouter.get("/:enrollment_id", getEnrollment);
-
+enrollmentRouter.get('/admin/count', authMiddleware, requirePermission('user:write'), countAllEnrollments);
+enrollmentRouter.get("/admin/counts-by-course", authMiddleware, requirePermission("user:write"), countEnrollmentsByCourse);
 export default enrollmentRouter;
