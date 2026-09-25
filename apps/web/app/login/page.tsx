@@ -38,7 +38,8 @@ export default function LoginPage() {
         return;
       }
       const isAdmin = user.roles.some((r) => r.role_name === "Admin");
-      window.location.href = isAdmin ? "/admin" : "/dashboard";
+      const isFaculty = user.roles.some((r) => r.role_name === "Faculty");
+      window.location.href = isAdmin ? "/admin" : isFaculty ? "/faculty" : "/dashboard";
     } catch (err) {
       if (err instanceof GatewayError) {
         setErrorMessage(err.message);

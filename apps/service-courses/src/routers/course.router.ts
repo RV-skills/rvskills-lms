@@ -13,6 +13,7 @@ import {
   listFaculty,
   assignFaculty,
   removeFaculty,
+  listMyCourses,
 } from '../controllers/course.controller';
 
 import {
@@ -36,6 +37,7 @@ const courseRouter: Router = Router();
 // Course routes
 courseRouter.get('/', publicRouteMiddleware, listCourses);
 courseRouter.post('/', authMiddleware, requirePermission('course:write'), createCourse);
+courseRouter.get('/mine', authMiddleware, requirePermission('course:write'), listMyCourses);
 courseRouter.get('/:course_id', publicRouteMiddleware, getCourse);
 courseRouter.patch('/:course_id', authMiddleware, requirePermission('course:write'), updateCourse);
 courseRouter.delete('/:course_id', authMiddleware, requirePermission('course:write'), deleteCourse);

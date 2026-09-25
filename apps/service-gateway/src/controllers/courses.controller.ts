@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
-import { listCourses, getCourseDetail } from "../services/courses.service";
+import { listCourses, getCourseDetail, createCourse, listMyCourses } from "../services/courses.service";
 import { NotFoundError } from "@rv-lms/shared-utils";
 import {
   listCourseRatings as fetchCourseRatings,
@@ -11,6 +11,14 @@ import {
 import { markLessonComplete as markLessonCompleteService } from "../services/enrollment.service";
 import { listCoursesForAdmin, publishCourse as publishCourseService, unpublishCourse as unpublishCourseService } from "../services/courses.service";
 import { listCourseFaculty, assignCourseFaculty, removeCourseFaculty } from "../services/courses.service";
+import {
+  createModule as createModuleService,
+  updateModule as updateModuleService,
+  deleteModule as deleteModuleService,
+  createLesson as createLessonService,
+  updateLesson as updateLessonService,
+  deleteLesson as deleteLessonService,
+} from "../services/courses.service";
 
 export async function listCoursesController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
@@ -140,6 +148,91 @@ export async function removeCourseFacultyController(req: AuthenticatedRequest, r
     const course_id = req.params.course_id as string;
     const faculty_id = req.params.faculty_id as string;
     await removeCourseFaculty(course_id, faculty_id, req.accessToken!);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listMyCoursesController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const courses = await listMyCourses(req.accessToken!);
+    res.status(200).json({ success: true, data: courses });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createCourseController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course = await createCourse(req.body, req.accessToken!);
+    res.status(201).json({ success: true, data: course });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createModuleController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module = await createModuleService(course_id, req.body, req.accessToken!);
+    res.status(201).json({ success: true, data: module });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateModuleController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module_id = req.params.module_id as string;
+    const module = await updateModuleService(course_id, module_id, req.body, req.accessToken!);
+    res.status(200).json({ success: true, data: module });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteModuleController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module_id = req.params.module_id as string;
+    await deleteModuleService(course_id, module_id, req.accessToken!);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createLessonController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module_id = req.params.module_id as string;
+    const lesson = await createLessonService(course_id, module_id, req.body, req.accessToken!);
+    res.status(201).json({ success: true, data: lesson });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateLessonController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module_id = req.params.module_id as string;
+    const lesson_id = req.params.lesson_id as string;
+    const lesson = await updateLessonService(course_id, module_id, lesson_id, req.body, req.accessToken!);
+    res.status(200).json({ success: true, data: lesson });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteLessonController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const course_id = req.params.course_id as string;
+    const module_id = req.params.module_id as string;
+    const lesson_id = req.params.lesson_id as string;
+    await deleteLessonService(course_id, module_id, lesson_id, req.accessToken!);
     res.status(200).json({ success: true });
   } catch (err) {
     next(err);

@@ -124,4 +124,14 @@ export const courseRepository = {
             },
         });
     },
+    async findByIds(course_ids: string[], tenant_id: string) {
+        return prisma.course.findMany({
+            where: {
+                course_id: { in: course_ids },
+                tenant_id,
+                deleted_at: null,
+            },
+            orderBy: { created_at: "desc" },
+        });
+    },
 };
