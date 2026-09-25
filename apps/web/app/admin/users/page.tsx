@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/user-session";
 import { GatewayError } from "@/lib/gateway-client";
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav";
+import { Avatar } from "@/components/ui/avatar";
 import {
   listAllUsers,
   listAllRoles,
@@ -279,9 +280,12 @@ export default function AdminUsersPage() {
   return (
     <div className="flex min-h-screen">
       <AdminSidebarNav />
-      <main className="flex-1 overflow-x-hidden px-8 py-10">
+      <main className="flex-1 overflow-x-hidden px-10 py-12">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl text-neutral-900">Users</h1>
+          <div>
+            <p className="text-sm text-neutral-500">Manage</p>
+            <h1 className="mt-1 text-2xl text-neutral-900">Users</h1>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowCreateForm((s) => !s)}
@@ -311,7 +315,7 @@ export default function AdminUsersPage() {
         </div>
 
         {showCreateForm && (
-          <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-3 rounded-lg bg-neutral-50 p-4">
+          <form onSubmit={handleCreate} className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-neutral-50 p-4">
             <div>
               <label className="text-xs text-neutral-500">First name</label>
               <input
@@ -425,7 +429,7 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-8 flex gap-3">
           <input
             type="text"
             placeholder="Search by name, email, or username"
@@ -488,45 +492,46 @@ export default function AdminUsersPage() {
         )}
 
         {users === undefined ? (
-          <p className="mt-6 text-sm text-neutral-500">Loading...</p>
+          <p className="mt-8 text-sm text-neutral-500">Loading...</p>
         ) : users.length === 0 ? (
-          <p className="mt-6 text-sm text-neutral-500">No users match your search.</p>
+          <p className="mt-8 text-sm text-neutral-500">No users match your search.</p>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded-lg border border-neutral-100">
+          <div className="mt-8 overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-neutral-100 bg-neutral-50">
+              <thead className="border-b border-neutral-100">
                 <tr>
-                  <th className="px-4 py-3">
+                  <th className="py-3 pr-4">
                     <input
                       type="checkbox"
                       checked={users !== undefined && users.length > 0 && selectedUserIds.size === users.length}
                       onChange={toggleSelectAll}
+                      className="accent-primary-500"
                     />
                   </th>
                   <th
-                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
                     onClick={() => handleSort("first_name")}
                   >
                     Name {sortBy === "first_name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
                   </th>
                   <th
-                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
                     onClick={() => handleSort("email")}
                   >
                     Email {sortBy === "email" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
                   </th>
                   {roles.map((role) => (
-                    <th key={role.role_id} className="px-4 py-3 font-medium text-neutral-500">
+                    <th key={role.role_id} className="py-3 pr-4 font-normal text-neutral-500">
                       {role.role_name}
                     </th>
                   ))}
                   <th
-                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
                     onClick={() => handleSort("status")}
                   >
                     Status {sortBy === "status" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
                   </th>
-                  <th className="px-4 py-3 font-medium text-neutral-500"></th>
+                  <th className="py-3 font-normal text-neutral-500"></th>
                 </tr>
               </thead>
               <tbody>
@@ -534,22 +539,28 @@ export default function AdminUsersPage() {
                   const heldRoleIds = new Set(user.user_roles.map((ur) => ur.role.role_id));
                   return (
                     <tr key={user.user_id} className="border-b border-neutral-100 last:border-0">
-                      <td className="px-4 py-3">
+                      <td className="py-4 pr-4">
                         <input
                           type="checkbox"
                           checked={selectedUserIds.has(user.user_id)}
                           onChange={() => toggleUserSelection(user.user_id)}
+                          className="accent-primary-500"
                         />
                       </td>
-                      <td className="px-4 py-3 text-neutral-900">
-                        {user.first_name} {user.last_name}
+                      <td className="py-4 pr-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={`${user.first_name} ${user.last_name}`} size="sm" />
+                          <span className="text-neutral-900">
+                            {user.first_name} {user.last_name}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-500">{user.email}</td>
+                      <td className="py-4 pr-4 text-neutral-500">{user.email}</td>
                       {roles.map((role) => {
                         const hasRole = heldRoleIds.has(role.role_id);
                         const key = `${user.user_id}:${role.role_id}`;
                         return (
-                          <td key={role.role_id} className="px-4 py-3">
+                          <td key={role.role_id} className="py-4 pr-4">
                             <input
                               type="checkbox"
                               checked={hasRole}
@@ -560,20 +571,23 @@ export default function AdminUsersPage() {
                           </td>
                         );
                       })}
-                      <td className="px-4 py-3">
+                      <td className="py-4 pr-4">
                         <button
                           onClick={() => handleToggleStatus(user)}
                           disabled={updatingKey === `status:${user.user_id}`}
-                          className={
-                            user.status === "active"
-                              ? "rounded-full bg-success/10 px-2.5 py-1 text-xs text-success"
-                              : "rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-500"
-                          }
+                          className="flex items-center gap-1.5 text-xs disabled:opacity-50"
                         >
-                          {user.status}
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              user.status === "active" ? "bg-success" : "bg-neutral-500"
+                            }`}
+                          />
+                          <span className={user.status === "active" ? "text-success" : "text-neutral-500"}>
+                            {user.status}
+                          </span>
                         </button>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="py-4">
                         <button
                           onClick={() => handleResetPassword(user)}
                           disabled={updatingKey === `reset:${user.user_id}`}
@@ -592,7 +606,7 @@ export default function AdminUsersPage() {
                 })}
               </tbody>
             </table>
-            <div className="mt-4 flex items-center justify-between text-sm">
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 text-sm">
               <span className="text-neutral-500">
                 Showing {(page - 1) * PAGE_SIZE + 1}
                 {"\u2013"}
