@@ -52,6 +52,12 @@ export default function AdminUsersPage() {
   const [bulkRoleId, setBulkRoleId] = useState("");
   const [bulkApplying, setBulkApplying] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [sortBy, setSortBy] = useState<"first_name" | "email" | "status">("first_name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const PAGE_SIZE = 10;
+
   useEffect(() => {
     if (!createResult) return;
     const timeout = setTimeout(() => setCreateResult(null), 30000);
@@ -93,11 +99,22 @@ export default function AdminUsersPage() {
       search: search || undefined,
       role_id: roleFilter || undefined,
       status: statusFilter || undefined,
+      page,
+      pageSize: PAGE_SIZE,
+      sortBy,
+      sortOrder,
     })
-      .then(setUsers)
+      .then((res) => {
+        setUsers(res.users);
+        setTotal(res.total);
+      })
       .catch((err) => {
         if (!handleAuthError(err)) throw err;
       });
+  }, [search, roleFilter, statusFilter, page, sortBy, sortOrder]);
+
+  useEffect(() => {
+    setPage(1);
   }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
@@ -222,6 +239,15 @@ export default function AdminUsersPage() {
       const [first_name, last_name, username, email] = line.split(",").map((v) => v.trim());
       return { first_name, last_name, username, email };
     });
+  }
+
+  function handleSort(column: "first_name" | "email" | "status") {
+    if (sortBy === column) {
+      setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
   }
 
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -477,14 +503,29 @@ export default function AdminUsersPage() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 font-medium text-neutral-500">Name</th>
-                  <th className="px-4 py-3 font-medium text-neutral-500">Email</th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    onClick={() => handleSort("first_name")}
+                  >
+                    Name {sortBy === "first_name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    onClick={() => handleSort("email")}
+                  >
+                    Email {sortBy === "email" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
                   {roles.map((role) => (
                     <th key={role.role_id} className="px-4 py-3 font-medium text-neutral-500">
                       {role.role_name}
                     </th>
                   ))}
-                  <th className="px-4 py-3 font-medium text-neutral-500">Status</th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-medium text-neutral-500"
+                    onClick={() => handleSort("status")}
+                  >
+                    Status {sortBy === "status" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
                   <th className="px-4 py-3 font-medium text-neutral-500"></th>
                 </tr>
               </thead>
@@ -514,6 +555,7 @@ export default function AdminUsersPage() {
                               checked={hasRole}
                               disabled={updatingKey === key}
                               onChange={() => handleToggle(user, role.role_id, hasRole)}
+                              className="accent-primary-500"
                             />
                           </td>
                         );
@@ -550,6 +592,29 @@ export default function AdminUsersPage() {
                 })}
               </tbody>
             </table>
+            <div className="mt-4 flex items-center justify-between text-sm">
+              <span className="text-neutral-500">
+                Showing {(page - 1) * PAGE_SIZE + 1}
+                {"\u2013"}
+                {Math.min(page * PAGE_SIZE, total)} of {total}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-md border border-neutral-500 px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page * PAGE_SIZE >= total}
+                  className="rounded-md border border-neutral-500 px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

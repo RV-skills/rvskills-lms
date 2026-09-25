@@ -61,7 +61,7 @@ export default function AdminCoursesPage() {
   }, [loadCourses]);
 
   useEffect(() => {
-    listAllUsers({ role_id: "role-faculty" }).then(setFacultyUsers);
+    listAllUsers({ role_id: "role-faculty", pageSize: 1000 }).then((res) => setFacultyUsers(res.users));
   }, []);
 
   async function handleTogglePublish(course: AdminCourse) {

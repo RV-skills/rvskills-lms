@@ -20,9 +20,26 @@ export function meController(req: AuthenticatedRequest, res: Response, next: Nex
 
 export async function listAllUsersController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
-    const { search, role_id, status } = req.query as { search?: string; role_id?: string; status?: string };
-    const users = await listAllUsers(req.accessToken!, { search, role_id, status });
-    res.status(200).json({ success: true, data: users });
+    const { search, role_id, status, page, pageSize, sortBy, sortOrder } = req.query as {
+      search?: string;
+      role_id?: string;
+      status?: string;
+      page?: string;
+      pageSize?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    };
+    const result = await listAllUsers(
+      req.accessToken!,
+      { search, role_id, status },
+      {
+        page: page ? parseInt(page, 10) : undefined,
+        pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+        sortBy,
+        sortOrder,
+      }
+    );
+    res.status(200).json({ success: true, data: result.users, total: result.total });
   } catch (err) {
     next(err);
   }

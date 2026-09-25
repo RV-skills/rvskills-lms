@@ -97,9 +97,25 @@ export const getUsersByIds = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const listUsers = catchAsync(async (req: Request, res: Response) => {
-  const { search, role_id, status } = req.query as { search?: string; role_id?: string; status?: string };
-  const users = await userService.listAllUsers({ search, role_id, status });
-  res.status(200).json({ success: true, data: users });
+  const { search, role_id, status, page, pageSize, sortBy, sortOrder } = req.query as {
+    search?: string;
+    role_id?: string;
+    status?: string;
+    page?: string;
+    pageSize?: string;
+    sortBy?: "first_name" | "email" | "status";
+    sortOrder?: "asc" | "desc";
+  };
+  const result = await userService.listAllUsers(
+    { search, role_id, status },
+    {
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+      sortBy,
+      sortOrder,
+    }
+  );
+  res.status(200).json({ success: true, data: result.users, total: result.total });
 });
 
 export const listRoles = catchAsync(async (req: Request, res: Response) => {

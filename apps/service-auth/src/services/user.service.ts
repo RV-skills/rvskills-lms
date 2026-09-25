@@ -129,8 +129,25 @@ export const userService = {
         return userRepository.findManyByIds(user_ids, DEFAULT_TENANT_ID);
     },
 
-    async listAllUsers(filters?: { search?: string; role_id?: string; status?: string }): Promise<any[]> {
-        return userRepository.findAll(DEFAULT_TENANT_ID, filters);
+    async listAllUsers(
+        filters?: { search?: string; role_id?: string; status?: string },
+        options?: { page?: number; pageSize?: number; sortBy?: "first_name" | "email" | "status"; sortOrder?: "asc" | "desc" }
+    ): Promise<{ users: any[]; total: number }> {
+        const page = options?.page ?? 1;
+        const pageSize = options?.pageSize ?? 25;
+        const skip = (page - 1) * pageSize;
+
+        const [users, total] = await Promise.all([
+            userRepository.findAll(DEFAULT_TENANT_ID, filters, {
+                skip,
+                take: pageSize,
+                sortBy: options?.sortBy,
+                sortOrder: options?.sortOrder,
+            }),
+            userRepository.countAll(DEFAULT_TENANT_ID, filters),
+        ]);
+
+        return { users, total };
     },
 
     async listAllRoles(): Promise<{ role_id: string; role_name: string }[]> {

@@ -1,4 +1,4 @@
-import { gatewayFetch } from "./gateway-client";
+import { gatewayFetch, gatewayFetchRaw } from "./gateway-client";
 
 export interface AdminRole {
   role_id: string;
@@ -89,13 +89,22 @@ export async function listAllUsers(filters?: {
   search?: string;
   role_id?: string;
   status?: string;
-}): Promise<AdminUser[]> {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ users: AdminUser[]; total: number }> {
   const params = new URLSearchParams();
   if (filters?.search) params.set("search", filters.search);
   if (filters?.role_id) params.set("role_id", filters.role_id);
   if (filters?.status) params.set("status", filters.status);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+  if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder);
   const query = params.toString();
-  return gatewayFetch<AdminUser[]>(`/api/v1/users/all${query ? `?${query}` : ""}`);
+  const res = await gatewayFetchRaw<AdminUser[]>(`/api/v1/users/all${query ? `?${query}` : ""}`);
+  return { users: res.data ?? [], total: res.total ?? 0 };
 }
 
 export async function listAllRoles(): Promise<AdminRole[]> {

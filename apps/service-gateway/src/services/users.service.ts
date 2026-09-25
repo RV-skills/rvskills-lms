@@ -37,12 +37,17 @@ export interface BatchCreateResult {
 
 export async function listAllUsers(
   accessToken: string,
-  filters?: { search?: string; role_id?: string; status?: string }
-): Promise<AdminUserSummary[]> {
+  filters?: { search?: string; role_id?: string; status?: string },
+  options?: { page?: number; pageSize?: number; sortBy?: string; sortOrder?: string }
+): Promise<{ users: AdminUserSummary[]; total: number }> {
   const params = new URLSearchParams();
   if (filters?.search) params.set("search", filters.search);
   if (filters?.role_id) params.set("role_id", filters.role_id);
   if (filters?.status) params.set("status", filters.status);
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.pageSize) params.set("pageSize", String(options.pageSize));
+  if (options?.sortBy) params.set("sortBy", options.sortBy);
+  if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
   const query = params.toString();
 
   const res = await fetchWithTimeout(
@@ -66,8 +71,8 @@ export async function listAllUsers(
     throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 
-  const body = (await res.json()) as { success: boolean; data: AdminUserSummary[] };
-  return body.data;
+  const body = (await res.json()) as { success: boolean; data: AdminUserSummary[]; total: number };
+  return { users: body.data, total: body.total };
 }
 
 export async function listAllRoles(accessToken: string): Promise<RoleSummary[]> {

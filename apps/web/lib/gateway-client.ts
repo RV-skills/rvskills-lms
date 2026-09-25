@@ -9,6 +9,7 @@ interface GatewayResponse<T> {
   message?: string;
   data?: T;
   errors?: { field: string; message: string }[];
+  total?: number;
 }
 
 export class GatewayError extends Error {
@@ -47,4 +48,31 @@ export async function gatewayFetch<T>(
   }
 
   return body.data as T;
+}
+
+export async function gatewayFetchRaw<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<GatewayResponse<T>> {
+  const res = await fetch(`${GATEWAY_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  const body: GatewayResponse<T> = await res.json();
+
+  if (!res.ok || !body.success) {
+    throw new GatewayError(
+      body.message || "Something went wrong",
+      res.status,
+      body.errors
+    );
+  }
+
+  return body;
 }
