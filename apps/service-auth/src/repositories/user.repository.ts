@@ -269,4 +269,11 @@ export const userRepository = {
         });
         return !!existing;
     },
+
+    async setPasswordHash(user_id: string, tenant_id: string, password_hash: string) {
+        return prisma.user.update({
+            where: { user_id, tenant_id },
+            data: { password_hash },
+        });
+    },
 };

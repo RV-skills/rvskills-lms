@@ -234,3 +234,60 @@ export async function adminBatchCreateStudents(
   const body = (await res.json()) as { success: boolean; data: BatchCreateResult };
   return body.data;
 }
+
+export async function setUserStatus(
+  user_id: string,
+  status: "active" | "inactive",
+  accessToken: string
+): Promise<AdminUserSummary> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/${user_id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: AdminUserSummary };
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for status update`);
+  }
+
+  return body.data as AdminUserSummary;
+}
+
+export async function resetUserPassword(
+  user_id: string,
+  accessToken: string
+): Promise<CreatedUserResult> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/${user_id}/reset-password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: CreatedUserResult };
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for password reset`);
+  }
+
+  return body.data as CreatedUserResult;
+}

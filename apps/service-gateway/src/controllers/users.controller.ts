@@ -7,6 +7,8 @@ import {
   removeRoleFromUser,
   adminCreateUser,
   adminBatchCreateStudents,
+  setUserStatus,
+  resetUserPassword,
 } from "../services/users.service";
 
 export function meController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -71,6 +73,27 @@ export async function adminBatchCreateStudentsController(req: AuthenticatedReque
     const { rows } = req.body as { rows: any[] };
     const result = await adminBatchCreateStudents(rows, req.accessToken!);
     res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function setUserStatusController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const user_id = req.params.user_id as string;
+    const { status } = req.body as { status: "active" | "inactive" };
+    const user = await setUserStatus(user_id, status, req.accessToken!);
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetUserPasswordController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const user_id = req.params.user_id as string;
+    const result = await resetUserPassword(user_id, req.accessToken!);
+    res.status(200).json({ success: true, data: result });
   } catch (err) {
     next(err);
   }

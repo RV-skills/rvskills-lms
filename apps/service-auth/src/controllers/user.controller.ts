@@ -140,3 +140,16 @@ export const adminBatchCreateStudents = catchAsync(async (req: Request, res: Res
   const result = await userService.adminBatchCreateStudents(rows);
   res.status(201).json({ success: true, data: result });
 });
+
+export const adminSetUserStatus = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const { status } = req.body as { status: "active" | "inactive" };
+  const user = await userService.adminSetUserStatus(user_id, status);
+  res.status(200).json({ success: true, data: user });
+});
+
+export const adminResetPassword = catchAsync(async (req: Request, res: Response) => {
+  const user_id = req.params.user_id as string;
+  const result = await userService.adminResetPassword(user_id);
+  res.status(200).json({ success: true, data: result });
+});

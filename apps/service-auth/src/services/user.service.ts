@@ -231,4 +231,30 @@ export const userService = {
 
         return { created, failed };
     },
+
+    async adminSetUserStatus(user_id: string, status: "active" | "inactive"): Promise<UserDTO> {
+        const existing = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!existing) {
+            throw new NotFoundError("User not found");
+        }
+
+        await userRepository.update(user_id, DEFAULT_TENANT_ID, { status });
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return mapToUserDTO(updated);
+    },
+
+    async adminResetPassword(user_id: string): Promise<{ user: UserDTO; generated_password: string }> {
+        const existing = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!existing) {
+            throw new NotFoundError("User not found");
+        }
+
+        const generated_password = generatePassword();
+        const password_hash = await bcrypt.hash(generated_password, SALT_ROUNDS);
+        await userRepository.setPasswordHash(user_id, DEFAULT_TENANT_ID, password_hash);
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return { user: mapToUserDTO(updated), generated_password };
+    },
 }
