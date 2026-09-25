@@ -7,6 +7,7 @@ import { useSession, logout } from "@/lib/user-session";
 import { Avatar } from "@/components/ui/avatar";
 
 const LINKS = [
+  { href: "/admin", label: "Dashboard" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/courses", label: "Courses" },
 ];
@@ -23,8 +24,8 @@ export function AdminSidebarNav() {
 
   return (
     <aside className="flex h-screen w-60 flex-shrink-0 flex-col border-r border-neutral-100 px-6 py-8">
-      <Link href="/admin/users" className="text-lg text-neutral-900">
-        RV Skills Admin
+      <Link href="/admin" className="text-lg text-neutral-900">
+        RV-Skills Admin
       </Link>
 
       <nav className="mt-8 flex flex-col gap-1">

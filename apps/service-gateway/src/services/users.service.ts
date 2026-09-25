@@ -1,6 +1,6 @@
 import { serverConfig } from "../config";
 import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import { BadGatewayError, UnauthorizedError, ForbiddenError } from "@rv-lms/shared-utils";
+import { BadGatewayError, UnauthorizedError, ForbiddenError, ConflictError } from "@rv-lms/shared-utils";
 import type { UserSummaryDTO } from "@rv-lms/shared-types";
 
 export interface AdminUserSummary {
@@ -86,7 +86,7 @@ export async function listAllRoles(accessToken: string): Promise<RoleSummary[]> 
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    throw new BadGatewayError(`service-auth returned ${res.status} for list roles`);
   }
 
   const body = (await res.json()) as { success: boolean; data: RoleSummary[] };
@@ -115,7 +115,7 @@ export async function assignRoleToUser(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    throw new BadGatewayError(`service-auth returned ${res.status} for role assignments`);
   }
 }
 
@@ -142,7 +142,7 @@ export async function removeRoleFromUser(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    throw new BadGatewayError(`service-auth returned ${res.status} for role removal`);
   }
 }
 
@@ -168,7 +168,7 @@ export async function getUsersByIds(userIds: string[], accessToken: string): Pro
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    throw new BadGatewayError(`service-auth returned ${res.status} for batch user lookup`);
   }
 
   const body = (await res.json()) as { success: boolean; data: UserSummaryDTO[] };
@@ -198,7 +198,10 @@ export async function adminCreateUser(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    if (res.status === 409) {
+      throw new ConflictError(body.message ?? "That email or username is already in use.");
+    }
+    throw new BadGatewayError(`service-auth returned ${res.status} for user creation`);
   }
 
   return body.data as CreatedUserResult;
@@ -225,7 +228,7 @@ export async function adminBatchCreateStudents(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    throw new BadGatewayError(`service-auth returned ${res.status} for batch user creation`);
   }
 
   const body = (await res.json()) as { success: boolean; data: BatchCreateResult };

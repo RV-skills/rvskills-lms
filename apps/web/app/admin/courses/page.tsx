@@ -48,6 +48,14 @@ export default function AdminCoursesPage() {
       });
   }, [router]);
 
+  function handleAuthError(err: unknown): boolean {
+    if (err instanceof GatewayError && (err.statusCode === 401 || err.statusCode === 403)) {
+      router.push("/login");
+      return true;
+    }
+    return false;
+  }
+
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
@@ -65,11 +73,13 @@ export default function AdminCoursesPage() {
         await publishCourse(course.course_id);
       }
       loadCourses();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
     } finally {
       setUpdatingId(null);
     }
   }
-
+ 
   async function handleExpand(courseId: string) {
     if (expandedCourseId === courseId) {
       setExpandedCourseId(null);
@@ -77,8 +87,12 @@ export default function AdminCoursesPage() {
     }
     setExpandedCourseId(courseId);
     setSelectedFacultyId("");
-    const faculty = await listCourseFaculty(courseId);
-    setCourseFaculty(faculty);
+    try {
+      const faculty = await listCourseFaculty(courseId);
+      setCourseFaculty(faculty);
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    }
   }
 
   async function handleAssignFaculty(courseId: string) {
@@ -90,6 +104,8 @@ export default function AdminCoursesPage() {
       setCourseFaculty(faculty);
       setSelectedFacultyId("");
       loadCourses();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
     } finally {
       setFacultyUpdating(false);
     }
@@ -102,11 +118,12 @@ export default function AdminCoursesPage() {
       const faculty = await listCourseFaculty(courseId);
       setCourseFaculty(faculty);
       loadCourses();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
     } finally {
       setFacultyUpdating(false);
     }
   }
-
   function facultyName(facultyId: string): string {
     const match = facultyUsers.find((u) => u.user_id === facultyId);
     return match ? `${match.first_name} ${match.last_name}` : facultyId;

@@ -53,6 +53,16 @@ export interface CourseFacultyRecord {
   role: string;
 }
 
+export interface PlatformStats {
+  totalUsers: number;
+  usersByRole: { role_name: string; count: number }[];
+  totalCourses: number;
+  publishedCourses: number;
+  draftCourses: number;
+  coursesWithNoFaculty: number;
+  totalEnrollments: number;
+}
+
 export async function adminCreateUser(data: {
   first_name: string;
   last_name: string;
@@ -132,4 +142,8 @@ export async function removeCourseFaculty(courseId: string, facultyId: string): 
   await gatewayFetch(`/api/v1/courses/${courseId}/faculty/${facultyId}`, {
     method: "DELETE",
   });
+}
+
+export async function getPlatformStats(): Promise<PlatformStats> {
+  return gatewayFetch<PlatformStats>("/api/v1/admin/stats");
 }
