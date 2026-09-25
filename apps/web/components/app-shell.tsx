@@ -12,9 +12,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const alwaysPublic = ALWAYS_PUBLIC_PATHS.includes(pathname);
   const isAdminArea = pathname.startsWith("/admin");
-  const showSidebar = !alwaysPublic && !isAdminArea && !loading && !!user;
+  const isFacultyArea = pathname.startsWith("/faculty");
+  const showSidebar = !alwaysPublic && !isAdminArea && !isFacultyArea && !loading && !!user;
 
-  if (isAdminArea) {
+  if (isAdminArea || isFacultyArea) {
     return <>{children}</>;
   }
 

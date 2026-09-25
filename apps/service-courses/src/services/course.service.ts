@@ -34,11 +34,11 @@ const mapToCourseDTO = (course: any): CourseDTO => {
 }
 
 export const courseService = {
-    async createCourse(data: CreateCourseInput): Promise<CourseDTO> {
+    async createCourse(data: CreateCourseInput, creator_faculty_id: string): Promise<CourseDTO> {
         const course = await courseRepository.create(data);
+        await courseFacultyRepository.assign(course.course_id, creator_faculty_id, data.tenant_id, FacultyRole.primary);
         return mapToCourseDTO(course);
     },
-
     async getCourse(
         course_id: string,
         tenant_id: string = DEFAULT_TENANT_ID
@@ -144,5 +144,14 @@ export const courseService = {
 
     async removeFaculty(course_id: string, faculty_id: string) {
         return courseFacultyRepository.remove(course_id, faculty_id);
+    },
+    
+    async listMyCourses(faculty_id: string, tenant_id: string) {
+        const assignments = await courseFacultyRepository.findByFaculty(faculty_id, tenant_id);
+        const courseIds = assignments.map((a) => a.course_id);
+        if (courseIds.length === 0) return [];
+
+        const courses = await courseRepository.findByIds(courseIds, tenant_id);
+        return courses;
     },
 }

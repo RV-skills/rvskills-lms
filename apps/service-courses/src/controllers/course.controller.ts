@@ -8,12 +8,16 @@ import { NotFoundError } from "@rv-lms/shared-utils";
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
 
 export const createCourse = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     const validatedData = CreateCourseSchema.parse(req.body);
 
-    const course = await courseService.createCourse({
-        ...validatedData,
-        tenant_id: DEFAULT_TENANT_ID,
-    });
+    const course = await courseService.createCourse(
+        {
+            ...validatedData,
+            tenant_id: DEFAULT_TENANT_ID,
+        },
+        authReq.user!.user_id
+    );
 
     res.status(201).json({
     success: true,
@@ -125,4 +129,10 @@ export const removeFaculty = catchAsync(async (req: Request, res: Response) => {
     const faculty_id = req.params.faculty_id as string;
     await courseService.removeFaculty(course_id, faculty_id);
     res.status(200).json({ success: true });
+});
+
+export const listMyCourses = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const courses = await courseService.listMyCourses(authReq.user!.user_id, DEFAULT_TENANT_ID);
+    res.status(200).json({ success: true, data: courses });
 });

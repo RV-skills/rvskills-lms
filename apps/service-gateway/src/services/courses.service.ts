@@ -56,6 +56,38 @@ export interface CourseFacultyRecord {
   role: string;
 }
 
+export interface MyCourse {
+  course_id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  difficulty: string;
+  status: string;
+  is_published: boolean;
+}
+
+export interface ModuleRecord {
+  module_id: string;
+  course_id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  is_locked: boolean;
+}
+
+export interface LessonRecord {
+  lesson_id: string;
+  module_id: string;
+  title: string;
+  description: string | null;
+  content_type: string;
+  order_index: number;
+  is_preview: boolean;
+  estimated_duration_mins: number | null;
+}
+
+
+
 async function fetchCoursesFromService(accessToken?: string): Promise<CourseDTO[]> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses`, {
     method: "GET",
@@ -287,4 +319,112 @@ export async function getEnrollmentCountsByCourse(accessToken: string): Promise<
 
   const body = (await res.json()) as { success: boolean; data: { course_id: string; count: number }[] };
   return new Map(body.data.map((r) => [r.course_id, r.count]));
+}
+
+export async function listMyCourses(accessToken: string): Promise<MyCourse[]> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/mine`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new BadGatewayError(`service-courses returned ${res.status} for my courses`);
+  }
+
+  const body = (await res.json()) as { success: boolean; data: MyCourse[] };
+  return body.data;
+}
+
+export async function createCourse(
+  data: { title: string; description?: string; thumbnail_url?: string; language?: string; difficulty?: string },
+  accessToken: string
+): Promise<MyCourse> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: MyCourse };
+
+  if (!res.ok) {
+    throw new BadGatewayError(body.message ?? `service-courses returned ${res.status} for create course`);
+  }
+
+  return body.data as MyCourse;
+}
+
+async function coursesServiceRequest(path: string, method: string, accessToken: string, body?: object) {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const responseBody = (await res.json()) as { success: boolean; message?: string; data?: any };
+
+  if (!res.ok) {
+    throw new BadGatewayError(responseBody.message ?? `service-courses returned ${res.status} for ${method} ${path}`);
+  }
+
+  return responseBody.data;
+}
+
+export async function createModule(course_id: string, data: object, accessToken: string): Promise<ModuleRecord> {
+  return coursesServiceRequest(`/${course_id}/modules`, "POST", accessToken, data);
+}
+
+export async function updateModule(course_id: string, module_id: string, data: object, accessToken: string): Promise<ModuleRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}`, "PATCH", accessToken, data);
+}
+
+export async function deleteModule(course_id: string, module_id: string, accessToken: string): Promise<void> {
+  await coursesServiceRequest(`/${course_id}/modules/${module_id}`, "DELETE", accessToken);
+}
+
+export async function createLesson(course_id: string, module_id: string, data: object, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons`, "POST", accessToken, data);
+}
+
+export async function updateLesson(course_id: string, module_id: string, lesson_id: string, data: object, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}`, "PATCH", accessToken, data);
+}
+
+export async function deleteLesson(course_id: string, module_id: string, lesson_id: string, accessToken: string): Promise<void> {
+  await coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}`, "DELETE", accessToken);
+}
+
+export async function updateCourseDetails(
+  course_id: string,
+  data: { title?: string; description?: string; thumbnail_url?: string; language?: string; difficulty?: string; max_seats?: number },
+  accessToken: string
+): Promise<MyCourse> {
+  return coursesServiceRequest(`/${course_id}`, "PATCH", accessToken, data);
+}
+
+export async function setLessonVideo(course_id: string, module_id: string, lesson_id: string, video_url: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "PUT", accessToken, { video_url });
+}
+
+export async function removeLessonVideo(course_id: string, module_id: string, lesson_id: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "DELETE", accessToken);
+}
+
+export async function addLessonResource(course_id: string, module_id: string, lesson_id: string, title: string, pdf_url: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, { title, pdf_url });
+}
+
+export async function removeLessonResource(course_id: string, module_id: string, lesson_id: string, resource_id: string, accessToken: string): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources/${resource_id}`, "DELETE", accessToken);
 }

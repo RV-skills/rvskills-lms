@@ -48,4 +48,23 @@ export const contentMetadataRepository = {
             where: { lesson_id },
         });
     },
+
+    async upsertVideoUrl(lesson_id: string, video_url: string) {
+        return prisma.contentMetadata.upsert({
+            where: { lesson_id },
+            update: { video_url, processing_status: "READY" },
+            create: {
+                lesson_id,
+                video_url,
+                s3_key: "external-url",
+                mime_type: "video/mp4",
+                file_size: 0,
+                processing_status: "READY",
+            },
+        });
+    },
+
+    async remove(lesson_id: string) {
+        return prisma.contentMetadata.deleteMany({ where: { lesson_id } });
+    },
 };

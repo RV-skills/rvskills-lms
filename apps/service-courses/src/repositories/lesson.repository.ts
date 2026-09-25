@@ -36,7 +36,7 @@ export const lessonRepository = {
     async findWithContent(lesson_id: string) {
         return prisma.lesson.findFirst({
             where: { lesson_id, deleted_at: null },
-            include: { content_metadata: true }
+            include: { content_metadata: true, resources: { orderBy: { order_index: "asc" } } },
         });
     },
 

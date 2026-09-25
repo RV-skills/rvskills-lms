@@ -16,6 +16,7 @@ export interface UpdateCourseInput {
     thumbnail_url?: string;
     language?: string;
     difficulty?: string;
+    max_seats?: number;
 }
 
 export const courseRepository = {
@@ -122,6 +123,16 @@ export const courseRepository = {
                 is_published: false,
                 status: CourseStatus.ARCHIVED,
             },
+        });
+    },
+    async findByIds(course_ids: string[], tenant_id: string) {
+        return prisma.course.findMany({
+            where: {
+                course_id: { in: course_ids },
+                tenant_id,
+                deleted_at: null,
+            },
+            orderBy: { created_at: "desc" },
         });
     },
 };
