@@ -23,7 +23,7 @@ export function AdminSidebarNav() {
   }
 
   return (
-    <aside className="flex h-screen w-60 flex-shrink-0 flex-col border-r border-neutral-100 px-6 py-8">
+    <aside className="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col self-start border-r border-neutral-100 px-6 py-8">
       <Link href="/admin" className="text-lg text-neutral-900">
         RV-Skills Admin
       </Link>
