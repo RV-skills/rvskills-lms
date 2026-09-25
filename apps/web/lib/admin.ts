@@ -1,4 +1,4 @@
-import { gatewayFetch } from "./gateway-client";
+import { gatewayFetch, gatewayFetchRaw } from "./gateway-client";
 
 export interface AdminRole {
   role_id: string;
@@ -89,13 +89,22 @@ export async function listAllUsers(filters?: {
   search?: string;
   role_id?: string;
   status?: string;
-}): Promise<AdminUser[]> {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ users: AdminUser[]; total: number }> {
   const params = new URLSearchParams();
   if (filters?.search) params.set("search", filters.search);
   if (filters?.role_id) params.set("role_id", filters.role_id);
   if (filters?.status) params.set("status", filters.status);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+  if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder);
   const query = params.toString();
-  return gatewayFetch<AdminUser[]>(`/api/v1/users/all${query ? `?${query}` : ""}`);
+  const res = await gatewayFetchRaw<AdminUser[]>(`/api/v1/users/all${query ? `?${query}` : ""}`);
+  return { users: res.data ?? [], total: res.total ?? 0 };
 }
 
 export async function listAllRoles(): Promise<AdminRole[]> {
@@ -146,4 +155,34 @@ export async function removeCourseFaculty(courseId: string, facultyId: string): 
 
 export async function getPlatformStats(): Promise<PlatformStats> {
   return gatewayFetch<PlatformStats>("/api/v1/admin/stats");
+}
+
+export async function setUserStatus(userId: string, status: "active" | "inactive"): Promise<void> {
+  await gatewayFetch(`/api/v1/users/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function resetUserPassword(userId: string): Promise<CreatedUserResult> {
+  return gatewayFetch<CreatedUserResult>(`/api/v1/users/${userId}/reset-password`, {
+    method: "POST",
+  });
+}
+
+export function exportUsersToCsv(users: AdminUser[]): void {
+  const header = "first_name,last_name,username,email,status,roles";
+  const rows = users.map((u) => {
+    const roleNames = u.user_roles.map((ur) => ur.role.role_name).join(";");
+    return [u.first_name, u.last_name, u.username, u.email, u.status, roleNames].join(",");
+  });
+  const csv = [header, ...rows].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "users.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }

@@ -12,10 +12,11 @@ export interface PlatformStats {
 }
 
 export async function getPlatformStats(accessToken: string): Promise<PlatformStats> {
-  const [users, courses] = await Promise.all([
-    listAllUsers(accessToken),
+  const [usersResult, courses] = await Promise.all([
+    listAllUsers(accessToken, undefined, { pageSize: 10000 }),
     listCoursesForAdmin(accessToken),
   ]);
+  const users = usersResult.users;
 
   const roleCounts = new Map<string, number>();
   for (const user of users) {

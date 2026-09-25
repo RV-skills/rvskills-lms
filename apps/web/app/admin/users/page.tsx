@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/user-session";
+import { GatewayError } from "@/lib/gateway-client";
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav";
+import { Avatar } from "@/components/ui/avatar";
 import {
   listAllUsers,
   listAllRoles,
@@ -9,16 +13,18 @@ import {
   removeRole,
   adminCreateUser,
   adminBatchCreateStudents,
+  setUserStatus,
+  resetUserPassword,
+  exportUsersToCsv,
   type AdminUser,
   type AdminRole,
   type CreatedUserResult,
   type BatchCreateResult,
 } from "@/lib/admin";
-import { useRouter } from "next/navigation";
-import { GatewayError } from "@/lib/gateway-client";
-import { useSession } from "@/lib/user-session";
 
 export default function AdminUsersPage() {
+  const router = useRouter();
+  const { user: sessionUser, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
   const [users, setUsers] = useState<AdminUser[] | undefined>(undefined);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
@@ -41,17 +47,43 @@ export default function AdminUsersPage() {
   const [batchError, setBatchError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const router = useRouter();
+  const [resetResult, setResetResult] = useState<{ userId: string; password: string } | null>(null);
 
-  const { user, loading: sessionLoading } = useSession({ redirectOnUnauthorized: false });
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkRoleId, setBulkRoleId] = useState("");
+  const [bulkApplying, setBulkApplying] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [sortBy, setSortBy] = useState<"first_name" | "email" | "status">("first_name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
-    if (!sessionLoading && !user) {
+    if (!createResult) return;
+    const timeout = setTimeout(() => setCreateResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [createResult]);
+
+  useEffect(() => {
+    if (!resetResult) return;
+    const timeout = setTimeout(() => setResetResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [resetResult]);
+
+  useEffect(() => {
+    if (!batchResult) return;
+    const timeout = setTimeout(() => setBatchResult(null), 30000);
+    return () => clearTimeout(timeout);
+  }, [batchResult]);
+
+  useEffect(() => {
+    if (!sessionLoading && !sessionUser) {
       router.push("/login");
     }
-  }, [sessionLoading, user, router]);
+  }, [sessionLoading, sessionUser, router]);
 
-  function handleAuthError(err: unknown) {
+  function handleAuthError(err: unknown): boolean {
     if (err instanceof GatewayError && (err.statusCode === 401 || err.statusCode === 403)) {
       router.push("/login");
       return true;
@@ -68,11 +100,22 @@ export default function AdminUsersPage() {
       search: search || undefined,
       role_id: roleFilter || undefined,
       status: statusFilter || undefined,
+      page,
+      pageSize: PAGE_SIZE,
+      sortBy,
+      sortOrder,
     })
-      .then(setUsers)
+      .then((res) => {
+        setUsers(res.users);
+        setTotal(res.total);
+      })
       .catch((err) => {
         if (!handleAuthError(err)) throw err;
       });
+  }, [search, roleFilter, statusFilter, page, sortBy, sortOrder]);
+
+  useEffect(() => {
+    setPage(1);
   }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
@@ -94,6 +137,31 @@ export default function AdminUsersPage() {
         await assignRole(user.user_id, roleId);
       }
       loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setUpdatingKey(null);
+    }
+  }
+
+  async function handleToggleStatus(user: AdminUser) {
+    const newStatus = user.status === "active" ? "inactive" : "active";
+    setUpdatingKey(`status:${user.user_id}`);
+    try {
+      await setUserStatus(user.user_id, newStatus);
+      loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setUpdatingKey(null);
+    }
+  }
+
+  async function handleResetPassword(user: AdminUser) {
+    setUpdatingKey(`reset:${user.user_id}`);
+    try {
+      const result = await resetUserPassword(user.user_id);
+      setResetResult({ userId: user.user_id, password: result.generated_password });
     } catch (err) {
       if (!handleAuthError(err)) throw err;
     } finally {
@@ -129,13 +197,58 @@ export default function AdminUsersPage() {
     }
   }
 
+  function toggleUserSelection(userId: string) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!users) return;
+    setSelectedUserIds((prev) =>
+      prev.size === users.length ? new Set() : new Set(users.map((u) => u.user_id))
+    );
+  }
+
+  async function handleBulkAssignRole() {
+    if (!bulkRoleId || selectedUserIds.size === 0) return;
+    setBulkApplying(true);
+    try {
+      for (const userId of selectedUserIds) {
+        await assignRole(userId, bulkRoleId);
+      }
+      setSelectedUserIds(new Set());
+      setBulkRoleId("");
+      loadUsers();
+    } catch (err) {
+      if (!handleAuthError(err)) throw err;
+    } finally {
+      setBulkApplying(false);
+    }
+  }
+
   function parseCsv(text: string): { first_name: string; last_name: string; username: string; email: string }[] {
     const lines = text.trim().split("\n").filter((l) => l.trim().length > 0);
-    const [, ...dataLines] = lines; // skip header row
+    const [, ...dataLines] = lines;
     return dataLines.map((line) => {
       const [first_name, last_name, username, email] = line.split(",").map((v) => v.trim());
       return { first_name, last_name, username, email };
     });
+  }
+
+  function handleSort(column: "first_name" | "email" | "status") {
+    if (sortBy === column) {
+      setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
   }
 
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -154,27 +267,38 @@ export default function AdminUsersPage() {
     } catch (err) {
       if (handleAuthError(err)) return;
       setBatchError(err instanceof Error ? err.message : "Something went wrong.");
-        } finally {
+    } finally {
       setBatchUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
-  if (sessionLoading || !user) {
+
+  if (sessionLoading || !sessionUser) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
   }
 
   return (
     <div className="flex min-h-screen">
       <AdminSidebarNav />
-      <main className="flex-1 overflow-x-hidden px-8 py-10">
+      <main className="flex-1 overflow-x-hidden px-10 py-12">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl text-neutral-900">Users</h1>
+          <div>
+            <p className="text-sm text-neutral-500">Manage</p>
+            <h1 className="mt-1 text-2xl text-neutral-900">Users</h1>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowCreateForm((s) => !s)}
               className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white"
             >
               Create user
+            </button>
+            <button
+              onClick={() => users && exportUsersToCsv(users)}
+              disabled={!users || users.length === 0}
+              className="rounded-md border border-neutral-500 px-4 py-2 text-sm text-neutral-900 disabled:opacity-50"
+            >
+              Export CSV
             </button>
             <label className="cursor-pointer rounded-md border border-neutral-500 px-4 py-2 text-sm text-neutral-900">
               {batchUploading ? "Uploading..." : "Upload CSV (students)"}
@@ -191,7 +315,7 @@ export default function AdminUsersPage() {
         </div>
 
         {showCreateForm && (
-          <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-3 rounded-lg bg-neutral-50 p-4">
+          <form onSubmit={handleCreate} className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-neutral-50 p-4">
             <div>
               <label className="text-xs text-neutral-500">First name</label>
               <input
@@ -305,7 +429,7 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-8 flex gap-3">
           <input
             type="text"
             placeholder="Search by name, email, or username"
@@ -336,22 +460,78 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
+        {selectedUserIds.size > 0 && (
+          <div className="mt-4 flex items-center gap-3 rounded-md bg-primary-100 px-4 py-3">
+            <span className="text-sm text-primary-700">{selectedUserIds.size} selected</span>
+            <select
+              value={bulkRoleId}
+              onChange={(e) => setBulkRoleId(e.target.value)}
+              className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+            >
+              <option value="">Assign role...</option>
+              {roles.map((role) => (
+                <option key={role.role_id} value={role.role_id}>
+                  {role.role_name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkAssignRole}
+              disabled={!bulkRoleId || bulkApplying}
+              className="rounded-md bg-primary-500 px-4 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {bulkApplying ? "Applying..." : "Apply"}
+            </button>
+            <button
+              onClick={() => setSelectedUserIds(new Set())}
+              className="text-sm text-primary-700 underline"
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
         {users === undefined ? (
-          <p className="mt-6 text-sm text-neutral-500">Loading...</p>
+          <p className="mt-8 text-sm text-neutral-500">Loading...</p>
         ) : users.length === 0 ? (
-          <p className="mt-6 text-sm text-neutral-500">No users match your search.</p>
+          <p className="mt-8 text-sm text-neutral-500">No users match your search.</p>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded-lg border border-neutral-100">
+          <div className="mt-8 overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-neutral-100 bg-neutral-50">
+              <thead className="border-b border-neutral-100">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-neutral-500">Name</th>
-                  <th className="px-4 py-3 font-medium text-neutral-500">Email</th>
+                  <th className="py-3 pr-4">
+                    <input
+                      type="checkbox"
+                      checked={users !== undefined && users.length > 0 && selectedUserIds.size === users.length}
+                      onChange={toggleSelectAll}
+                      className="accent-primary-500"
+                    />
+                  </th>
+                  <th
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
+                    onClick={() => handleSort("first_name")}
+                  >
+                    Name {sortBy === "first_name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
+                  <th
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
+                    onClick={() => handleSort("email")}
+                  >
+                    Email {sortBy === "email" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
                   {roles.map((role) => (
-                    <th key={role.role_id} className="px-4 py-3 font-medium text-neutral-500">
+                    <th key={role.role_id} className="py-3 pr-4 font-normal text-neutral-500">
                       {role.role_name}
                     </th>
                   ))}
+                  <th
+                    className="cursor-pointer py-3 pr-4 font-normal text-neutral-500"
+                    onClick={() => handleSort("status")}
+                  >
+                    Status {sortBy === "status" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                  </th>
+                  <th className="py-3 font-normal text-neutral-500"></th>
                 </tr>
               </thead>
               <tbody>
@@ -359,29 +539,96 @@ export default function AdminUsersPage() {
                   const heldRoleIds = new Set(user.user_roles.map((ur) => ur.role.role_id));
                   return (
                     <tr key={user.user_id} className="border-b border-neutral-100 last:border-0">
-                      <td className="px-4 py-3 text-neutral-900">
-                        {user.first_name} {user.last_name}
+                      <td className="py-4 pr-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(user.user_id)}
+                          onChange={() => toggleUserSelection(user.user_id)}
+                          className="accent-primary-500"
+                        />
                       </td>
-                      <td className="px-4 py-3 text-neutral-500">{user.email}</td>
+                      <td className="py-4 pr-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={`${user.first_name} ${user.last_name}`} size="sm" />
+                          <span className="text-neutral-900">
+                            {user.first_name} {user.last_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 pr-4 text-neutral-500">{user.email}</td>
                       {roles.map((role) => {
                         const hasRole = heldRoleIds.has(role.role_id);
                         const key = `${user.user_id}:${role.role_id}`;
                         return (
-                          <td key={role.role_id} className="px-4 py-3">
+                          <td key={role.role_id} className="py-4 pr-4">
                             <input
                               type="checkbox"
                               checked={hasRole}
                               disabled={updatingKey === key}
                               onChange={() => handleToggle(user, role.role_id, hasRole)}
+                              className="accent-primary-500"
                             />
                           </td>
                         );
                       })}
+                      <td className="py-4 pr-4">
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          disabled={updatingKey === `status:${user.user_id}`}
+                          className="flex items-center gap-1.5 text-xs disabled:opacity-50"
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              user.status === "active" ? "bg-success" : "bg-neutral-500"
+                            }`}
+                          />
+                          <span className={user.status === "active" ? "text-success" : "text-neutral-500"}>
+                            {user.status}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="py-4">
+                        <button
+                          onClick={() => handleResetPassword(user)}
+                          disabled={updatingKey === `reset:${user.user_id}`}
+                          className="text-xs text-primary-700 underline disabled:opacity-50"
+                        >
+                          Reset password
+                        </button>
+                        {resetResult?.userId === user.user_id && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            New password: <span className="font-medium">{resetResult.password}</span>
+                          </p>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 text-sm">
+              <span className="text-neutral-500">
+                Showing {(page - 1) * PAGE_SIZE + 1}
+                {"\u2013"}
+                {Math.min(page * PAGE_SIZE, total)} of {total}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-md border border-neutral-500 px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page * PAGE_SIZE >= total}
+                  className="rounded-md border border-neutral-500 px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

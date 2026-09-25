@@ -12,6 +12,7 @@ interface LoginResponse {
   email: string;
   first_name: string;
   last_name: string;
+  roles: { role_name: string }[];
 }
 
 export default function LoginPage() {
@@ -27,12 +28,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await gatewayFetch<LoginResponse>("/api/v1/auth/login", {
+      const user = await gatewayFetch<LoginResponse>("/api/v1/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
       const redirect = searchParams.get("redirect");
-      window.location.href = redirect || "/dashboard";
+      if (redirect) {
+        window.location.href = redirect;
+        return;
+      }
+      const isAdmin = user.roles.some((r) => r.role_name === "Admin");
+      window.location.href = isAdmin ? "/admin" : "/dashboard";
     } catch (err) {
       if (err instanceof GatewayError) {
         setErrorMessage(err.message);

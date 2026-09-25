@@ -37,12 +37,17 @@ export interface BatchCreateResult {
 
 export async function listAllUsers(
   accessToken: string,
-  filters?: { search?: string; role_id?: string; status?: string }
-): Promise<AdminUserSummary[]> {
+  filters?: { search?: string; role_id?: string; status?: string },
+  options?: { page?: number; pageSize?: number; sortBy?: string; sortOrder?: string }
+): Promise<{ users: AdminUserSummary[]; total: number }> {
   const params = new URLSearchParams();
   if (filters?.search) params.set("search", filters.search);
   if (filters?.role_id) params.set("role_id", filters.role_id);
   if (filters?.status) params.set("status", filters.status);
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.pageSize) params.set("pageSize", String(options.pageSize));
+  if (options?.sortBy) params.set("sortBy", options.sortBy);
+  if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
   const query = params.toString();
 
   const res = await fetchWithTimeout(
@@ -66,8 +71,8 @@ export async function listAllUsers(
     throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
   }
 
-  const body = (await res.json()) as { success: boolean; data: AdminUserSummary[] };
-  return body.data;
+  const body = (await res.json()) as { success: boolean; data: AdminUserSummary[]; total: number };
+  return { users: body.data, total: body.total };
 }
 
 export async function listAllRoles(accessToken: string): Promise<RoleSummary[]> {
@@ -233,4 +238,61 @@ export async function adminBatchCreateStudents(
 
   const body = (await res.json()) as { success: boolean; data: BatchCreateResult };
   return body.data;
+}
+
+export async function setUserStatus(
+  user_id: string,
+  status: "active" | "inactive",
+  accessToken: string
+): Promise<AdminUserSummary> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/${user_id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: AdminUserSummary };
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for status update`);
+  }
+
+  return body.data as AdminUserSummary;
+}
+
+export async function resetUserPassword(
+  user_id: string,
+  accessToken: string
+): Promise<CreatedUserResult> {
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_AUTH_URL}/api/v1/users/${user_id}/reset-password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...correlationHeaders(),
+    },
+  });
+
+  const body = (await res.json()) as { success: boolean; message?: string; data?: CreatedUserResult };
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new UnauthorizedError("Your session has expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new ForbiddenError("You do not have permission to do this.");
+    }
+    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for password reset`);
+  }
+
+  return body.data as CreatedUserResult;
 }

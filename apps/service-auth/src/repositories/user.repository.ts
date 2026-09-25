@@ -212,25 +212,28 @@ export const userRepository = {
 
     async findAll(
         tenant_id: string,
-        filters?: { search?: string; role_id?: string; status?: string }
+        filters?: { search?: string; role_id?: string; status?: string },
+        options?: { skip?: number; take?: number; sortBy?: "first_name" | "email" | "status"; sortOrder?: "asc" | "desc" }
     ) {
+        const where = {
+            tenant_id,
+            deleted_at: null,
+            ...(filters?.status && { status: filters.status }),
+            ...(filters?.search && {
+                OR: [
+                    { first_name: { contains: filters.search, mode: "insensitive" as const } },
+                    { last_name: { contains: filters.search, mode: "insensitive" as const } },
+                    { email: { contains: filters.search, mode: "insensitive" as const } },
+                    { username: { contains: filters.search, mode: "insensitive" as const } },
+                ],
+            }),
+            ...(filters?.role_id && {
+                user_roles: { some: { role_id: filters.role_id } },
+            }),
+        };
+
         return prisma.user.findMany({
-            where: {
-                tenant_id,
-                deleted_at: null,
-                ...(filters?.status && { status: filters.status }),
-                ...(filters?.search && {
-                    OR: [
-                        { first_name: { contains: filters.search, mode: "insensitive" } },
-                        { last_name: { contains: filters.search, mode: "insensitive" } },
-                        { email: { contains: filters.search, mode: "insensitive" } },
-                        { username: { contains: filters.search, mode: "insensitive" } },
-                    ],
-                }),
-                ...(filters?.role_id && {
-                    user_roles: { some: { role_id: filters.role_id } },
-                }),
-            },
+            where,
             select: {
                 user_id: true,
                 first_name: true,
@@ -246,10 +249,34 @@ export const userRepository = {
                     },
                 },
             },
-            orderBy: { created_at: "desc" },
+            orderBy: options?.sortBy
+                ? { [options.sortBy]: options.sortOrder ?? "asc" }
+                : { created_at: "desc" },
+            skip: options?.skip,
+            take: options?.take,
         });
     },
 
+    async countAll(tenant_id: string, filters?: { search?: string; role_id?: string; status?: string }) {
+        const where = {
+            tenant_id,
+            deleted_at: null,
+            ...(filters?.status && { status: filters.status }),
+            ...(filters?.search && {
+                OR: [
+                    { first_name: { contains: filters.search, mode: "insensitive" as const } },
+                    { last_name: { contains: filters.search, mode: "insensitive" as const } },
+                    { email: { contains: filters.search, mode: "insensitive" as const } },
+                    { username: { contains: filters.search, mode: "insensitive" as const } },
+                ],
+            }),
+            ...(filters?.role_id && {
+                user_roles: { some: { role_id: filters.role_id } },
+            }),
+        };
+
+        return prisma.user.count({ where });
+    },
     async findAllRoles(tenant_id: string) {
         return prisma.role.findMany({
             where: { tenant_id },
@@ -268,5 +295,12 @@ export const userRepository = {
             where: { user_id, role_id },
         });
         return !!existing;
+    },
+
+    async setPasswordHash(user_id: string, tenant_id: string, password_hash: string) {
+        return prisma.user.update({
+            where: { user_id, tenant_id },
+            data: { password_hash },
+        });
     },
 };

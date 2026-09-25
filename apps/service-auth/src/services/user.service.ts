@@ -129,8 +129,25 @@ export const userService = {
         return userRepository.findManyByIds(user_ids, DEFAULT_TENANT_ID);
     },
 
-    async listAllUsers(filters?: { search?: string; role_id?: string; status?: string }): Promise<any[]> {
-        return userRepository.findAll(DEFAULT_TENANT_ID, filters);
+    async listAllUsers(
+        filters?: { search?: string; role_id?: string; status?: string },
+        options?: { page?: number; pageSize?: number; sortBy?: "first_name" | "email" | "status"; sortOrder?: "asc" | "desc" }
+    ): Promise<{ users: any[]; total: number }> {
+        const page = options?.page ?? 1;
+        const pageSize = options?.pageSize ?? 25;
+        const skip = (page - 1) * pageSize;
+
+        const [users, total] = await Promise.all([
+            userRepository.findAll(DEFAULT_TENANT_ID, filters, {
+                skip,
+                take: pageSize,
+                sortBy: options?.sortBy,
+                sortOrder: options?.sortOrder,
+            }),
+            userRepository.countAll(DEFAULT_TENANT_ID, filters),
+        ]);
+
+        return { users, total };
     },
 
     async listAllRoles(): Promise<{ role_id: string; role_name: string }[]> {
@@ -230,5 +247,31 @@ export const userService = {
         }
 
         return { created, failed };
+    },
+
+    async adminSetUserStatus(user_id: string, status: "active" | "inactive"): Promise<UserDTO> {
+        const existing = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!existing) {
+            throw new NotFoundError("User not found");
+        }
+
+        await userRepository.update(user_id, DEFAULT_TENANT_ID, { status });
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return mapToUserDTO(updated);
+    },
+
+    async adminResetPassword(user_id: string): Promise<{ user: UserDTO; generated_password: string }> {
+        const existing = await userRepository.findById(user_id, DEFAULT_TENANT_ID);
+        if (!existing) {
+            throw new NotFoundError("User not found");
+        }
+
+        const generated_password = generatePassword();
+        const password_hash = await bcrypt.hash(generated_password, SALT_ROUNDS);
+        await userRepository.setPasswordHash(user_id, DEFAULT_TENANT_ID, password_hash);
+
+        const updated = await userRepository.findWithRoles(user_id, DEFAULT_TENANT_ID);
+        return { user: mapToUserDTO(updated), generated_password };
     },
 }
