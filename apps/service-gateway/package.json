@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "npx ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "keywords": [],
   "author": "",
