@@ -48,7 +48,9 @@ export const listCourses = catchAsync(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     const { status, difficulty, is_published } = req.query;
 
-    const canSeeDrafts = authReq.user?.permissions?.includes("course:write") ?? false;
+    // Only administrators see drafts in the general list. Faculty see their own
+    // drafts through /courses/mine.
+    const canSeeDrafts = authReq.user?.roles?.includes("Admin") ?? false;
 
     const courses = await courseService.listCourses(DEFAULT_TENANT_ID, {
         status: status as string | undefined,
