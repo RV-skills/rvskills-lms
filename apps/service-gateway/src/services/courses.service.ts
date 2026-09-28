@@ -112,8 +112,8 @@ export async function listCourses(accessToken?: string): Promise<AggregatedCours
     .flatMap((c) => c.faculty ?? [])
     .map((f) => f.faculty_id);
 
-  const users = accessToken && facultyIds.length > 0
-    ? await getUsersByIds(facultyIds, accessToken)
+  const users = facultyIds.length > 0
+    ? await getUsersByIds(facultyIds, accessToken ?? "")
     : [];
 
   const nameById = new Map(users.map((u) => [u.user_id, `${u.first_name} ${u.last_name}`]));
@@ -155,8 +155,8 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
   const course = body.data;
 
   const facultyIds = (course.faculty ?? []).map((f) => f.faculty_id);
-  const users = accessToken && facultyIds.length > 0
-    ? await getUsersByIds(facultyIds, accessToken)
+  const users = facultyIds.length > 0
+    ? await getUsersByIds(facultyIds, accessToken ?? "")
     : [];
   const nameById = new Map(users.map((u) => [u.user_id, `${u.first_name} ${u.last_name}`]));
   const firstFacultyId = course.faculty?.[0]?.faculty_id;

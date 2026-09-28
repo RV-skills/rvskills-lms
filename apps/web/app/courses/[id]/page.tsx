@@ -233,14 +233,16 @@ export default function CourseDetailPage() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-60 right-0 flex items-center justify-between border-t border-neutral-100 bg-white px-6 py-4">
-        <div>
-          <p className="text-xs text-neutral-500">Price</p>
-          <p className="text-lg text-neutral-900">Free</p>
+      <div className="fixed bottom-0 left-60 right-0 border-t border-neutral-100 bg-white px-6 py-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-500">Price</p>
+            <p className="text-lg text-neutral-900">Free</p>
+          </div>
+          <Link href={`/courses/${courseId}/checkout`}>
+            <Button>Enroll now</Button>
+          </Link>
         </div>
-        <Link href={`/courses/${courseId}/checkout`}>
-          <Button>Enroll now</Button>
-        </Link>
       </div>
     </main>
   );
