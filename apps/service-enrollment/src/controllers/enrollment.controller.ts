@@ -40,8 +40,12 @@ export const dropCourse = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getEnrollment = catchAsync(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     const enrollment_id = req.params.enrollment_id as string;
-    const enrollment = await enrollmentService.getEnrollment(enrollment_id);
+    const enrollment = await enrollmentService.getEnrollment(enrollment_id, {
+        user_id: authReq.user!.user_id,
+        isAdmin: authReq.user!.roles?.includes("Admin") ?? false,
+    });
     res.status(200).json({
         success: true,
         data: enrollment,

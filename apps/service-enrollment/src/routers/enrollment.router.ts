@@ -16,7 +16,7 @@ enrollmentRouter.get("/my-enrollments", authMiddleware, getMyEnrollments);
 
 // Enrollment routes
 enrollmentRouter.post("/", authMiddleware, enrollCourse);
-enrollmentRouter.post("/bulk", authMiddleware, requirePermission("course:write"), bulkEnrollCourse);
+enrollmentRouter.post("/bulk", authMiddleware, requirePermission("user:write"), bulkEnrollCourse);
 enrollmentRouter.patch("/:enrollment_id/drop", authMiddleware, dropCourse);
 // Lesson progress routes
 enrollmentRouter.post("/:enrollment_id/lessons/:lesson_id/complete", authMiddleware, markLessonComplete);
@@ -26,7 +26,7 @@ enrollmentRouter.patch("/:enrollment_id/rating", authMiddleware, updateRating);
 enrollmentRouter.get("/:enrollment_id/completed-lessons", authMiddleware, getCompletedLessons);
 enrollmentRouter.get("/courses/:course_id/ratings", listCourseRatings);
 enrollmentRouter.get("/courses/:course_id/ratings/average", getAverageRating);
-enrollmentRouter.get("/:enrollment_id", getEnrollment);
+enrollmentRouter.get("/:enrollment_id", authMiddleware, getEnrollment);
 enrollmentRouter.get('/admin/count', authMiddleware, requirePermission('user:write'), countAllEnrollments);
 enrollmentRouter.get("/admin/counts-by-course", authMiddleware, requirePermission("user:write"), countEnrollmentsByCourse);
 export default enrollmentRouter;
