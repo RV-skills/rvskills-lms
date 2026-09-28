@@ -77,11 +77,18 @@ export const enrollmentService = {
         return enrollmentRepository.markDropped(enrollment_id);
     },
 
-    async getEnrollment(enrollment_id: string) {
+    async getEnrollment(
+        enrollment_id: string,
+        requester: { user_id: string; isAdmin: boolean }
+    ) {
         const enrollment = await enrollmentRepository.findById(enrollment_id);
 
         if (!enrollment) {
             throw new NotFoundError("Enrollment not found");
+        }
+
+        if (!requester.isAdmin && enrollment.student_id !== requester.user_id) {
+            throw new ForbiddenError("You do not have permission to view this enrollment");
         }
 
         return enrollment;

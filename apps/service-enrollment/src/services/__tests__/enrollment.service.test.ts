@@ -246,24 +246,48 @@ describe("enrollmentService.dropCourse", () => {
 });
 
 describe("enrollmentService.getEnrollment", () => {
-  it("returns the enrollment", async () => {
-    findEnrollment.mockResolvedValue(anEnrollment());
+  const asOwner = { user_id: OWNER, isAdmin: false };
+  const asStranger = { user_id: STRANGER, isAdmin: false };
+  const asAdmin = { user_id: "admin-1", isAdmin: true };
 
-    await expect(enrollmentService.getEnrollment("enr-1")).resolves.toEqual(
-      anEnrollment()
-    );
-  });
-
-  it("throws NotFoundError when it does not exist", async () => {
+  it("throws NotFoundError when the enrollment does not exist", async () => {
     findEnrollment.mockResolvedValue(null as never);
 
-    await expect(enrollmentService.getEnrollment("enr-1")).rejects.toThrow(
-      NotFoundError
-    );
+    await expect(
+      enrollmentService.getEnrollment("enr-1", asOwner)
+    ).rejects.toThrow(NotFoundError);
   });
 
-  // Note: getEnrollment takes no student id, so it cannot check ownership.
-  // Whether the controller does is worth confirming.
+  it("returns the enrollment to the student it belongs to", async () => {
+    findEnrollment.mockResolvedValue(anEnrollment());
+
+    await expect(
+      enrollmentService.getEnrollment("enr-1", asOwner)
+    ).resolves.toEqual(anEnrollment());
+  });
+
+  it("refuses a different student", async () => {
+    findEnrollment.mockResolvedValue(anEnrollment());
+
+    await expect(
+      enrollmentService.getEnrollment("enr-1", asStranger)
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("lets an administrator read any student's enrollment", async () => {
+    findEnrollment.mockResolvedValue(anEnrollment());
+
+    await expect(
+      enrollmentService.getEnrollment("enr-1", asAdmin)
+    ).resolves.toEqual(anEnrollment());
+  });
+});
+
+// Known gaps in bulk enrollment. Kept as todos rather than tests that would
+// lock the current behaviour in.
+describe("enrollmentService.bulkEnrollCourse: known gaps", () => {
+  it.todo("stops enrolling once the course is full");
+  it.todo("skips student ids that do not belong to real users");
 });
 
 describe("enrollmentService.getStudentEnrollments", () => {
