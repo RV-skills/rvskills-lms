@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "nodemon src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest run"
+
   },
   "keywords": [],
   "author": "",
@@ -19,12 +21,13 @@
     "@rv-lms/shared-utils": "workspace:^",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.21.0",
-    "zod": "^3.25.76",
-    "jsonwebtoken": "^9.0.3"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.0",
     "@types/pg": "^8.20.0",
     "nodemon": "^3.1.9",
@@ -32,6 +35,6 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "@types/jsonwebtoken": "^9.0.10"
+    "vitest": "^5.0.2"
   }
 }
