@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "npx ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
-    "test": "cross-env TEMP=D:\\tmp TMP=D:\\tmp jest --passWithNoTests"
+    "test": "cross-env TEMP=D:\\tmp TMP=D:\\tmp vitest run"
   },
   "keywords": [],
   "author": "",
@@ -29,13 +29,11 @@
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^22.14.0",
     "@types/uuid": "^11.0.0",
-    "jest": "^30.4.2",
     "nodemon": "^3.1.9",
-    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.2"
   }
 }
