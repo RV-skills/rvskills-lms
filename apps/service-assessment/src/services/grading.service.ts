@@ -1,9 +1,10 @@
-import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { ForbiddenError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 import { prisma } from "../db/prisma";
 import { attemptRepository } from "../repositories/attempt.repository"
 import { answerRepository } from "../repositories/answer.repository";
 import { questionRepository } from "../repositories/question.repository";
 import { assessmentRepository } from "../repositories/assessment.repository";
+import { courseServiceClient } from "../clients/course-service.client";
 import { computeFinalScore } from "./scoring.util";
 
 export const gradingService = {
@@ -13,7 +14,8 @@ export const gradingService = {
 
     async gradeAnswer(
         answer_id: string,
-        data: { is_correct: boolean, points_awarded: number }
+        data: { is_correct: boolean, points_awarded: number },
+        authHeader: string
     ) {
         const answer = await prisma.answer.findUnique({
             where: { answer_id },
@@ -26,7 +28,7 @@ export const gradingService = {
 
         if(answer.question.type !== "MANUAL") {
             throw new ValidationError(
-                "Only manually-graded questionscan be graded through this endpoint"
+                "Only manually-graded questions can be graded through this endpoint"
             );
         }
 
@@ -34,6 +36,16 @@ export const gradingService = {
             throw new ValidationError(
                 "This attempt is not waiting manual review"
             );
+        }
+
+        const assessment = await assessmentRepository.findById(answer.attempt.assessment_id);
+        if (!assessment) {
+            throw new NotFoundError("Assessment not found");
+        }
+
+        const canGrade = await courseServiceClient.canEditCourse(assessment.course_id, authHeader);
+        if (!canGrade) {
+            throw new ForbiddenError("You do not teach this course, so you cannot grade this answer");
         }
 
         return prisma.$transaction(async (tx) => {
@@ -70,14 +82,6 @@ export const gradingService = {
                     { status: "PENDING_REVIEW" },
                     tx
                 );
-            }
-
-            const assessment = await assessmentRepository.findById(
-                answer.attempt.assessment_id,
-                tx
-            );
-            if (!assessment) {
-                throw new NotFoundError("Assessment not found");
             }
 
             const { scorePercentage, passed } = await computeFinalScore(

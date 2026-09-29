@@ -18,4 +18,24 @@ export const courseServiceClient = {
         const body = (await response.json()) as { success: boolean; data: CourseDTO };
         return body.data as CourseDTO;
     },
+
+    async canEditCourse(course_id: string, authHeader: string): Promise<boolean> {
+        const response = await fetch(`${SERVICE_COURSES_URL}/api/v1/courses/${course_id}/faculty`, {
+            headers: { Authorization: authHeader },
+        });
+
+        if (response.status === 403) {
+            return false;
+        }
+
+        if (response.status === 404) {
+            throw new NotFoundError("Course not found");
+        }
+
+        if (!response.ok) {
+            throw new InternalServerError("Failed to check course access with service-courses");
+        }
+
+        return true;
+    },
 };

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { ForbiddenError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 import { gradingService } from "../grading.service";
 import { prisma } from "../../db/prisma";
 import { attemptRepository } from "../../repositories/attempt.repository";
@@ -7,6 +7,7 @@ import { answerRepository } from "../../repositories/answer.repository";
 import { questionRepository } from "../../repositories/question.repository";
 import { assessmentRepository } from "../../repositories/assessment.repository";
 import { computeFinalScore } from "../scoring.util";
+import { courseServiceClient } from "../../clients/course-service.client";
 
 vi.mock("../../db/prisma", () => ({
   prisma: { answer: { findUnique: vi.fn() }, $transaction: vi.fn() },
@@ -32,6 +33,10 @@ vi.mock("../../repositories/assessment.repository", () => ({
 // that grading calls it correctly and stores what it returns.
 vi.mock("../scoring.util", () => ({ computeFinalScore: vi.fn() }));
 
+vi.mock("../../clients/course-service.client", () => ({
+  courseServiceClient: { canEditCourse: vi.fn() },
+}));
+
 const findAnswer = vi.mocked(prisma.answer.findUnique);
 const gradeAnswerRow = vi.mocked(answerRepository.gradeAnswer);
 const findAnswers = vi.mocked(answerRepository.findByAttempt);
@@ -39,6 +44,7 @@ const findQuestions = vi.mocked(questionRepository.findByAssessmentId);
 const findAssessment = vi.mocked(assessmentRepository.findById);
 const updateStatus = vi.mocked(attemptRepository.updateStatus);
 const finalScore = vi.mocked(computeFinalScore);
+const canGrade = vi.mocked(courseServiceClient.canEditCourse);
 
 // The transaction client is only passed through, so a marker object is enough.
 const tx = { tag: "fake-transaction" };
@@ -81,14 +87,20 @@ function arrange(options: {
   findAnswers.mockResolvedValue(options.answers as never);
   findQuestions.mockResolvedValue(options.questions as never);
   findAssessment.mockResolvedValue({
+    course_id: "course-1",
     passing_percentage: options.passMark ?? 70,
   } as never);
   finalScore.mockResolvedValue({ scorePercentage: 82, passed: true } as never);
   updateStatus.mockResolvedValue({ attempt_id: "att-1" } as never);
+  canGrade.mockResolvedValue(true);
 }
 
 const grade = () =>
-  gradingService.gradeAnswer("a-1", { is_correct: true, points_awarded: 4 });
+  gradingService.gradeAnswer(
+    "a-1",
+    { is_correct: true, points_awarded: 4 },
+    "Bearer grader-token"
+  );
 
 describe("gradingService.gradeAnswer: checks before grading", () => {
   it("throws NotFoundError when the answer does not exist", async () => {
@@ -160,7 +172,6 @@ describe("gradingService.gradeAnswer: grading an answer in an attempt under revi
       tx
     );
     expect(finalScore).not.toHaveBeenCalled();
-    expect(findAssessment).not.toHaveBeenCalled();
   });
 
   it("treats zero points as graded, not as still waiting", async () => {
@@ -227,7 +238,7 @@ describe("gradingService.gradeAnswer: grading an answer in an attempt under revi
     expect(finalScore).toHaveBeenCalledWith("asm-1", "att-1", 55, tx);
   });
 
-  it("looks the assessment up inside the transaction", async () => {
+  it("looks the assessment up before opening the transaction, to check course access first", async () => {
     arrange({
       questions: [manualQ("q-1")],
       answers: [graded("q-1", 4)],
@@ -235,7 +246,26 @@ describe("gradingService.gradeAnswer: grading an answer in an attempt under revi
 
     await grade();
 
-    expect(findAssessment).toHaveBeenCalledWith("asm-1", tx);
+    expect(findAssessment).toHaveBeenCalledWith("asm-1");
+    expect(findAssessment.mock.invocationCallOrder[0]).toBeLessThan(
+      (prisma.$transaction as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]
+    );
+  });
+  
+  it("checks whether the grader may edit the answer's course, using their own auth header", async () => {
+    arrange({ questions: [manualQ("q-1")], answers: [graded("q-1", 4)] });
+
+    await grade();
+
+    expect(canGrade).toHaveBeenCalledWith("course-1", "Bearer grader-token");
+  });
+
+  it("refuses to grade, and opens no transaction, for someone who does not teach the course", async () => {
+    arrange({ questions: [manualQ("q-1")], answers: [graded("q-1", 4)] });
+    canGrade.mockResolvedValue(false);
+
+    await expect(grade()).rejects.toThrow(ForbiddenError);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError, and grades nothing, when the assessment has gone", async () => {
