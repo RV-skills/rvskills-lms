@@ -1,6 +1,5 @@
 import { serverConfig } from "../config";
-import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import { BadGatewayError } from "@rv-lms/shared-utils";
+import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
 import type { CourseDTO } from "@rv-lms/shared-types";
 import { getUsersByIds } from "./users.service";
 
@@ -98,7 +97,7 @@ async function fetchCoursesFromService(accessToken?: string): Promise<CourseDTO[
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for course list`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for course list`);
   }
 
   const body = (await res.json()) as { success: boolean; data: CourseDTO[] };
@@ -148,7 +147,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
     return null;
   }
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for course detail`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for course detail`);
   }
 
   const body = (await res.json()) as { success: boolean; data: CourseDTO };
@@ -228,7 +227,7 @@ export async function publishCourse(course_id: string, accessToken: string): Pro
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for publish`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for publish`);
   }
 }
 
@@ -242,7 +241,7 @@ export async function unpublishCourse(course_id: string, accessToken: string): P
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for unpublish`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for unpublish`);
   }
 }
 
@@ -256,7 +255,7 @@ export async function listCourseFaculty(course_id: string, accessToken: string):
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for list faculty`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for list faculty`);
   }
 
   const body = (await res.json()) as { success: boolean; data: CourseFacultyRecord[] };
@@ -279,7 +278,7 @@ export async function assignCourseFaculty(
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for assign faculty`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for assign faculty`);
   }
 }
 
@@ -300,7 +299,7 @@ export async function removeCourseFaculty(
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for remove faculty`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for remove faculty`);
   }
 }
 
@@ -314,7 +313,7 @@ export async function getEnrollmentCountsByCourse(accessToken: string): Promise<
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for enrollment counts by course`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for enrollment counts by course`);
   }
 
   const body = (await res.json()) as { success: boolean; data: { course_id: string; count: number }[] };
@@ -331,7 +330,7 @@ export async function listMyCourses(accessToken: string): Promise<MyCourse[]> {
   });
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-courses returned ${res.status} for my courses`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for my courses`);
   }
 
   const body = (await res.json()) as { success: boolean; data: MyCourse[] };
@@ -355,7 +354,7 @@ export async function createCourse(
   const body = (await res.json()) as { success: boolean; message?: string; data?: MyCourse };
 
   if (!res.ok) {
-    throw new BadGatewayError(body.message ?? `service-courses returned ${res.status} for create course`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for create course`, body);
   }
 
   return body.data as MyCourse;
@@ -375,7 +374,7 @@ async function coursesServiceRequest(path: string, method: string, accessToken: 
   const responseBody = (await res.json()) as { success: boolean; message?: string; data?: any };
 
   if (!res.ok) {
-    throw new BadGatewayError(responseBody.message ?? `service-courses returned ${res.status} for ${method} ${path}`);
+    await throwForFailedResponse(res, `service-courses returned ${res.status} for ${method} ${path}`, responseBody);
   }
 
   return responseBody.data;
