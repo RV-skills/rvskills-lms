@@ -1,12 +1,5 @@
 import { serverConfig } from "../config";
-import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import {
-  BadGatewayError,
-  ValidationError,
-  ForbiddenError,
-  NotFoundError,
-  ConflictError,
-} from "@rv-lms/shared-utils";
+import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
 
 async function forward<T>(
   path: string,
@@ -27,19 +20,7 @@ async function forward<T>(
   const responseBody = (await res.json()) as { success: boolean; message?: string; data?: T };
 
   if (!res.ok) {
-    const message = responseBody.message ?? `service-assessment returned ${res.status}`;
-    switch (res.status) {
-      case 400:
-        throw new ValidationError(message);
-      case 403:
-        throw new ForbiddenError(message);
-      case 404:
-        throw new NotFoundError(message);
-      case 409:
-        throw new ConflictError(message);
-      default:
-        throw new BadGatewayError(message);
-    }
+    await throwForFailedResponse(res, `service-assessment returned ${res.status}`, responseBody);
   }
 
   return responseBody.data as T;
