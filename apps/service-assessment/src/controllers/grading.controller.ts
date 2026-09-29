@@ -14,7 +14,7 @@ export async function listPendingReviewController(req: AuthenticatedRequest, res
 export async function gradeAnswerController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
         const answer_id = req.params.answer_id as string;
-        const attempt = await gradingService.gradeAnswer(answer_id, req.body);
+        const attempt = await gradingService.gradeAnswer(answer_id, req.body, req.headers.authorization!);
         res.status(200).json({ success: true, data: attempt });
     } catch (err) {
         next(err);
