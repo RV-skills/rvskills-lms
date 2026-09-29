@@ -22,19 +22,22 @@ export const attemptService = {
             throw new ForbiddenError("You must be enrolled in this course to take this assessment");
         }
 
-        const existingCount = await attemptRepository.countByAssessmentAndStudent(
-            assessment_id,
-            student_id,
-        );
-        
-        if (assessment.max_attempts !== null && existingCount >= assessment.max_attempts) {
-            throw new ConflictError(
-                `You have used all ${assessment.max_attempts} allowed attempts for this assessment`
-            );
-        }
-
         return prisma.$transaction(async (tx) => {
             await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assessment_id} || ${student_id}))`;
+
+            // Counted AFTER the lock is taken. Counting before it let two
+            // simultaneous requests read the same number and both get through.
+            const existingCount = await attemptRepository.countByAssessmentAndStudent(
+                assessment_id,
+                student_id,
+                tx
+            );
+
+            if (assessment.max_attempts !== null && existingCount >= assessment.max_attempts) {
+                throw new ConflictError(
+                    `You have used all ${assessment.max_attempts} allowed attempts for this assessment`
+                );
+            }
 
             const attempt = await attemptRepository.create(
                 {
@@ -45,7 +48,7 @@ export const attemptService = {
                 },
                 tx
             );
-            
+
             await questionRepository.lockAllForAssessment(assessment_id, tx);
 
             return attempt;
@@ -65,7 +68,7 @@ export const attemptService = {
         if(attempt.student_id !== student_id) {
             throw new ForbiddenError("You do not have permission to modify this attempt");
         }
-        
+
         if(attempt.status !== "IN_PROGRESS") {
             throw new ValidationError("This attempt has already been submitted");
         }
@@ -88,7 +91,7 @@ export const attemptService = {
         if(!attempt) {
             throw new NotFoundError("Attempt not found");
         }
-        
+
         if(attempt.student_id !== student_id) {
             throw new ForbiddenError("You do not have permission to submit this attempt");
         }

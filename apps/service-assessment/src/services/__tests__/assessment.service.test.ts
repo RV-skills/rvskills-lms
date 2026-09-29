@@ -8,6 +8,7 @@ import { assessmentService } from "../assessment.service";
 import { courseServiceClient } from "../../clients/course-service.client";
 import { assessmentRepository } from "../../repositories/assessment.repository";
 import { questionRepository } from "../../repositories/question.repository";
+import { attemptRepository } from "../../repositories/attempt.repository";
 
 vi.mock("../../clients/course-service.client", () => ({
   courseServiceClient: { getCourse: vi.fn() },
@@ -31,6 +32,12 @@ vi.mock("../../repositories/question.repository", () => ({
   },
 }));
 
+vi.mock("../../repositories/attempt.repository", () => ({
+  attemptRepository: {
+    existsForAssessment: vi.fn(),
+  },
+}));
+
 const getCourse = vi.mocked(courseServiceClient.getCourse);
 const createAssessmentRow = vi.mocked(assessmentRepository.create);
 const findAssessment = vi.mocked(assessmentRepository.findById);
@@ -39,6 +46,8 @@ const findQuestions = vi.mocked(questionRepository.findByAssessmentId);
 const createQuestionRow = vi.mocked(questionRepository.create);
 const findQuestion = vi.mocked(questionRepository.findById);
 const updateQuestionRow = vi.mocked(questionRepository.update);
+
+const hasAttempts = vi.mocked(attemptRepository.existsForAssessment);
 
 type Option = { text: string; is_correct: boolean };
 
@@ -111,11 +120,12 @@ describe("assessmentService.addQuestion", () => {
     { text: "Five", is_correct: false },
   ];
 
-  function arrangeAssessment(existingQuestions = 0) {
+  function arrangeAssessment(existingQuestions = 0, options: { hasAttempts?: boolean } = {}) {
     findAssessment.mockResolvedValue({ assessment_id: "asm-1" } as never);
     findQuestions.mockResolvedValue(
       Array.from({ length: existingQuestions }, () => ({})) as never
     );
+    hasAttempts.mockResolvedValue((options.hasAttempts ?? false) as never);
   }
 
   it("throws NotFoundError when the assessment does not exist", async () => {
@@ -230,6 +240,32 @@ describe("assessmentService.addQuestion", () => {
       order_index: 0,
       options: undefined,
     });
+  });
+
+  it("refuses a new question once a student has started an attempt", async () => {
+    arrangeAssessment(1, { hasAttempts: true });
+
+    await expect(
+      assessmentService.addQuestion("asm-1", {
+        type: "MCQ",
+        prompt: "New question",
+        options: mcqOptions,
+      })
+    ).rejects.toThrow(ForbiddenError);
+    expect(createQuestionRow).not.toHaveBeenCalled();
+  });
+
+  it("still allows a new question before anyone has attempted the assessment", async () => {
+    arrangeAssessment(1, { hasAttempts: false });
+    createQuestionRow.mockResolvedValue({ question_id: "q-2" } as never);
+
+    await expect(
+      assessmentService.addQuestion("asm-1", {
+        type: "MCQ",
+        prompt: "New question",
+        options: mcqOptions,
+      })
+    ).resolves.toEqual({ question_id: "q-2" });
   });
 });
 

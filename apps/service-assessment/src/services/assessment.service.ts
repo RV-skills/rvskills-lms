@@ -3,7 +3,7 @@ import { courseServiceClient } from "../clients/course-service.client";
 import { assessmentRepository } from "../repositories/assessment.repository";
 import { QuestionType } from "../generated/prisma/enums";
 import { questionRepository } from "../repositories/question.repository";
-
+import { attemptRepository } from "../repositories/attempt.repository";
 export const assessmentService = {
     async createAssessment(data: {
         course_id: string;
@@ -36,6 +36,13 @@ export const assessmentService = {
         const assessment = await assessmentRepository.findById(assessment_id);
         if(!assessment) {
             throw new NotFoundError("Assessment not found");
+        }
+
+        const hasAttempts = await attemptRepository.existsForAssessment(assessment_id);
+        if(hasAttempts) {
+            throw new ForbiddenError(
+                "This assessment already has student attempts; new questions can no longer be added"
+            );
         }
 
         if(data.type === "MCQ") {

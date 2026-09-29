@@ -200,12 +200,52 @@ describe("attemptService.startAttempt", () => {
     await expect(start()).resolves.toEqual({ attempt_id: "att-1" });
   });
 
-  // Known gap: the attempt count is read BEFORE the lock is taken, so two
-  // requests arriving together both see the same count and both get through.
-  // Kept as a todo rather than a test that would lock the bug in.
-  it.todo(
-    "does not let two simultaneous requests exceed max_attempts"
-  );
+    it("counts the student's attempts only after taking the lock, and inside the transaction", async () => {
+    arrange({ existing: 1, maxAttempts: 3 });
+
+    await start();
+
+    expect(countAttempts).toHaveBeenCalledWith("asm-1", OWNER, tx);
+    expect(tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      countAttempts.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("does not let two simultaneous requests exceed max_attempts", async () => {
+    // Emulate the advisory lock: transaction callbacks run one at a time, and
+    // the "database" grows as attempts are created. If the count were read
+    // before the transaction, both requests would read 0 and both would succeed.
+    arrange({ maxAttempts: 1 });
+    let queue: Promise<unknown> = Promise.resolve();
+    vi.mocked(prisma.$transaction).mockImplementation(((
+      callback: (client: typeof tx) => unknown
+    ) => {
+      const run = queue.then(() => callback(tx));
+      queue = run.catch(() => undefined);
+      return run;
+    }) as never);
+    let created = 0;
+    countAttempts.mockImplementation((async () => created) as never);
+    createAttempt.mockImplementation((async () => {
+      created += 1;
+      return { attempt_id: `att-${created}` };
+    }) as never);
+
+    const settle = (request: Promise<unknown>) =>
+      request.then(
+        () => "started" as const,
+        (error: unknown) => error
+      );
+    const outcomes = await Promise.all([settle(start()), settle(start())]);
+
+    expect(outcomes.filter((o) => o === "started")).toHaveLength(1);
+    expect(outcomes.find((o) => o !== "started")).toBeInstanceOf(ConflictError);
+    expect(created).toBe(1);
+  });
+
+  // The test above shows the count is read inside the serialised section. It
+  // cannot show that the advisory lock itself serialises real database
+  // sessions; that needs a real database (integration tests).
 });
 
 describe("attemptService.submitAnswer", () => {
