@@ -100,11 +100,16 @@ describe("authMiddleware: an expired access token, refresh also fails", () => {
     expect(passedError.message).toBe("Session expired, please log in again");
   });
 
-  it("mislabels a real service-auth outage as an expired session", async () => {
-    // Known gap: refreshTokens throws UnauthorizedError for ANY non-ok
-    // response, not just a real 401 (see auth.service.ts). So if
-    // service-auth is down or errors, the user is logged out with
-    // "session expired" instead of being told the service is unavailable.
+  it("treats a real refresh-token rejection as session expired", async () => {
+    // This only tests authMiddleware's own behavior given what refreshTokens
+    // throws (mocked here); it does not exercise refreshTokens itself.
+    // refreshTokens used to throw UnauthorizedError for ANY non-ok response,
+    // not just a real 401, which meant a genuine service-auth outage during
+    // refresh was reported as "session expired". That was fixed directly in
+    // auth.service.ts's refreshTokens (see auth.service.test.ts), which now
+    // throws BadGatewayError for a real outage -- and authMiddleware already
+    // passes a BadGatewayError straight through rather than relabeling it, as
+    // proven separately above.
     getSession.mockReturnValue(SESSION);
     verify.mockRejectedValue(new UnauthorizedError("Access token is invalid or expired"));
     refresh.mockRejectedValue(new UnauthorizedError("Refresh token is invalid or expired"));

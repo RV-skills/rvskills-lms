@@ -1,6 +1,6 @@
 import { serverConfig } from "../config";
-import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import { BadGatewayError, ConflictError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
+import { ConflictError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 
 export interface EnrollmentRecord {
   enrollment_id: string;
@@ -48,17 +48,14 @@ export async function enrollInCourse(course_id: string, accessToken: string): Pr
     if (res.status === 409) {
       throw new ConflictError(body.message ?? "You are already enrolled in this course");
     }
-    if (res.status === 400) {
-      throw new ValidationError(body.message ?? "Unable to enroll in this course");
-    }
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for enroll`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for enroll`, body);
   }
 
   return body.data as EnrollmentRecord;
 }
 
 export async function getMyEnrollments(accessToken: string): Promise<EnrollmentRecord[]> {
-  const res = await fetchWithTimeout(`${serverConfig.SERVICE_ENROLLMENT_URL}/api/v1/enrollments/my-enrollments`, 
+  const res = await fetchWithTimeout(`${serverConfig.SERVICE_ENROLLMENT_URL}/api/v1/enrollments/my-enrollments`,
     {
         method: "GET",
         headers: {
@@ -69,7 +66,7 @@ export async function getMyEnrollments(accessToken: string): Promise<EnrollmentR
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for my-enrollments`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for my-enrollments`);
   }
 
   const body = (await res.json()) as { success: boolean; data: EnrollmentRecord[] };
@@ -89,7 +86,7 @@ export async function getCompletedLessonIds(enrollment_id: string, accessToken: 
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for completed lessons`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for completed lessons`);
   }
 
   const body = (await res.json()) as { success: boolean; data: string[] };
@@ -103,7 +100,7 @@ export async function listCourseRatings(course_id: string): Promise<CourseRating
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for course ratings`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for course ratings`);
   }
 
   const body = (await res.json()) as { success: boolean; data: CourseRating[] };
@@ -117,7 +114,7 @@ export async function getAverageRating(course_id: string): Promise<AverageRating
   );
 
   if (!res.ok) {
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for average rating`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for average rating`);
   }
 
   const body = (await res.json()) as { success: boolean; data: AverageRating };
@@ -154,10 +151,7 @@ export async function submitRating(
     if (res.status === 409) {
       throw new ConflictError(body.message ?? "You have already rated this course");
     }
-    if (res.status === 400) {
-      throw new ValidationError(body.message ?? "Unable to submit rating");
-    }
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for rating submission`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for rating submission`, body);
   }
 
   return body.data as CourseRating;
@@ -193,10 +187,7 @@ export async function updateRating(
     if (res.status === 404) {
       throw new NotFoundError(body.message ?? "Rating not found");
     }
-    if (res.status === 400) {
-      throw new ValidationError(body.message ?? "Unable to update rating");
-    }
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for rating update`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for rating update`, body);
   }
 
   return body.data as CourseRating;
@@ -225,10 +216,6 @@ export async function markLessonComplete(
   );
 
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
-    if (res.status === 400) {
-      throw new ValidationError(body.message ?? "Unable to mark this lesson complete");
-    }
-    throw new BadGatewayError(`service-enrollment returned ${res.status} for mark-complete`);
+    await throwForFailedResponse(res, `service-enrollment returned ${res.status} for mark-complete`);
   }
 }
