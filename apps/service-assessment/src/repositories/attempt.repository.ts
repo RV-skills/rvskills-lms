@@ -15,6 +15,13 @@ export const attemptRepository = {
         return client.assessmentAttempt.create({ data });
     },
 
+    async existsForAssessment(assessment_id: string, client: Prisma.TransactionClient = prisma) {
+        const count = await client.assessmentAttempt.count({
+            where: { assessment_id },
+        });
+        return count > 0;
+    },
+
     async findById(attempt_id: string, client: Prisma.TransactionClient= prisma) {
         return client.assessmentAttempt.findUnique({
             where: { attempt_id },
