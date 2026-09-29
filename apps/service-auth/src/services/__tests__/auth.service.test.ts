@@ -1,27 +1,28 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { authService } from "../auth.service"
-import { userRepository } from "../../repositories/user.repository"
+import { userRepository } from "../../repositories/user.repository";
 import { tokenRepository } from "../../repositories/token.repository";
 import { UnauthorizedError } from "@rv-lms/shared-utils";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-jest.mock("../../repositories/user.repository", () => ({
+vi.mock("../../repositories/user.repository", () => ({
     userRepository: {
-        findByEmail: jest.fn(),
-        findWithRoles: jest.fn()
+        findByEmail: vi.fn(),
+        findWithRoles: vi.fn()
     },
 }));
 
-jest.mock("../../repositories/token.repository", () => ({
+vi.mock("../../repositories/token.repository", () => ({
     tokenRepository: {
-        createRefreshToken: jest.fn(),
-        findByTokenHash: jest.fn(),
-        revokeToken: jest.fn(),
-        revokeAllUsersTokens: jest.fn()
+        createRefreshToken: vi.fn(),
+        findByTokenHash: vi.fn(),
+        revokeToken: vi.fn(),
+        revokeAllUsersTokens: vi.fn()
     }
 }));
 
-jest.mock("jsonwebtoken");
+vi.mock("jsonwebtoken");
 
 const REAL_PASSWORD = "correct-password-123";
 let REAL_PASSWORD_HASH: string;
@@ -32,18 +33,18 @@ beforeAll(async () => {
 
 describe("authService.login", () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     })
 
     it("logs in successfully with correct credentials", async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findByEmail).mockResolvedValue({
             user_id: "user-1",
             tenant_id: "rv-skills-tenant",
             email: "test@rvskills.com",
             password_hash: REAL_PASSWORD_HASH
-        });
+        } as never);
 
-        (userRepository.findWithRoles as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findWithRoles).mockResolvedValue({
             user_id: "user-1",
             tenant_id: "rv-skills-tenant",
             first_name: "Test",
@@ -64,13 +65,13 @@ describe("authService.login", () => {
                     },
                 },
             ],
-        });
+        } as never);
 
-        (jwt.sign as jest.Mock).mockReturnValue("fake-access-token");
+        vi.mocked(jwt.sign).mockReturnValue("fake-access-token" as never);
 
-        ( tokenRepository.createRefreshToken as jest.Mock).mockResolvedValue({
+        vi.mocked(tokenRepository.createRefreshToken).mockResolvedValue({
             token_id: "token-1"
-        });
+        } as never);
 
         const result = await authService.login("test@rvskills.com", REAL_PASSWORD);
 
@@ -79,7 +80,7 @@ describe("authService.login", () => {
     })
 
     it("throws UnauthorizedError if user is not found", async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+        vi.mocked(userRepository.findByEmail).mockResolvedValue(null as never);
 
         await expect(
             authService.login("missing@rvskills.com", "anypassword")
@@ -87,12 +88,12 @@ describe("authService.login", () => {
     });
 
     it("throws Unauthorized if password is incorrect", async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findByEmail).mockResolvedValue({
             user_id: "user-1",
             tenant_id: "rv-skills-tenant",
             email: "test@rvskills.com",
             password_hash: REAL_PASSWORD_HASH
-        });
+        } as never);
 
         await expect(
             authService.login("test@rvskills.com", "totally-wronged-password")
@@ -102,21 +103,21 @@ describe("authService.login", () => {
 
 describe("authService.refreshAccessToken", () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it("rotates tokens successfully with a valid refresh token", async () => {
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1);
 
-        (tokenRepository.findByTokenHash as jest.Mock).mockResolvedValue({
+        vi.mocked(tokenRepository.findByTokenHash).mockResolvedValue({
             token_id: "old-token-id",
             user_id: "user-1",
             expires_at: futureDate
-        });
-        (tokenRepository.revokeToken as jest.Mock).mockResolvedValue({});
+        } as never);
+        vi.mocked(tokenRepository.revokeToken).mockResolvedValue({} as never);
 
-        (userRepository.findWithRoles as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findWithRoles).mockResolvedValue({
             user_id: 'user-1',
             tenant_id: 'rv-skills-tenant',
             first_name: 'Test',
@@ -137,13 +138,13 @@ describe("authService.refreshAccessToken", () => {
                 },
                 },
             ],
-        });
+        } as never);
 
-    (jwt.sign as jest.Mock).mockReturnValue('new-fake-access-token');
+    vi.mocked(jwt.sign).mockReturnValue('new-fake-access-token' as never);
 
-    (tokenRepository.createRefreshToken as jest.Mock).mockResolvedValue({
+    vi.mocked(tokenRepository.createRefreshToken).mockResolvedValue({
         token_id: 'new-token-id',
-    });
+    } as never);
 
     const result = await authService.refreshAccessToken('some-old-refresh-token-value');
 
@@ -154,7 +155,7 @@ describe("authService.refreshAccessToken", () => {
     });
 
     it('throws UnauthorizedError if token is not found', async () => {
-        (tokenRepository.findByTokenHash as jest.Mock).mockResolvedValue(null);
+        vi.mocked(tokenRepository.findByTokenHash).mockResolvedValue(null as never);
 
         await expect(
             authService.refreshAccessToken('nonexistent-token')
@@ -165,11 +166,11 @@ describe("authService.refreshAccessToken", () => {
         const pastDate = new Date();
         pastDate.setDate(pastDate.getDate() - 1);
 
-        (tokenRepository.findByTokenHash as jest.Mock).mockResolvedValue({
+        vi.mocked(tokenRepository.findByTokenHash).mockResolvedValue({
             token_id: 'expired-token-id',
             user_id: 'user-1',
             expires_at: pastDate,
-        });
+        } as never);
 
         await expect(
             authService.refreshAccessToken('expired-token-value')
@@ -177,12 +178,12 @@ describe("authService.refreshAccessToken", () => {
     });
 
     it('does not throw when token does not exist (idempotent)', async () => {
-        (tokenRepository.findByTokenHash as jest.Mock).mockResolvedValue(null);
+        vi.mocked(tokenRepository.findByTokenHash).mockResolvedValue(null as never);
 
         await expect(
         authService.logout('nonexistent-token')
         ).resolves.not.toThrow();
-    
+
         expect(tokenRepository.revokeToken).not.toHaveBeenCalled();
 
     });
