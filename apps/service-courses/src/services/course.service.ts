@@ -1,6 +1,6 @@
 import { CourseDTO } from "@rv-lms/shared-types";
 import { courseRepository, CreateCourseInput, UpdateCourseInput } from "../repositories/course.repository";
-import { NotFoundError } from "@rv-lms/shared-utils";
+import { ConflictError, NotFoundError } from "@rv-lms/shared-utils";
 import { courseFacultyRepository } from "../repositories/course-faculty.repository";
 import { FacultyRole } from "../generated/prisma/enums";
 
@@ -139,6 +139,16 @@ export const courseService = {
     },
 
     async assignFaculty(course_id: string, faculty_id: string, tenant_id: string, role: FacultyRole = FacultyRole.primary) {
+        const course = await courseRepository.findById(course_id, tenant_id);
+        if (!course) {
+            throw new NotFoundError("Course not found");
+        }
+
+        const alreadyAssigned = await courseFacultyRepository.isFaculty(course_id, faculty_id);
+        if (alreadyAssigned) {
+            throw new ConflictError("This faculty member is already assigned to the course");
+        }
+
         return courseFacultyRepository.assign(course_id, faculty_id, tenant_id, role);
     },
 

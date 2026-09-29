@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { NotFoundError } from "@rv-lms/shared-utils";
+import { ConflictError, NotFoundError } from "@rv-lms/shared-utils";
 import { FacultyRole } from "../../generated/prisma/enums";
 import { courseService } from "../course.service";
 import { courseRepository } from "../../repositories/course.repository";
@@ -25,6 +25,7 @@ vi.mock("../../repositories/course-faculty.repository", () => ({
     findByCourse: vi.fn(),
     findByFaculty: vi.fn(),
     remove: vi.fn(),
+    isFaculty: vi.fn(),
   },
 }));
 
@@ -38,6 +39,7 @@ const assign = vi.mocked(courseFacultyRepository.assign);
 const findByCourse = vi.mocked(courseFacultyRepository.findByCourse);
 const findByFaculty = vi.mocked(courseFacultyRepository.findByFaculty);
 const removeFaculty = vi.mocked(courseFacultyRepository.remove);
+const isFacultyAssigned = vi.mocked(courseFacultyRepository.isFaculty);
 
 // The tenant the service falls back to when none is given.
 const DEFAULT_TENANT = "rv-skills-tenant";
@@ -367,7 +369,40 @@ describe("courseService faculty", () => {
     expect(findByCourse).toHaveBeenCalledWith("course-1");
   });
 
+  it("throws NotFoundError when assigning faculty to a course that does not exist", async () => {
+    findById.mockResolvedValue(null as never);
+
+    await expect(
+      courseService.assignFaculty("course-1", "f-1", "tenant-1")
+    ).rejects.toThrow(NotFoundError);
+    expect(isFacultyAssigned).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("throws ConflictError when the faculty member is already assigned", async () => {
+    findById.mockResolvedValue(aCourse());
+    isFacultyAssigned.mockResolvedValue(true as never);
+
+    await expect(
+      courseService.assignFaculty("course-1", "f-1", "tenant-1")
+    ).rejects.toThrow(ConflictError);
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("checks the course in the tenant given, before checking assignment", async () => {
+    findById.mockResolvedValue(aCourse());
+    isFacultyAssigned.mockResolvedValue(false as never);
+    assign.mockResolvedValue({} as never);
+
+    await courseService.assignFaculty("course-1", "f-1", "tenant-9");
+
+    expect(findById).toHaveBeenCalledWith("course-1", "tenant-9");
+    expect(isFacultyAssigned).toHaveBeenCalledWith("course-1", "f-1");
+  });
+
   it("assigns faculty as primary when no role is given", async () => {
+    findById.mockResolvedValue(aCourse());
+    isFacultyAssigned.mockResolvedValue(false as never);
     assign.mockResolvedValue({} as never);
 
     await courseService.assignFaculty("course-1", "f-1", "tenant-1");
@@ -381,6 +416,8 @@ describe("courseService faculty", () => {
   });
 
   it("keeps an explicit role", async () => {
+    findById.mockResolvedValue(aCourse());
+    isFacultyAssigned.mockResolvedValue(false as never);
     assign.mockResolvedValue({} as never);
 
     await courseService.assignFaculty("course-1", "f-1", "tenant-1", FacultyRole.ta);
@@ -401,9 +438,6 @@ describe("courseService faculty", () => {
     ).resolves.toEqual({ faculty_id: "f-1" });
     expect(removeFaculty).toHaveBeenCalledWith("course-1", "f-1");
   });
-
-  it.todo("throws NotFoundError when assigning faculty to a course that does not exist");
-  it.todo("throws ConflictError when the faculty member is already assigned");
 });
 
 describe("courseService.listMyCourses", () => {
