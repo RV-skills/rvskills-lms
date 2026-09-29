@@ -1,39 +1,40 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userService } from '../user.service';
 import { userRepository } from '../../repositories/user.repository';
 import { ConflictError, NotFoundError } from '@rv-lms/shared-utils';
 
-jest.mock("../../repositories/user.repository", () => ({
+vi.mock("../../repositories/user.repository", () => ({
     userRepository: {
-        findById: jest.fn(),
-        findByEmail: jest.fn(),
-        findByUsername: jest.fn(),
-        findWithRoles: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        softDelete: jest.fn(),
-        assignRole: jest.fn(),
-        findRoleByName: jest.fn(),
+        findById: vi.fn(),
+        findByEmail: vi.fn(),
+        findByUsername: vi.fn(),
+        findWithRoles: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        softDelete: vi.fn(),
+        assignRole: vi.fn(),
+        findRoleByName: vi.fn(),
     },
 }));
 
 
 describe("userService.register", () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
-    
+
     it("registers a new user successfully", async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
-        (userRepository.findByUsername as jest.Mock).mockResolvedValue(null);
-        (userRepository.create as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findByEmail).mockResolvedValue(null as never);
+        vi.mocked(userRepository.findByUsername).mockResolvedValue(null as never);
+        vi.mocked(userRepository.create).mockResolvedValue({
             user_id: "user-1",
             tenant_id: "rv-skills-tenant",
             email: "test@rv-skills.com"
-        });
-        (userRepository.findRoleByName as jest.Mock).mockResolvedValue({
+        } as never);
+        vi.mocked(userRepository.findRoleByName).mockResolvedValue({
             role_id: "role-student"
-        });
-        (userRepository.findWithRoles as jest.Mock).mockResolvedValue({
+        } as never);
+        vi.mocked(userRepository.findWithRoles).mockResolvedValue({
             user_id: "user-1",
             tenant_id: "rv-skills-tenant",
             first_name: "Test",
@@ -46,7 +47,7 @@ describe("userService.register", () => {
             user_roles: [
                 { role: { role_id: "role-student", role_name: "Student" } },
             ],
-        });
+        } as never);
         const result = await userService.register({
             first_name: "Test",
             last_name: "User",
@@ -54,7 +55,7 @@ describe("userService.register", () => {
             email: "test@rvskills.com",
             password: "password123",
         });
-        
+
         expect(result.email).toBe("test@rvskills.com");
         expect(result).not.toHaveProperty("password_hash");
         expect(userRepository.assignRole).toHaveBeenCalledWith(
@@ -65,9 +66,9 @@ describe("userService.register", () => {
 
 
     it("throws ConflictError if email already exists", async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findByEmail).mockResolvedValue({
             user_id: "existing-user"
-        });
+        } as never);
 
         await expect(
             userService.register({
@@ -81,10 +82,10 @@ describe("userService.register", () => {
         });
 
     it('throws ConflictError if username already exists', async () => {
-        (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
-        (userRepository.findByUsername as jest.Mock).mockResolvedValue({
+        vi.mocked(userRepository.findByEmail).mockResolvedValue(null as never);
+        vi.mocked(userRepository.findByUsername).mockResolvedValue({
           user_id: 'existing-user',
-        });
+        } as never);
 
         await expect(
           userService.register({
@@ -100,11 +101,11 @@ describe("userService.register", () => {
 
 describe("userService.getProfile", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns user profile when found', async () => {
-    (userRepository.findWithRoles as jest.Mock).mockResolvedValue({
+    vi.mocked(userRepository.findWithRoles).mockResolvedValue({
       user_id: 'user-1',
       tenant_id: 'rv-skills-tenant',
       first_name: 'Test',
@@ -115,7 +116,7 @@ describe("userService.getProfile", () => {
       created_at: new Date(),
       updated_at: new Date(),
       user_roles: [],
-    });
+    } as never);
 
     const result = await userService.getProfile('user-1');
 
@@ -123,7 +124,7 @@ describe("userService.getProfile", () => {
   });
 
   it('throws NotFoundError when user does not exist', async () => {
-    (userRepository.findWithRoles as jest.Mock).mockResolvedValue(null);
+    vi.mocked(userRepository.findWithRoles).mockResolvedValue(null as never);
 
     await expect(
       userService.getProfile('missing-user')

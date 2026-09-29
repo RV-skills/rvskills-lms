@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "npx ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
-    "test": "jest --passWithNoTests"
+    "test": "cross-env TEMP=D:\\tmp TMP=D:\\tmp jest --passWithNoTests"
   },
   "keywords": [],
   "author": "",
