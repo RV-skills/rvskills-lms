@@ -1,6 +1,6 @@
 import { serverConfig } from "../config";
-import { fetchWithTimeout, correlationHeaders } from "../utils/http-client.util";
-import { BadGatewayError, UnauthorizedError, ForbiddenError, ConflictError } from "@rv-lms/shared-utils";
+import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
+import { UnauthorizedError, ForbiddenError, ConflictError } from "@rv-lms/shared-utils";
 import type { UserSummaryDTO } from "@rv-lms/shared-types";
 
 export interface AdminUserSummary {
@@ -62,13 +62,16 @@ export async function listAllUsers(
   );
 
   if (!res.ok) {
+    // Keep the specific, friendlier messages for the two cases that
+    // actually happen in practice; anything else falls through to the
+    // shared helper instead of a generic 502.
     if (res.status === 401) {
       throw new UnauthorizedError("Your session has expired. Please log in again.");
     }
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list all users`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for list all users`);
   }
 
   const body = (await res.json()) as { success: boolean; data: AdminUserSummary[]; total: number };
@@ -91,7 +94,7 @@ export async function listAllRoles(accessToken: string): Promise<RoleSummary[]> 
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for list roles`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for list roles`);
   }
 
   const body = (await res.json()) as { success: boolean; data: RoleSummary[] };
@@ -120,7 +123,7 @@ export async function assignRoleToUser(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for role assignments`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for role assignments`);
   }
 }
 
@@ -147,7 +150,7 @@ export async function removeRoleFromUser(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for role removal`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for role removal`);
   }
 }
 
@@ -173,7 +176,7 @@ export async function getUsersByIds(userIds: string[], accessToken: string): Pro
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for batch user lookup`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for batch user lookup`);
   }
 
   const body = (await res.json()) as { success: boolean; data: UserSummaryDTO[] };
@@ -206,7 +209,7 @@ export async function adminCreateUser(
     if (res.status === 409) {
       throw new ConflictError(body.message ?? "That email or username is already in use.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for user creation`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for user creation`, body);
   }
 
   return body.data as CreatedUserResult;
@@ -233,7 +236,7 @@ export async function adminBatchCreateStudents(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(`service-auth returned ${res.status} for batch user creation`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for batch user creation`);
   }
 
   const body = (await res.json()) as { success: boolean; data: BatchCreateResult };
@@ -264,7 +267,7 @@ export async function setUserStatus(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for status update`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for status update`, body);
   }
 
   return body.data as AdminUserSummary;
@@ -291,7 +294,7 @@ export async function resetUserPassword(
     if (res.status === 403) {
       throw new ForbiddenError("You do not have permission to do this.");
     }
-    throw new BadGatewayError(body.message ?? `service-auth returned ${res.status} for password reset`);
+    await throwForFailedResponse(res, `service-auth returned ${res.status} for password reset`, body);
   }
 
   return body.data as CreatedUserResult;
