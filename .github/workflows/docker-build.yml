@@ -1,0 +1,38 @@
+name: Docker build
+
+# Validates that every service's Dockerfile actually builds, on a real
+# GitHub-hosted runner with Docker available. No push anywhere yet --
+# this is purely a build-correctness check, run before any ECR/AWS
+# wiring exists. Each image is built with the repo root as its context,
+# matching how Turborepo's "prune" pattern expects to be invoked.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - service-auth
+          - service-courses
+          - service-enrollment
+          - service-assessment
+          - service-gateway
+          - web
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.service }} image
+        run: |
+          docker build \
+            -f apps/${{ matrix.service }}/Dockerfile \
+            --build-arg NEXT_PUBLIC_GATEWAY_URL=https://placeholder.example.com \
+            -t rvskills-${{ matrix.service }}:ci \
+            .
