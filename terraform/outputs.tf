@@ -57,3 +57,18 @@ output "cookie_secret_arn" {
   description = "ARN of the Secrets Manager secret holding the cookie signing secret."
   value       = aws_secretsmanager_secret.cookie_secret.arn
 }
+
+output "alb_dns_name" {
+  description = "Public DNS name of the load balancer. Point a real domain's CNAME/ALIAS at this."
+  value       = aws_lb.main.dns_name
+}
+
+output "web_target_group_arn" {
+  description = "Target group ARN the web ECS service registers with."
+  value       = aws_lb_target_group.web.arn
+}
+
+output "gateway_target_group_arn" {
+  description = "Target group ARN the gateway ECS service registers with."
+  value       = aws_lb_target_group.gateway.arn
+}
