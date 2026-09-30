@@ -27,3 +27,8 @@ output "app_security_group_id" {
   description = "Security group every ECS task attaches to."
   value       = aws_security_group.app.id
 }
+
+output "ecr_repository_urls" {
+  description = "ECR repository URL for each service, keyed by service name."
+  value       = { for name, repo in aws_ecr_repository.services : name => repo.repository_url }
+}
