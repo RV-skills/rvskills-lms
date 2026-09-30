@@ -11,7 +11,10 @@ env:
   # repository/service layer, so nothing here needs to be a real,
   # reachable secret -- these only need to exist so each service's
   # module-scope validation (Zod schemas, direct process.env reads)
-  # doesn't throw at import time.
+  # doesn't throw at import time. NEXT_PUBLIC_GATEWAY_URL specifically
+  # is also required at BUILD time, not just test time: Next.js
+  # evaluates page modules during static-page prerendering, and
+  # gateway-client.ts throws at import if this is unset.
   NODE_ENV: development
   CORS_ORIGIN: http://localhost:3000
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
@@ -22,6 +25,7 @@ env:
   SERVICE_COURSES_URL: http://localhost:3002
   SERVICE_ENROLLMENT_URL: http://localhost:3003
   SERVICE_ASSESSMENT_URL: http://localhost:3004
+  NEXT_PUBLIC_GATEWAY_URL: http://localhost:3005
   HUSKY: "0"
 
 jobs:
