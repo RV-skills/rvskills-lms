@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCourses, type CourseListItem } from "@/lib/courses";
 import { CourseCard } from "@/components/ui/course-card";
@@ -8,7 +8,7 @@ import { FilterBar } from "@/components/catalog/filter-bar";
 import { useSession } from "@/lib/user-session";
 import { getMyEnrollments } from "@/lib/enrollment";
 
-export default function CatalogPage() {
+function CatalogContent() {
   const searchParams = useSearchParams();
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,5 +71,19 @@ export default function CatalogPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-6xl px-6 py-10">
+          <p className="mt-16 text-center text-sm text-neutral-500">Loading courses...</p>
+        </main>
+      }
+    >
+      <CatalogContent />
+    </Suspense>
   );
 }
