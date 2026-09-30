@@ -32,3 +32,13 @@ output "ecr_repository_urls" {
   description = "ECR repository URL for each service, keyed by service name."
   value       = { for name, repo in aws_ecr_repository.services : name => repo.repository_url }
 }
+
+output "ecs_execution_role_arn" {
+  description = "IAM role ARN ECS uses to run a task (pull image, write logs, read secrets)."
+  value       = aws_iam_role.ecs_execution.arn
+}
+
+output "ecs_task_role_arn" {
+  description = "IAM role ARN the running application itself assumes."
+  value       = aws_iam_role.ecs_task.arn
+}
