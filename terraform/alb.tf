@@ -31,31 +31,47 @@ resource "aws_security_group" "alb" {
 # that is harmless in practice: none of the other four services listen
 # on those specific ports.
 resource "aws_security_group_rule" "app_from_alb_web" {
-  type                     = "ingress"
-  from_port                = 3000
-  to_port                  = 3000
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.app.id
+  type = "ingress"
+
+  from_port = 3000
+
+  to_port = 3000
+
+  protocol = "tcp"
+
+  security_group_id = aws_security_group.app.id
+
   source_security_group_id = aws_security_group.alb.id
-  description               = "web, from the ALB"
+
+  description = "web, from the ALB"
 }
 
 resource "aws_security_group_rule" "app_from_alb_gateway" {
-  type                     = "ingress"
-  from_port                = 3005
-  to_port                  = 3005
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.app.id
+  type = "ingress"
+
+  from_port = 3005
+
+  to_port = 3005
+
+  protocol = "tcp"
+
+  security_group_id = aws_security_group.app.id
+
   source_security_group_id = aws_security_group.alb.id
-  description               = "gateway, from the ALB"
+
+  description = "gateway, from the ALB"
 }
 
 resource "aws_lb" "main" {
-  name               = "${var.project_name}-alb"
-  internal           = false
+  name = "${var.project_name}-alb"
+
+  internal = false
+
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
+
+  security_groups = [aws_security_group.alb.id]
+
+  subnets = aws_subnet.public[*].id
 
   tags = {
     Name = "${var.project_name}-alb"
@@ -63,10 +79,14 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "web" {
-  name        = "${var.project_name}-web"
-  port        = 3000
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  name = "${var.project_name}-web"
+
+  port = 3000
+
+  protocol = "HTTP"
+
+  vpc_id = aws_vpc.main.id
+
   target_type = "ip"
 
   health_check {
@@ -84,10 +104,14 @@ resource "aws_lb_target_group" "web" {
 }
 
 resource "aws_lb_target_group" "gateway" {
-  name        = "${var.project_name}-gateway"
-  port        = 3005
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  name = "${var.project_name}-gateway"
+
+  port = 3005
+
+  protocol = "HTTP"
+
+  vpc_id = aws_vpc.main.id
+
   target_type = "ip"
 
   # No dedicated health-check endpoint exists on the gateway yet -- this
@@ -114,8 +138,10 @@ resource "aws_lb_target_group" "gateway" {
 # domain is chosen and pointed at this load balancer.
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
-  port               = 80
-  protocol           = "HTTP"
+
+  port = 80
+
+  protocol = "HTTP"
 
   default_action {
     type             = "forward"
@@ -128,7 +154,8 @@ resource "aws_lb_listener" "http" {
 # /api/v1/, so this needs no application-code changes to work.
 resource "aws_lb_listener_rule" "api" {
   listener_arn = aws_lb_listener.http.arn
-  priority     = 100
+
+  priority = 100
 
   action {
     type             = "forward"
