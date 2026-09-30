@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  # Dummy, localhost-shaped values only. Every unit test mocks its
+  # repository/service layer, so nothing here needs to be a real,
+  # reachable secret -- these only need to exist so each service's
+  # module-scope validation (Zod schemas, direct process.env reads)
+  # doesn't throw at import time.
+  NODE_ENV: development
+  CORS_ORIGIN: http://localhost:3000
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  JWT_PUBLIC_KEY: dummy-public-key-for-ci
+  JWT_PRIVATE_KEY: dummy-private-key-for-ci
+  COOKIE_SECRET: dummy-ci-cookie-secret-at-least-32-characters-long
+  SERVICE_AUTH_URL: http://localhost:3001
+  SERVICE_COURSES_URL: http://localhost:3002
+  SERVICE_ENROLLMENT_URL: http://localhost:3003
+  SERVICE_ASSESSMENT_URL: http://localhost:3004
+  HUSKY: "0"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter ./apps/service-auth exec prisma generate
+          pnpm --filter ./apps/service-courses exec prisma generate
+          pnpm --filter ./apps/service-enrollment exec prisma generate
+          pnpm --filter ./apps/service-assessment exec prisma generate
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Lint
+        run: pnpm lint
