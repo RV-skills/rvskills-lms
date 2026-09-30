@@ -23,6 +23,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
 RUN pnpm --filter @rv-lms/service-auth exec prisma generate
 RUN pnpm turbo build --filter=@rv-lms/service-auth
 

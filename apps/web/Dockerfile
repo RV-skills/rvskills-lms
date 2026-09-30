@@ -23,6 +23,7 @@ ARG NEXT_PUBLIC_GATEWAY_URL
 ENV NEXT_PUBLIC_GATEWAY_URL=$NEXT_PUBLIC_GATEWAY_URL
 COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo build --filter=web
 
 FROM base AS runner
