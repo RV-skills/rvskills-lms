@@ -42,3 +42,18 @@ output "ecs_task_role_arn" {
   description = "IAM role ARN the running application itself assumes."
   value       = aws_iam_role.ecs_task.arn
 }
+
+output "jwt_private_key_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the JWT private key."
+  value       = aws_secretsmanager_secret.jwt_private_key.arn
+}
+
+output "jwt_public_key_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the JWT public key."
+  value       = aws_secretsmanager_secret.jwt_public_key.arn
+}
+
+output "cookie_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the cookie signing secret."
+  value       = aws_secretsmanager_secret.cookie_secret.arn
+}
