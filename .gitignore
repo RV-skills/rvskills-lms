@@ -32,3 +32,11 @@ cookies.txt
 
 apps/web/public/videos/
 apps/web/public/resources/
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
