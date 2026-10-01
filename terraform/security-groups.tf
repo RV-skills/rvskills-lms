@@ -22,3 +22,28 @@ resource "aws_security_group" "app" {
     Name = "${var.project_name}-app-sg"
   }
 }
+
+# Real gap found live: AWS security groups do NOT implicitly allow
+# members of the same group to reach each other -- only the two
+# explicit ALB -> app rules (ports 3000/3005) exist so far. Nothing
+# allowed the gateway (or any service) to reach another service on its
+# internal port at all, which silently broke every cross-service call
+# (gateway -> service-courses, service-enrollment -> service-courses,
+# etc.) the moment this was deployed for real. A self-referencing rule:
+# anything already in this security group can reach anything else in
+# it, on any port.
+resource "aws_security_group_rule" "app_self" {
+  type = "ingress"
+
+  from_port = 0
+
+  to_port = 65535
+
+  protocol = "tcp"
+
+  security_group_id = aws_security_group.app.id
+
+  source_security_group_id = aws_security_group.app.id
+
+  description = "Allow services in this security group to reach each other"
+}
