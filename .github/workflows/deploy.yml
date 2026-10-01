@@ -1,0 +1,72 @@
+name: Build, push, and deploy
+
+# Builds all 6 images, pushes them to ECR tagged with the commit SHA,
+# then forces each ECS service to redeploy -- which pulls the freshly
+# pushed image. Runs on every push to master. The ECR repositories and
+# ECS services themselves are provisioned by Terraform (a separate,
+# manually-triggered apply); this workflow only ever builds and
+# deploys into infrastructure that already exists.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: 990965457285.dkr.ecr.ap-south-1.amazonaws.com
+  ECS_CLUSTER: rvskills-cluster
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: service-auth
+            ecs_service: rvskills-service-auth
+          - service: service-courses
+            ecs_service: rvskills-service-courses
+          - service: service-enrollment
+            ecs_service: rvskills-service-enrollment
+          - service: service-assessment
+            ecs_service: rvskills-service-assessment
+          - service: service-gateway
+            ecs_service: rvskills-service-gateway
+          - service: web
+            ecs_service: rvskills-web
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push ${{ matrix.service }}
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/rvskills/${{ matrix.service }}
+        run: |
+          docker build \
+            -f apps/${{ matrix.service }}/Dockerfile \
+            --build-arg NEXT_PUBLIC_GATEWAY_URL=${{ vars.NEXT_PUBLIC_GATEWAY_URL }} \
+            -t $IMAGE:${{ github.sha }} \
+            -t $IMAGE:latest \
+            .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      - name: Force a new deployment of ${{ matrix.ecs_service }}
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ matrix.ecs_service }} \
+            --force-new-deployment
