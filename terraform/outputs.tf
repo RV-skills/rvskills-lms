@@ -72,3 +72,13 @@ output "gateway_target_group_arn" {
   description = "Target group ARN the gateway ECS service registers with."
   value       = aws_lb_target_group.gateway.arn
 }
+
+output "ecs_cluster_id" {
+  description = "ECS cluster ID, needed once task definitions/services exist."
+  value       = aws_ecs_cluster.main.id
+}
+
+output "cloudwatch_log_group_names" {
+  description = "CloudWatch log group name for each service, keyed by service name."
+  value       = { for name, lg in aws_cloudwatch_log_group.services : name => lg.name }
+}
