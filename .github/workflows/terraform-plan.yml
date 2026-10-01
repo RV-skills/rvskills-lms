@@ -1,0 +1,47 @@
+name: Terraform plan
+
+# Runs a real terraform plan against AWS -- the first workflow in this
+# project to touch real AWS credentials, via OIDC federation (no static
+# access keys stored anywhere; GitHub Actions requests a short-lived
+# token directly from AWS for each run). Still local state for now
+# (see versions.tf); this plan runs in a fresh checkout each time, so
+# there is no state continuity between runs yet -- every plan here shows
+# a full "create everything" plan, not an incremental diff. Migrating
+# to an S3 + DynamoDB backend fixes that, and is the natural next step
+# once this workflow itself is proven working.
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ["terraform/**"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Init
+        run: terraform init
+
+      - name: Plan
+        run: terraform plan -no-color
