@@ -13,8 +13,9 @@ resource "aws_ecs_task_definition" "service_auth" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -64,8 +65,9 @@ resource "aws_ecs_task_definition" "service_courses" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -113,8 +115,9 @@ resource "aws_ecs_task_definition" "service_enrollment" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -163,8 +166,9 @@ resource "aws_ecs_task_definition" "service_assessment" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -214,8 +218,9 @@ resource "aws_ecs_task_definition" "service_gateway" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -267,8 +272,9 @@ resource "aws_ecs_task_definition" "web" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
