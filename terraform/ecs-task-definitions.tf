@@ -10,16 +10,21 @@ resource "aws_ecs_task_definition" "service_auth" {
   family = "${var.project_name}-service-auth"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "service-auth"
+      name = "service-auth"
+
       image = "${aws_ecr_repository.services["service-auth"].repository_url}:${var.image_tag}"
 
       portMappings = [
@@ -62,16 +67,21 @@ resource "aws_ecs_task_definition" "service_courses" {
   family = "${var.project_name}-service-courses"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "service-courses"
+      name = "service-courses"
+
       image = "${aws_ecr_repository.services["service-courses"].repository_url}:${var.image_tag}"
 
       portMappings = [
@@ -112,16 +122,21 @@ resource "aws_ecs_task_definition" "service_enrollment" {
   family = "${var.project_name}-service-enrollment"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "service-enrollment"
+      name = "service-enrollment"
+
       image = "${aws_ecr_repository.services["service-enrollment"].repository_url}:${var.image_tag}"
 
       portMappings = [
@@ -163,16 +178,21 @@ resource "aws_ecs_task_definition" "service_assessment" {
   family = "${var.project_name}-service-assessment"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "service-assessment"
+      name = "service-assessment"
+
       image = "${aws_ecr_repository.services["service-assessment"].repository_url}:${var.image_tag}"
 
       portMappings = [
@@ -215,16 +235,21 @@ resource "aws_ecs_task_definition" "service_gateway" {
   family = "${var.project_name}-service-gateway"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "service-gateway"
+      name = "service-gateway"
+
       image = "${aws_ecr_repository.services["service-gateway"].repository_url}:${var.image_tag}"
 
       portMappings = [
@@ -269,16 +294,21 @@ resource "aws_ecs_task_definition" "web" {
   family = "${var.project_name}-web"
 
   requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+
+  network_mode = "awsvpc"
+
+  cpu = "256"
+
+  memory = "512"
+
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
   task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
-      name  = "web"
+      name = "web"
+
       image = "${aws_ecr_repository.services["web"].repository_url}:${var.image_tag}"
 
       portMappings = [
