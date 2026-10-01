@@ -33,7 +33,7 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Init (local backend only, no AWS calls)
-        run: terraform init
+        run: terraform init -backend=false
 
       - name: Validate
         run: terraform validate
