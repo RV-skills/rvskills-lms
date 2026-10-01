@@ -21,6 +21,16 @@ locals {
   ]
 }
 
+# No health_check_custom_config here: that setting tells Cloud Map to
+# expect manual health status updates via a separate API call that
+# nothing in this architecture ever sends, which can leave a registered
+# instance stuck "unhealthy" from Cloud Map's own perspective even
+# while its ECS task is genuinely running fine -- found live, as the
+# real cause of the gateway's "Failed to reach
+# http://service-auth.rvskills.internal:3001" errors. ECS's own Cloud
+# Map integration (the service_registries block on each ECS service)
+# handles registration and deregistration automatically as tasks
+# start and stop; no custom health signal is needed for that.
 resource "aws_service_discovery_service" "internal" {
   for_each = toset(local.internal_services)
 
@@ -35,10 +45,6 @@ resource "aws_service_discovery_service" "internal" {
     }
 
     routing_policy = "MULTIVALUE"
-  }
-
-  health_check_custom_config {
-    failure_threshold = 1
   }
 
   tags = {
