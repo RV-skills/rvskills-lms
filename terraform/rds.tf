@@ -65,7 +65,12 @@ resource "aws_db_instance" "main" {
 
   multi_az = false
 
-  backup_retention_period = 7
+  # 0 disables automated backups entirely -- AWS Free Tier rejects any
+  # retention period above what it allows, and the exact cap was not
+  # knowable in advance. No automated backups is a real gap, acceptable
+  # only because this holds no real data yet; raise this (and likely
+  # move off Free Tier) before this ever holds production data.
+  backup_retention_period = 0
 
   # Simplification while this infrastructure is still being built and
   # iterated on: forcing a final snapshot on every destroy would slow
