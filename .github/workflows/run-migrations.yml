@@ -1,0 +1,75 @@
+name: Run database migrations
+
+# Manually triggered. RDS is not publicly reachable (by design -- it
+# lives in a private subnet), so "run migrations" can't happen from a
+# local machine or a plain GitHub-hosted runner reaching out over the
+# internet. Instead this runs each service's migration as a one-off
+# ECS task, inside the same VPC/subnets/security group the real
+# services already use, with the same image and the same env/secrets
+# wiring -- just overriding the container's command to run
+# `npx prisma migrate deploy` once instead of starting the server.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  ECS_CLUSTER: rvskills-cluster
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Read network config from Terraform state
+        working-directory: terraform
+        run: |
+          terraform init
+          SUBNETS=$(terraform output -json private_subnet_ids | jq -c .)
+          SG=$(terraform output -raw app_security_group_id)
+          echo "SUBNETS=$SUBNETS" >> "$GITHUB_ENV"
+          echo "SG=$SG" >> "$GITHUB_ENV"
+
+      - name: Run migrations for each service, one at a time
+        run: |
+          for service in service-auth service-courses service-enrollment service-assessment; do
+            echo "=== Migrating $service ==="
+
+            SUBNETS_JSON=$(echo "$SUBNETS" | jq -c '.')
+            TASK_ARN=$(aws ecs run-task \
+              --cluster "$ECS_CLUSTER" \
+              --task-definition "rvskills-$service" \
+              --launch-type FARGATE \
+              --network-configuration "{\"awsvpcConfiguration\":{\"subnets\":$SUBNETS_JSON,\"securityGroups\":[\"$SG\"],\"assignPublicIp\":\"DISABLED\"}}" \
+              --overrides "{\"containerOverrides\":[{\"name\":\"$service\",\"command\":[\"npx\",\"prisma\",\"migrate\",\"deploy\"]}]}" \
+              --query 'tasks[0].taskArn' --output text)
+
+            echo "Started task: $TASK_ARN"
+            aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+
+            EXIT_CODE=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" \
+              --query 'tasks[0].containers[0].exitCode' --output text)
+
+            if [ "$EXIT_CODE" != "0" ]; then
+              echo "::error::$service migration failed with exit code $EXIT_CODE"
+              exit 1
+            fi
+            echo "=== $service migrated successfully ==="
+          done
