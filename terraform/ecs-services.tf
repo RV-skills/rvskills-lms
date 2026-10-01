@@ -15,8 +15,10 @@ resource "aws_ecs_service" "service_auth" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
@@ -41,8 +43,10 @@ resource "aws_ecs_service" "service_courses" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
@@ -67,8 +71,10 @@ resource "aws_ecs_service" "service_enrollment" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
@@ -93,8 +99,10 @@ resource "aws_ecs_service" "service_assessment" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
@@ -119,15 +127,19 @@ resource "aws_ecs_service" "service_gateway" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.gateway.arn
-    container_name    = "service-gateway"
-    container_port    = 3005
+
+    container_name = "service-gateway"
+
+    container_port = 3005
   }
 
   depends_on = [aws_lb_listener.http]
@@ -149,15 +161,19 @@ resource "aws_ecs_service" "web" {
   launch_type = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.app.id]
+    subnets = aws_subnet.private[*].id
+
+    security_groups = [aws_security_group.app.id]
+
     assign_public_ip = false
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.web.arn
-    container_name    = "web"
-    container_port    = 3000
+
+    container_name = "web"
+
+    container_port = 3000
   }
 
   depends_on = [aws_lb_listener.http]
