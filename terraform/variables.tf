@@ -39,15 +39,3 @@ variable "frontend_origin" {
   type        = string
   default     = ""
 }
-
-variable "image_tag" {
-  description = "Image tag to deploy for every service. Overridden by the CI/CD workflow with a real commit SHA once that exists; defaults to 'latest' for manual applies."
-  type        = string
-  default     = "latest"
-}
-
-variable "frontend_origin" {
-  description = "Origin the backend's CORS policy allows. Defaults to the ALB's own DNS name; override with a real domain once one exists."
-  type        = string
-  default     = ""
-}
