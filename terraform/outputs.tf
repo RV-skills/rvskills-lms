@@ -92,3 +92,15 @@ output "internal_dns_namespace" {
   description = "The private DNS suffix internal services are reachable at, e.g. service-auth.<this>."
   value       = aws_service_discovery_private_dns_namespace.internal.name
 }
+
+output "task_definition_arns" {
+  description = "Task definition ARN for each service, needed once the ECS services themselves exist."
+  value = {
+    "service-auth"       = aws_ecs_task_definition.service_auth.arn
+    "service-courses"    = aws_ecs_task_definition.service_courses.arn
+    "service-enrollment" = aws_ecs_task_definition.service_enrollment.arn
+    "service-assessment" = aws_ecs_task_definition.service_assessment.arn
+    "service-gateway"    = aws_ecs_task_definition.service_gateway.arn
+    "web"                = aws_ecs_task_definition.web.arn
+  }
+}
