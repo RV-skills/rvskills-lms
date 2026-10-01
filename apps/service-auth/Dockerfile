@@ -26,6 +26,7 @@ COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
 RUN pnpm --filter @rv-lms/service-auth exec prisma generate
 RUN pnpm turbo build --filter=@rv-lms/service-auth
+RUN cp -r apps/service-auth/src/generated apps/service-auth/dist/generated
 
 FROM base AS runner
 WORKDIR /app
