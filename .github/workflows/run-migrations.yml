@@ -58,7 +58,7 @@ jobs:
               --task-definition "rvskills-$service" \
               --launch-type FARGATE \
               --network-configuration "{\"awsvpcConfiguration\":{\"subnets\":$SUBNETS_JSON,\"securityGroups\":[\"$SG\"],\"assignPublicIp\":\"DISABLED\"}}" \
-              --overrides "{\"containerOverrides\":[{\"name\":\"$service\",\"command\":[\"node_modules/.bin/prisma\",\"migrate\",\"deploy\"]}]}" \
+              --overrides "{\"containerOverrides\":[{\"name\":\"$service\",\"command\":[\"apps/$service/node_modules/.bin/prisma\",\"migrate\",\"deploy\"]}]}" \
               --query 'tasks[0].taskArn' --output text)
 
             echo "Started task: $TASK_ARN"
