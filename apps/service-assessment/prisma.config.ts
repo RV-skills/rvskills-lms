@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { defineConfig } from "prisma/config";
+import { defineConfig, env } from "prisma/config";
 import path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, ".env")});
@@ -10,6 +10,6 @@ export default defineConfig({
         path: "prisma/migrations"
     },
     datasource: {
-        url: process.env.DATABASE_URL
+        url: env("DATABASE_URL")
     },
 })

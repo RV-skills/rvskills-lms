@@ -18,6 +18,7 @@ WORKDIR /app
 COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm --filter service-assessment exec prisma generate
 RUN pnpm turbo build --filter=service-assessment
 
