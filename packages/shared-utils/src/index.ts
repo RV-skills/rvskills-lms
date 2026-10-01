@@ -12,3 +12,4 @@ export {
 
 export type {IAppError} from "./app-error";
 export { default as logger } from "./logger";
+export { resolveDatabaseUrl } from "./resolve-database-url";

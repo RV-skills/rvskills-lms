@@ -1,9 +1,11 @@
 import { PrismaClient } from "../generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { resolveDatabaseUrl } from "@rv-lms/shared-utils";
 
-const adapter = new PrismaPg({ 
-    connectionString: process.env.DATABASE_URL! 
+const adapter = new PrismaPg({
+    connectionString: resolveDatabaseUrl()
 });
+
 const prisma = new PrismaClient({ adapter });
 
 export const tokenRepository = {
