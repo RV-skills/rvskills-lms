@@ -42,6 +42,7 @@ export interface DatabaseConnectionConfig {
   user: string;
   password: string;
   database: string;
+  ssl: { rejectUnauthorized: boolean };
 }
 
 /**
@@ -50,12 +51,14 @@ export interface DatabaseConnectionConfig {
  * own runtime pg.Pool connections -- a real, AWS-generated RDS
  * password can contain characters (a literal ':' or '[', for example)
  * that remain genuinely awkward even once correctly percent-encoded
- * into a URL, and different URL parsers (the 'pg' library's own vs.
- * whatever Prisma CLI's engine uses internally for migrate deploy) do
- * not necessarily agree on decoding every edge case the same way. This
- * sidesteps URL parsing for the password entirely: it is used as a raw
- * string, the same way Postgres's own wire protocol actually consumes
- * it, never embedded in or extracted from a URL.
+ * into a URL. This sidesteps URL parsing for the password entirely.
+ *
+ * Includes the same ssl: { rejectUnauthorized: false } every one of
+ * this project's pg.Pool connections has always needed against RDS --
+ * a real regression in the first version of this function, which
+ * returned no ssl field at all, silently dropping SSL negotiation and
+ * producing the exact same 'access denied' symptom as a genuine
+ * credentials problem.
  *
  * Prisma's own CLI genuinely needs a URL string (prisma.config.ts has
  * no discrete-fields alternative), so resolveDatabaseUrl() above is
@@ -63,6 +66,8 @@ export interface DatabaseConnectionConfig {
  * project's own application code.
  */
 export function resolveDatabaseConnectionConfig(): DatabaseConnectionConfig {
+  const ssl = { rejectUnauthorized: false };
+
   if (process.env.DATABASE_URL) {
     const url = new URL(process.env.DATABASE_URL);
     return {
@@ -71,6 +76,7 @@ export function resolveDatabaseConnectionConfig(): DatabaseConnectionConfig {
       user: decodeURIComponent(url.username),
       password: decodeURIComponent(url.password),
       database: decodeURIComponent(url.pathname.replace(/^\//, "")),
+      ssl,
     };
   }
 
@@ -87,5 +93,5 @@ export function resolveDatabaseConnectionConfig(): DatabaseConnectionConfig {
     );
   }
 
-  return { host, port, user, password, database };
+  return { host, port, user, password, database, ssl };
 }
