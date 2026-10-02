@@ -2,12 +2,18 @@ import { PrismaClient } from "../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { resolveDatabaseUrl } from "@rv-lms/shared-utils"
 
+const __dbUrl = resolveDatabaseUrl();
+console.log("DEBUG user.repository DB_USER:", process.env.DB_USER);
+console.log("DEBUG user.repository DB_HOST:", process.env.DB_HOST);
+console.log("DEBUG user.repository DB_NAME:", process.env.DB_NAME);
+console.log("DEBUG user.repository DATABASE_URL length:", __dbUrl.length);
+console.log("DEBUG user.repository DATABASE_URL prefix:", __dbUrl.substring(0, 40));
+
 const adapter  = new PrismaPg({
-    connectionString: resolveDatabaseUrl(),
+    connectionString: __dbUrl,
 });
 
 const prisma = new PrismaClient({ adapter });
-
 
 export interface CreateUserInput {
     tenant_id: string;
