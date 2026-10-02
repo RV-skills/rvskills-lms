@@ -1,17 +1,14 @@
 import { PrismaClient } from "../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { resolveDatabaseUrl } from "@rv-lms/shared-utils"
+import { Pool } from "pg"
+import { resolveDatabaseConnectionConfig } from "@rv-lms/shared-utils"
 
-const __dbUrl = resolveDatabaseUrl();
-console.log("DEBUG user.repository DB_USER:", process.env.DB_USER);
-console.log("DEBUG user.repository DB_HOST:", process.env.DB_HOST);
-console.log("DEBUG user.repository DB_NAME:", process.env.DB_NAME);
-console.log("DEBUG user.repository DATABASE_URL length:", __dbUrl.length);
-console.log("DEBUG user.repository DATABASE_URL prefix:", __dbUrl.substring(0, 40));
-
-const adapter  = new PrismaPg({
-    connectionString: __dbUrl,
-});
+// Discrete fields, not a connection-string URL: a real, AWS-generated
+// RDS password can contain characters that remain awkward even once
+// correctly percent-encoded into a URL -- sidesteps URL parsing for
+// the password entirely.
+const pool = new Pool(resolveDatabaseConnectionConfig());
+const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });
 
