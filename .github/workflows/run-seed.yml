@@ -53,7 +53,7 @@ jobs:
             --task-definition "rvskills-service-auth" \
             --launch-type FARGATE \
             --network-configuration "{\"awsvpcConfiguration\":{\"subnets\":$SUBNETS,\"securityGroups\":[\"$SG\"],\"assignPublicIp\":\"DISABLED\"}}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"service-auth\",\"command\":[\"node_modules/.bin/tsx\",\"prisma/seed.ts\"]}]}" \
+            --overrides "{\"containerOverrides\":[{\"name\":\"service-auth\",\"command\":[\"apps/service-auth/node_modules/.bin/tsx\",\"apps/service-auth/prisma/seed.ts\"]}]}" \
             --query 'tasks[0].taskArn' --output text)
 
           echo "Started task: $TASK_ARN"
