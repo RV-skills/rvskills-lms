@@ -1,10 +1,10 @@
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { resolveDatabaseUrl } from "@rv-lms/shared-utils";
+import { Pool } from "pg";
+import { resolveDatabaseConnectionConfig } from "@rv-lms/shared-utils";
 
-const adapter = new PrismaPg({
-    connectionString: resolveDatabaseUrl()
-});
+const pool = new Pool(resolveDatabaseConnectionConfig());
+const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });
 
