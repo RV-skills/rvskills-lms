@@ -264,6 +264,7 @@ resource "aws_ecs_task_definition" "service_gateway" {
         { name = "SERVICE_COURSES_URL", value = "http://service-courses.${aws_service_discovery_private_dns_namespace.internal.name}:3002" },
         { name = "SERVICE_ENROLLMENT_URL", value = "http://service-enrollment.${aws_service_discovery_private_dns_namespace.internal.name}:3003" },
         { name = "SERVICE_ASSESSMENT_URL", value = "http://service-assessment.${aws_service_discovery_private_dns_namespace.internal.name}:3004" },
+        { name = "COOKIE_SECURE", value = "false" },
       ]
 
       secrets = [
