@@ -13,7 +13,7 @@ resource "aws_ecs_task_definition" "service_auth" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "110"
 
@@ -70,7 +70,7 @@ resource "aws_ecs_task_definition" "service_courses" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "110"
 
@@ -125,7 +125,7 @@ resource "aws_ecs_task_definition" "service_enrollment" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "100"
 
@@ -181,7 +181,7 @@ resource "aws_ecs_task_definition" "service_assessment" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "100"
 
@@ -238,7 +238,7 @@ resource "aws_ecs_task_definition" "service_gateway" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "130"
 
@@ -298,7 +298,7 @@ resource "aws_ecs_task_definition" "web" {
 
   network_mode = "bridge"
 
-  cpu = "100"
+  cpu = "128"
 
   memory = "200"
 

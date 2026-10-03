@@ -79,7 +79,12 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "web" {
-  name = "${var.project_name}-web"
+  # name_prefix, not a fixed name: changing target_type forces
+  # replacement, and AWS rejects a duplicate target group name while
+  # the old one still exists -- create_before_destroy needs the new one
+  # to get a distinct, auto-generated name during that overlap. ALB
+  # target groups cap name_prefix at 6 characters specifically.
+  name_prefix = "web-"
 
   port = 3000
 
@@ -88,6 +93,10 @@ resource "aws_lb_target_group" "web" {
   vpc_id = aws_vpc.main.id
 
   target_type = "instance"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   health_check {
     path                = "/"
@@ -104,7 +113,8 @@ resource "aws_lb_target_group" "web" {
 }
 
 resource "aws_lb_target_group" "gateway" {
-  name = "${var.project_name}-gateway"
+  # See aws_lb_target_group.web above for why name_prefix, not name.
+  name_prefix = "gw-"
 
   port = 3005
 
@@ -113,6 +123,10 @@ resource "aws_lb_target_group" "gateway" {
   vpc_id = aws_vpc.main.id
 
   target_type = "instance"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   # No dedicated health-check endpoint exists on the gateway yet -- this
   # reuses a real, genuinely public (no-auth-required) route as a stand-
