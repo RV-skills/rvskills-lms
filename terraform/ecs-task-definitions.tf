@@ -11,7 +11,7 @@ resource "aws_ecs_task_definition" "service_auth" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
@@ -68,7 +68,7 @@ resource "aws_ecs_task_definition" "service_courses" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
@@ -123,7 +123,7 @@ resource "aws_ecs_task_definition" "service_enrollment" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
@@ -179,7 +179,7 @@ resource "aws_ecs_task_definition" "service_assessment" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
@@ -236,7 +236,7 @@ resource "aws_ecs_task_definition" "service_gateway" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
@@ -296,7 +296,7 @@ resource "aws_ecs_task_definition" "web" {
 
   requires_compatibilities = ["EC2"]
 
-  network_mode = "bridge"
+  network_mode = "host"
 
   cpu = "128"
 
