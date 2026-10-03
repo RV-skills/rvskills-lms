@@ -68,12 +68,22 @@ resource "aws_launch_template" "ecs" {
 
   vpc_security_group_ids = [aws_security_group.app.id]
 
-  # Tells the ECS agent baked into this AMI which cluster to join. No
-  # other setup needed -- the agent handles registration, health
-  # reporting, and task placement itself from here.
+  # Tells the ECS agent baked into this AMI which cluster to join, and
+  # adds 1GB of swap -- this instance's 1GB RAM alone proved too tight
+  # for 6 real Node.js/Prisma services running at once (confirmed live:
+  # service-auth crash-looped repeatedly, consistent with the OOM
+  # killer). Swap lets Linux page out idle memory instead of killing a
+  # process outright when RAM is briefly tight -- slower than real RAM
+  # under sustained pressure, but free, and plenty for a near-zero-
+  # traffic deployment.
   user_data = base64encode(<<-EOF
     #!/bin/bash
     echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
   EOF
   )
 
