@@ -87,7 +87,7 @@ resource "aws_lb_target_group" "web" {
 
   vpc_id = aws_vpc.main.id
 
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
     path                = "/"
@@ -112,7 +112,7 @@ resource "aws_lb_target_group" "gateway" {
 
   vpc_id = aws_vpc.main.id
 
-  target_type = "ip"
+  target_type = "instance"
 
   # No dedicated health-check endpoint exists on the gateway yet -- this
   # reuses a real, genuinely public (no-auth-required) route as a stand-

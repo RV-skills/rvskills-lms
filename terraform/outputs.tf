@@ -83,16 +83,6 @@ output "cloudwatch_log_group_names" {
   value       = { for name, lg in aws_cloudwatch_log_group.services : name => lg.name }
 }
 
-output "internal_service_discovery_arns" {
-  description = "Cloud Map service discovery ARN for each internal backend service, keyed by service name. Used by that service's own ECS service to register with Cloud Map."
-  value       = { for name, svc in aws_service_discovery_service.internal : name => svc.arn }
-}
-
-output "internal_dns_namespace" {
-  description = "The private DNS suffix internal services are reachable at, e.g. service-auth.<this>."
-  value       = aws_service_discovery_private_dns_namespace.internal.name
-}
-
 output "task_definition_arns" {
   description = "Task definition ARN for each service, needed once the ECS services themselves exist."
   value = {

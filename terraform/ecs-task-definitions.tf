@@ -9,13 +9,13 @@ locals {
 resource "aws_ecs_task_definition" "service_auth" {
   family = "${var.project_name}-service-auth"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "110"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -28,7 +28,7 @@ resource "aws_ecs_task_definition" "service_auth" {
       image = "${aws_ecr_repository.services["service-auth"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3001, protocol = "tcp" }
+        { containerPort = 3001, hostPort = 3001, protocol = "tcp" }
       ]
 
       environment = [
@@ -66,13 +66,13 @@ resource "aws_ecs_task_definition" "service_auth" {
 resource "aws_ecs_task_definition" "service_courses" {
   family = "${var.project_name}-service-courses"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "110"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -85,7 +85,7 @@ resource "aws_ecs_task_definition" "service_courses" {
       image = "${aws_ecr_repository.services["service-courses"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3002, protocol = "tcp" }
+        { containerPort = 3002, hostPort = 3002, protocol = "tcp" }
       ]
 
       environment = [
@@ -121,13 +121,13 @@ resource "aws_ecs_task_definition" "service_courses" {
 resource "aws_ecs_task_definition" "service_enrollment" {
   family = "${var.project_name}-service-enrollment"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "100"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -140,7 +140,7 @@ resource "aws_ecs_task_definition" "service_enrollment" {
       image = "${aws_ecr_repository.services["service-enrollment"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3003, protocol = "tcp" }
+        { containerPort = 3003, hostPort = 3003, protocol = "tcp" }
       ]
 
       environment = [
@@ -149,7 +149,7 @@ resource "aws_ecs_task_definition" "service_enrollment" {
         { name = "DB_HOST", value = local.db_host },
         { name = "DB_PORT", value = local.db_port },
         { name = "DB_NAME", value = local.db_name },
-        { name = "SERVICE_COURSES_URL", value = "http://service-courses.${aws_service_discovery_private_dns_namespace.internal.name}:3002" },
+        { name = "SERVICE_COURSES_URL", value = "http://localhost:3002" },
       ]
 
       secrets = [
@@ -177,13 +177,13 @@ resource "aws_ecs_task_definition" "service_enrollment" {
 resource "aws_ecs_task_definition" "service_assessment" {
   family = "${var.project_name}-service-assessment"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "100"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -196,7 +196,7 @@ resource "aws_ecs_task_definition" "service_assessment" {
       image = "${aws_ecr_repository.services["service-assessment"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3004, protocol = "tcp" }
+        { containerPort = 3004, hostPort = 3004, protocol = "tcp" }
       ]
 
       environment = [
@@ -205,8 +205,8 @@ resource "aws_ecs_task_definition" "service_assessment" {
         { name = "DB_HOST", value = local.db_host },
         { name = "DB_PORT", value = local.db_port },
         { name = "DB_NAME", value = local.db_name },
-        { name = "SERVICE_COURSES_URL", value = "http://service-courses.${aws_service_discovery_private_dns_namespace.internal.name}:3002" },
-        { name = "SERVICE_ENROLLMENT_URL", value = "http://service-enrollment.${aws_service_discovery_private_dns_namespace.internal.name}:3003" },
+        { name = "SERVICE_COURSES_URL", value = "http://localhost:3002" },
+        { name = "SERVICE_ENROLLMENT_URL", value = "http://localhost:3003" },
       ]
 
       secrets = [
@@ -234,13 +234,13 @@ resource "aws_ecs_task_definition" "service_assessment" {
 resource "aws_ecs_task_definition" "service_gateway" {
   family = "${var.project_name}-service-gateway"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "130"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -253,17 +253,17 @@ resource "aws_ecs_task_definition" "service_gateway" {
       image = "${aws_ecr_repository.services["service-gateway"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3005, protocol = "tcp" }
+        { containerPort = 3005, hostPort = 3005, protocol = "tcp" }
       ]
 
       environment = [
         { name = "NODE_ENV", value = var.environment },
         { name = "PORT", value = "3005" },
         { name = "CORS_ORIGIN", value = local.effective_frontend_origin },
-        { name = "SERVICE_AUTH_URL", value = "http://service-auth.${aws_service_discovery_private_dns_namespace.internal.name}:3001" },
-        { name = "SERVICE_COURSES_URL", value = "http://service-courses.${aws_service_discovery_private_dns_namespace.internal.name}:3002" },
-        { name = "SERVICE_ENROLLMENT_URL", value = "http://service-enrollment.${aws_service_discovery_private_dns_namespace.internal.name}:3003" },
-        { name = "SERVICE_ASSESSMENT_URL", value = "http://service-assessment.${aws_service_discovery_private_dns_namespace.internal.name}:3004" },
+        { name = "SERVICE_AUTH_URL", value = "http://localhost:3001" },
+        { name = "SERVICE_COURSES_URL", value = "http://localhost:3002" },
+        { name = "SERVICE_ENROLLMENT_URL", value = "http://localhost:3003" },
+        { name = "SERVICE_ASSESSMENT_URL", value = "http://localhost:3004" },
         { name = "COOKIE_SECURE", value = "false" },
       ]
 
@@ -294,13 +294,13 @@ resource "aws_ecs_task_definition" "service_gateway" {
 resource "aws_ecs_task_definition" "web" {
   family = "${var.project_name}-web"
 
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["EC2"]
 
-  network_mode = "awsvpc"
+  network_mode = "bridge"
 
-  cpu = "256"
+  cpu = "100"
 
-  memory = "512"
+  memory = "200"
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
 
@@ -313,7 +313,7 @@ resource "aws_ecs_task_definition" "web" {
       image = "${aws_ecr_repository.services["web"].repository_url}:${var.image_tag}"
 
       portMappings = [
-        { containerPort = 3000, protocol = "tcp" }
+        { containerPort = 3000, hostPort = 3000, protocol = "tcp" }
       ]
 
       environment = [
