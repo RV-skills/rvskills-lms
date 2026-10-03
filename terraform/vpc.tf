@@ -49,30 +49,6 @@ resource "aws_subnet" "private" {
   }
 }
 
-# A single NAT gateway, in the first public subnet, shared by every
-# private subnet. Cheaper than one NAT per AZ (the standard tradeoff for
-# a project at this scale) at the cost of that NAT being a single point
-# of failure for private-subnet outbound traffic. Straightforward to
-# upgrade to one-per-AZ later if that ever matters.
-resource "aws_eip" "nat" {
-  domain = "vpc"
-
-  tags = {
-    Name = "${var.project_name}-nat-eip"
-  }
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-
-  tags = {
-    Name = "${var.project_name}-nat"
-  }
-
-  depends_on = [aws_internet_gateway.main]
-}
-
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -92,13 +68,14 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+# No default route at all: ECS tasks that used to live here moved to
+# the public subnets, to avoid the NAT Gateway's flat hourly cost (a
+# real line item with essentially no traffic to justify it at this
+# project's current scale). Only RDS remains in these subnets, which
+# never needed outbound internet access -- intra-VPC connectivity (the
+# implicit local route every route table gets) is all it needs.
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
 
   tags = {
     Name = "${var.project_name}-private-rt"
