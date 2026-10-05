@@ -264,7 +264,7 @@ resource "aws_ecs_task_definition" "service_gateway" {
         { name = "SERVICE_COURSES_URL", value = "http://localhost:3002" },
         { name = "SERVICE_ENROLLMENT_URL", value = "http://localhost:3003" },
         { name = "SERVICE_ASSESSMENT_URL", value = "http://localhost:3004" },
-        { name = "COOKIE_SECURE", value = "false" },
+        { name = "COOKIE_SECURE", value = "true" },
       ]
 
       secrets = [
