@@ -35,3 +35,60 @@ output "acm_validation_records" {
     }
   ]
 }
+
+# Stage 2: waits until the certificate is actually issued, then serves HTTPS.
+resource "aws_acm_certificate_validation" "main" {
+  certificate_arn = aws_acm_certificate.main.arn
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.main.certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "api_https" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.gateway.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+
+# Sends every plain-HTTP request to HTTPS. Priority 1 outranks the older
+# /api/* rule on the HTTP listener, so nothing is served over HTTP anymore.
+resource "aws_lb_listener_rule" "http_redirect" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 1
+
+  action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
