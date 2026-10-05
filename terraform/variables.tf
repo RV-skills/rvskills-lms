@@ -37,5 +37,5 @@ variable "image_tag" {
 variable "frontend_origin" {
   description = "Origin the backend's CORS policy allows. Defaults to the ALB's own DNS name; override with a real domain once one exists."
   type        = string
-  default     = ""
+  default     = "http://lms1.rv-skills.com"
 }

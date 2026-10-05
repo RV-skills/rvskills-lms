@@ -25,6 +25,10 @@ resource "aws_ecs_service" "service_auth" {
 
   launch_type = "EC2"
 
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
+
   tags = {
     Name = "${var.project_name}-service-auth"
   }
@@ -40,6 +44,10 @@ resource "aws_ecs_service" "service_courses" {
   desired_count = 1
 
   launch_type = "EC2"
+
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
 
   tags = {
     Name = "${var.project_name}-service-courses"
@@ -57,6 +65,10 @@ resource "aws_ecs_service" "service_enrollment" {
 
   launch_type = "EC2"
 
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
+
   tags = {
     Name = "${var.project_name}-service-enrollment"
   }
@@ -73,6 +85,10 @@ resource "aws_ecs_service" "service_assessment" {
 
   launch_type = "EC2"
 
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
+
   tags = {
     Name = "${var.project_name}-service-assessment"
   }
@@ -88,6 +104,10 @@ resource "aws_ecs_service" "service_gateway" {
   desired_count = 1
 
   launch_type = "EC2"
+
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
 
   load_balancer {
     target_group_arn = aws_lb_target_group.gateway.arn
@@ -114,6 +134,10 @@ resource "aws_ecs_service" "web" {
   desired_count = 1
 
   launch_type = "EC2"
+
+  deployment_minimum_healthy_percent = 0
+
+  deployment_maximum_percent = 100
 
   load_balancer {
     target_group_arn = aws_lb_target_group.web.arn
