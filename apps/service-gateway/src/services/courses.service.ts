@@ -28,11 +28,12 @@ export interface CourseDetail {
     lessons: {
       lesson_id: string;
       title: string;
+      content_type: string;
       is_preview: boolean;
       estimated_duration_mins: number | null;
       video_url: string | null;
       description: string | null;
-      resources: { resource_id: string; title: string; pdf_url: string }[];
+      resources: { resource_id: string; title: string; resource_type: string; file_url: string }[];
     }[];
   }[];
 }
@@ -175,6 +176,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
          lessons: m.lessons.map((l) => ({
         lesson_id: l.lesson_id,
         title: l.title,
+        content_type: l.content_type,
         is_preview: l.is_preview,
         estimated_duration_mins: l.estimated_duration_mins,
         video_url: l.content_metadata?.video_url ?? null,
@@ -182,7 +184,8 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
         resources: (l.resources ?? []).map((r) => ({
           resource_id: r.resource_id,
           title: r.title,
-          pdf_url: r.pdf_url,
+          resource_type: r.resource_type,
+          file_url: r.file_url,
         })),
       })),
     })),
@@ -420,8 +423,14 @@ export async function removeLessonVideo(course_id: string, module_id: string, le
   return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "DELETE", accessToken);
 }
 
-export async function addLessonResource(course_id: string, module_id: string, lesson_id: string, title: string, pdf_url: string, accessToken: string): Promise<LessonRecord> {
-  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, { title, pdf_url });
+export async function addLessonResource(
+  course_id: string,
+  module_id: string,
+  lesson_id: string,
+  resource: { title: string; resource_type?: string; file_url: string },
+  accessToken: string
+): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, resource);
 }
 
 export async function removeLessonResource(course_id: string, module_id: string, lesson_id: string, resource_id: string, accessToken: string): Promise<LessonRecord> {

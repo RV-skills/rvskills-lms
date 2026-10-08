@@ -5,12 +5,14 @@ import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 export interface PlayerResource {
   resource_id: string;
   title: string;
-  pdf_url: string;
+  resource_type: string;
+  file_url: string;
 }
 
 export interface PlayerLesson {
   lesson_id: string;
   title: string;
+  content_type: string;
   estimated_duration_mins: number | null;
   video_url: string | null;
   description: string | null;
@@ -76,6 +78,7 @@ export async function getCoursePlayerData(
         title: lesson.title,
         estimated_duration_mins: lesson.estimated_duration_mins,
         video_url: lesson.video_url,
+        content_type: lesson.content_type,
         description: lesson.description,
         resources: lesson.resources,
         status,

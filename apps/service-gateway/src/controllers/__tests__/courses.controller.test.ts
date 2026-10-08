@@ -403,11 +403,11 @@ describe("video and resource management", () => {
     expect(courses.removeLessonVideo).toHaveBeenCalledWith("course-1", "mod-1", "l-1", TOKEN);
   });
 
-  it("addLessonResourceController destructures the ids and the title/pdf_url, and responds 201", async () => {
+    it("addLessonResourceController forwards title, resource_type and file_url as one object, and responds 201", async () => {
     courses.addLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
     const req = fakeReq({
       params: { course_id: "course-1", module_id: "mod-1", lesson_id: "l-1" },
-      body: { title: "Slides", pdf_url: "/resources/a.pdf" },
+      body: { title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" },
     });
     const res = fakeRes();
 
@@ -417,32 +417,26 @@ describe("video and resource management", () => {
       "course-1",
       "mod-1",
       "l-1",
-      "Slides",
-      "/resources/a.pdf",
+      { title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" },
       TOKEN
     );
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
-  it("removeLessonResourceController destructures all four ids", async () => {
-    courses.removeLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
+  it("addLessonResourceController forwards only the three known fields from the body", async () => {
+    courses.addLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
     const req = fakeReq({
-      params: {
-        course_id: "course-1",
-        module_id: "mod-1",
-        lesson_id: "l-1",
-        resource_id: "r-1",
-      },
+      params: { course_id: "course-1", module_id: "mod-1", lesson_id: "l-1" },
+      body: { title: "Notes", file_url: "https://cdn.example.com/n.pdf", lesson_id: "someone-elses", is_admin: true },
     });
-    const res = fakeRes();
 
-    await removeLessonResourceController(req, res, next);
+    await addLessonResourceController(req, fakeRes(), next);
 
-    expect(courses.removeLessonResource).toHaveBeenCalledWith(
+    expect(courses.addLessonResource).toHaveBeenCalledWith(
       "course-1",
       "mod-1",
       "l-1",
-      "r-1",
+      { title: "Notes", resource_type: undefined, file_url: "https://cdn.example.com/n.pdf" },
       TOKEN
     );
   });

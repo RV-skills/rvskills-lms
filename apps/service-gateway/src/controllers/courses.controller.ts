@@ -277,8 +277,8 @@ export async function removeLessonVideoController(req: AuthenticatedRequest, res
 export async function addLessonResourceController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const { course_id, module_id, lesson_id } = req.params as { course_id: string; module_id: string; lesson_id: string };
-    const { title, pdf_url } = req.body as { title: string; pdf_url: string };
-    const lesson = await addLessonResource(course_id, module_id, lesson_id, title, pdf_url, req.accessToken!);
+    const { title, resource_type, file_url } = req.body as { title: string; resource_type?: string; file_url: string };
+    const lesson = await addLessonResource(course_id, module_id, lesson_id, { title, resource_type, file_url }, req.accessToken!);
     res.status(201).json({ success: true, data: lesson });
   } catch (err) {
     next(err);
