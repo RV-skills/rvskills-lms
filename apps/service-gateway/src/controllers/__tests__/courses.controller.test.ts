@@ -36,6 +36,7 @@ import * as enrollmentService from "../../services/enrollment.service";
 vi.mock("../../services/courses.service", () => ({
   listCourses: vi.fn(),
   getCourseDetail: vi.fn(),
+  getCourseDetailForViewer: vi.fn(),
   createCourse: vi.fn(),
   listMyCourses: vi.fn(),
   listCoursesForAdmin: vi.fn(),
@@ -100,20 +101,50 @@ describe("listCoursesController", () => {
 });
 
 describe("getCourseDetailController", () => {
-  it("returns the course when found", async () => {
-    courses.getCourseDetail.mockResolvedValue({ course_id: "course-1" } as never);
+  it("treats a visitor with no session as an anonymous viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
     const req = fakeReq({ params: { course_id: "course-1" } });
     const res = fakeRes();
 
     await getCourseDetailController(req, res, next);
 
-    expect(courses.getCourseDetail).toHaveBeenCalledWith("course-1", TOKEN);
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, undefined);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
+  it("marks a logged-in admin as an admin viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
+    const req = fakeReq({
+      params: { course_id: "course-1" },
+      user: { user_id: "u-admin", roles: [{ role_name: "Student" }, { role_name: "Admin" }] } as never,
+    });
+
+    await getCourseDetailController(req, fakeRes(), next);
+
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
+      user_id: "u-admin",
+      isAdmin: true,
+    });
+  });
+
+  it("marks any other logged-in user as a non-admin viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
+    const req = fakeReq({
+      params: { course_id: "course-1" },
+      user: { user_id: "u-faculty", roles: [{ role_name: "Faculty" }] } as never,
+    });
+
+    await getCourseDetailController(req, fakeRes(), next);
+
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
+      user_id: "u-faculty",
+      isAdmin: false,
+    });
+  });
+
   it("turns a null result into a real NotFoundError", async () => {
-    courses.getCourseDetail.mockResolvedValue(null as never);
-    const req = fakeReq({ params: { course_id: "missing" } });
+    courses.getCourseDetailForViewer.mockResolvedValue(null as never);
+    const req = fakeReq({ params: { course_id: "course-1" } });
     const res = fakeRes();
 
     await getCourseDetailController(req, res, next);

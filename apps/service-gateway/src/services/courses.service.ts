@@ -135,7 +135,10 @@ export async function listCourses(accessToken?: string): Promise<AggregatedCours
   });
 }
 
-export async function getCourseDetail(course_id: string, accessToken?: string): Promise<CourseDetail | null> {
+async function loadCourseDetail(
+  course_id: string,
+  accessToken?: string
+): Promise<{ detail: CourseDetail; facultyIds: string[] } | null> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}`, {
     method: "GET",
     headers: {
@@ -162,7 +165,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
   const firstFacultyId = course.faculty?.[0]?.faculty_id;
   const instructorName = firstFacultyId ? nameById.get(firstFacultyId) : undefined;
 
-  return {
+  const detail: CourseDetail = {
     course_id: course.course_id,
     title: course.title,
     description: course.description,
@@ -188,6 +191,49 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
           file_url: r.file_url,
         })),
       })),
+    })),
+  };
+
+  return { detail, facultyIds };
+}
+
+// Same result as before, for callers that only need the course (e.g. the player,
+// which does its own enrollment checks).
+export async function getCourseDetail(course_id: string, accessToken?: string): Promise<CourseDetail | null> {
+  const loaded = await loadCourseDetail(course_id, accessToken);
+  return loaded ? loaded.detail : null;
+}
+
+export interface CourseViewer {
+  user_id: string;
+  isAdmin: boolean;
+}
+
+// For the public course page. Content links go only to people who manage the course;
+// everyone else sees the outline, plus the content of lessons marked as free previews.
+export async function getCourseDetailForViewer(
+  course_id: string,
+  accessToken: string | undefined,
+  viewer: CourseViewer | undefined
+): Promise<CourseDetail | null> {
+  const loaded = await loadCourseDetail(course_id, accessToken);
+  if (!loaded) {
+    return null;
+  }
+
+  const { detail, facultyIds } = loaded;
+  const canManage = viewer !== undefined && (viewer.isAdmin || facultyIds.includes(viewer.user_id));
+  return canManage ? detail : withoutContentLinks(detail);
+}
+
+function withoutContentLinks(detail: CourseDetail): CourseDetail {
+  return {
+    ...detail,
+    modules: detail.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) =>
+        l.is_preview ? l : { ...l, video_url: null, resources: [] }
+      ),
     })),
   };
 }
