@@ -77,10 +77,10 @@ export async function getCoursePlayerData(
         lesson_id: lesson.lesson_id,
         title: lesson.title,
         estimated_duration_mins: lesson.estimated_duration_mins,
-        video_url: lesson.video_url,
+        video_url: moduleUnlocked ? lesson.video_url : null,
         content_type: lesson.content_type,
         description: lesson.description,
-        resources: lesson.resources,
+        resources: moduleUnlocked ? lesson.resources : [],
         status,
       };
     });
