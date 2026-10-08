@@ -99,12 +99,13 @@ model Lesson {
 }
 
 model LessonResource {
-  resource_id String @id @default(uuid())
-  lesson_id String
-  title String
-  pdf_url String
-  order_index Int @default(0)
-  created_at DateTime @default(now())
+  resource_id   String      @id @default(uuid())
+  lesson_id     String
+  title         String
+  resource_type ContentType @default(PDF)
+  file_url      String      @map("pdf_url")
+  order_index   Int         @default(0)
+  created_at    DateTime    @default(now())
 
   lesson Lesson @relation(fields: [lesson_id], references: [lesson_id])
 }

@@ -23,7 +23,7 @@ vi.mock("../../repositories/content-metadata.repository", () => ({
 }));
 
 vi.mock("../../repositories/lesson-resource.repository", () => ({
-  lessonResourceRepository: { create: vi.fn(), remove: vi.fn() },
+  lessonResourceRepository: { create: vi.fn(), removeFromLesson: vi.fn() },
 }));
 
 const getNextOrderIndex = vi.mocked(lessonRepository.getNextOrderIndex);
@@ -36,8 +36,7 @@ const softDelete = vi.mocked(lessonRepository.softDetele);
 const upsertVideo = vi.mocked(contentMetadataRepository.upsertVideoUrl);
 const removeVideoRow = vi.mocked(contentMetadataRepository.remove);
 const createResourceRow = vi.mocked(lessonResourceRepository.create);
-const removeResourceRow = vi.mocked(lessonResourceRepository.remove);
-
+const removeResourceRow = vi.mocked(lessonResourceRepository.removeFromLesson);
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 
 function aLesson(overrides: Record<string, unknown> = {}) {
@@ -165,7 +164,7 @@ describe("lessonService.getLesson", () => {
       aLesson({
         content_metadata: { video_url: "/videos/a.mp4" },
         resources: [
-          { resource_id: "r-1", title: "Slides", pdf_url: "/resources/a.pdf" },
+          { resource_id: "r-1", title: "Slides", resource_type: "PDF", file_url: "https://cdn.example.com/a.pdf" },
         ],
       })
     );
@@ -174,7 +173,7 @@ describe("lessonService.getLesson", () => {
 
     expect(result.content_metadata).toEqual({ video_url: "/videos/a.mp4" });
     expect(result.resources).toEqual([
-      { resource_id: "r-1", title: "Slides", pdf_url: "/resources/a.pdf" },
+      { resource_id: "r-1", title: "Slides", resource_type: "PDF", file_url: "https://cdn.example.com/a.pdf" },
     ]);
   });
 
@@ -297,58 +296,52 @@ describe("lessonService.removeVideo", () => {
 });
 
 describe("lessonService.addResource", () => {
+  const input = {
+    title: "Slides",
+    resource_type: "SLIDE" as const,
+    file_url: "https://cdn.example.com/a.pdf",
+  };
+
   it("throws NotFoundError, and adds nothing, when the lesson does not exist", async () => {
     findById.mockResolvedValue(null as never);
 
-    await expect(
-      lessonService.addResource("l-1", "Slides", "/resources/a.pdf")
-    ).rejects.toThrow(NotFoundError);
+    await expect(lessonService.addResource("l-1", input)).rejects.toThrow(NotFoundError);
     expect(createResourceRow).not.toHaveBeenCalled();
   });
 
-  it("adds the resource, then returns the lesson with it", async () => {
+  it("adds the resource with its type, then returns the lesson with it", async () => {
     findById.mockResolvedValue(aLesson());
     createResourceRow.mockResolvedValue({} as never);
     findWithContent.mockResolvedValue(
-      aLesson({
-        resources: [
-          { resource_id: "r-1", title: "Slides", pdf_url: "/resources/a.pdf" },
-        ],
-      })
+      aLesson({ resources: [{ resource_id: "r-1", ...input }] })
     );
 
-    const result = await lessonService.addResource(
-      "l-1",
-      "Slides",
-      "/resources/a.pdf"
-    );
+    const result = await lessonService.addResource("l-1", input);
 
-    expect(createResourceRow).toHaveBeenCalledWith({
-      lesson_id: "l-1",
-      title: "Slides",
-      pdf_url: "/resources/a.pdf",
-    });
+    expect(createResourceRow).toHaveBeenCalledWith({ lesson_id: "l-1", ...input });
     expect(result.resources).toHaveLength(1);
   });
 });
 
+
 describe("lessonService.removeResource", () => {
-  it("removes the resource, then returns the lesson as it is afterwards", async () => {
-    removeResourceRow.mockResolvedValue({} as never);
+  it("removes the resource scoped to this lesson, then returns the lesson as it is afterwards", async () => {
+    removeResourceRow.mockResolvedValue(1);
     findWithContent.mockResolvedValue(aLesson());
 
     const result = await lessonService.removeResource("l-1", "r-1");
 
-    expect(removeResourceRow).toHaveBeenCalledWith("r-1");
+    expect(removeResourceRow).toHaveBeenCalledWith("l-1", "r-1");
     expect(result.lesson_id).toBe("l-1");
     expect(result.resources).toEqual([]);
   });
 
-  // Known gaps: removeResource never checks that the lesson exists, and it
-  // deletes BEFORE looking the lesson up. Kept as todos rather than tests that
-  // would lock the current behaviour in.
-  it.todo(
-    "throws NotFoundError, and deletes nothing, when the lesson does not exist"
-  );
-  it.todo("refuses to delete a resource that belongs to a different lesson");
+  // Covers both a resource from a different lesson and a lesson that doesn't
+  // exist: in either case the scoped delete matches no rows.
+  it("throws NotFoundError when no resource matched this lesson", async () => {
+    removeResourceRow.mockResolvedValue(0);
+
+    await expect(lessonService.removeResource("l-1", "r-other")).rejects.toThrow(NotFoundError);
+    expect(findWithContent).not.toHaveBeenCalled();
+  });
 });

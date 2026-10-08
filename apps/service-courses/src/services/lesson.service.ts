@@ -3,6 +3,7 @@ import { CreateLessonInput, lessonRepository, UpdateLessonInput } from "../repos
 import { NotFoundError } from "@rv-lms/shared-utils";
 import { contentMetadataRepository } from "../repositories/content-metadata.repository";
 import { lessonResourceRepository } from "../repositories/lesson-resource.repository";
+import { ContentType } from "../generated/prisma/enums";
 
 const mapToLessonDTO = (lesson: any): LessonDTO => ({
     lesson_id: lesson.lesson_id,
@@ -100,20 +101,26 @@ export const lessonService = {
         return mapToLessonDTO(updated);
     },
 
-    async addResource(lesson_id: string, title: string, pdf_url: string): Promise<LessonDTO> {
+    async addResource(
+        lesson_id: string,
+        input: { title: string; resource_type: ContentType; file_url: string }
+    ): Promise<LessonDTO> {
         const existing = await lessonRepository.findById(lesson_id);
         if (!existing) {
             throw new NotFoundError("Lesson not found");
         }
 
-        await lessonResourceRepository.create({ lesson_id, title, pdf_url });
+        await lessonResourceRepository.create({ lesson_id, ...input });
 
         const updated = await lessonRepository.findWithContent(lesson_id);
         return mapToLessonDTO(updated);
     },
 
     async removeResource(lesson_id: string, resource_id: string): Promise<LessonDTO> {
-        await lessonResourceRepository.remove(resource_id);
+        const removed = await lessonResourceRepository.removeFromLesson(lesson_id, resource_id);
+        if (removed === 0) {
+            throw new NotFoundError("Resource not found");
+        }
 
         const updated = await lessonRepository.findWithContent(lesson_id);
         return mapToLessonDTO(updated);

@@ -156,18 +156,48 @@ describe("removeVideo", () => {
 });
 
 describe("addResource", () => {
-  it("passes the lesson id, title and pdf_url, and responds 201", async () => {
+  it("validates the body, passes it on with the lesson id, and responds 201", async () => {
     svc.addResource.mockResolvedValue({ lesson_id: "l-1" } as never);
     const req = fakeReq({
       params: { lesson_id: "l-1" },
-      body: { title: "Slides", pdf_url: "/resources/a.pdf" },
+      body: { title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" },
     });
     const res = fakeRes();
 
     await addResource(req, res, next);
 
-    expect(svc.addResource).toHaveBeenCalledWith("l-1", "Slides", "/resources/a.pdf");
+    expect(svc.addResource).toHaveBeenCalledWith("l-1", {
+      title: "Slides",
+      resource_type: "SLIDE",
+      file_url: "https://cdn.example.com/a.pdf",
+    });
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("defaults resource_type to PDF when it is not sent", async () => {
+    svc.addResource.mockResolvedValue({ lesson_id: "l-1" } as never);
+    const req = fakeReq({
+      params: { lesson_id: "l-1" },
+      body: { title: "Notes", file_url: "https://cdn.example.com/n.pdf" },
+    });
+
+    await addResource(req, fakeRes(), next);
+
+    expect(svc.addResource).toHaveBeenCalledWith("l-1", expect.objectContaining({ resource_type: "PDF" }));
+  });
+
+  it.each([
+    ["a non-https URL", { title: "Slides", file_url: "http://cdn.example.com/a.pdf" }],
+    ["a relative path", { title: "Slides", file_url: "/resources/a.pdf" }],
+    ["a missing title", { file_url: "https://cdn.example.com/a.pdf" }],
+    ["a type resources can't have", { title: "Q", resource_type: "QUIZ", file_url: "https://cdn.example.com/a.pdf" }],
+  ])("rejects %s without calling the service", async (_label, body) => {
+    const req = fakeReq({ params: { lesson_id: "l-1" }, body });
+
+    await addResource(req, fakeRes(), next);
+
+    expect(next).toHaveBeenCalled();
+    expect(svc.addResource).not.toHaveBeenCalled();
   });
 });
 
