@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { Request, Response, NextFunction } from "express";
 import {
   createLesson,
@@ -131,15 +131,54 @@ describe("deleteLesson", () => {
 });
 
 describe("setVideoUrl", () => {
-  it("passes the lesson id and video_url from the body", async () => {
-    svc.setVideoUrl.mockResolvedValue({ lesson_id: "l-1", video_url: "/videos/a.mp4" } as never);
-    const req = fakeReq({ params: { lesson_id: "l-1" }, body: { video_url: "/videos/a.mp4" } });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("validates the URL, passes it on with the lesson id, and responds 200", async () => {
+    svc.setVideoUrl.mockResolvedValue({ lesson_id: "l-1" } as never);
+    const req = fakeReq({ params: { lesson_id: "l-1" }, body: { video_url: "https://cdn.example.com/a.mp4" } });
     const res = fakeRes();
 
     await setVideoUrl(req, res, next);
 
-    expect(svc.setVideoUrl).toHaveBeenCalledWith("l-1", "/videos/a.mp4");
+    expect(svc.setVideoUrl).toHaveBeenCalledWith("l-1", "https://cdn.example.com/a.mp4");
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it.each([
+    ["a relative path", "/videos/a.mp4"],
+    ["a plain http URL", "http://cdn.example.com/a.mp4"],
+    ["a javascript: URL", "javascript:alert(1)"],
+    ["http://localhost while local media is not enabled", "http://localhost:3000/a.mp4"],
+  ])("rejects %s without calling the service", async (_label, video_url) => {
+    const req = fakeReq({ params: { lesson_id: "l-1" }, body: { video_url } });
+
+    setVideoUrl(req, fakeRes(), next);
+    await flush();
+
+    expect(svc.setVideoUrl).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it("accepts http://localhost when ALLOW_LOCALHOST_MEDIA is true", async () => {
+    vi.stubEnv("ALLOW_LOCALHOST_MEDIA", "true");
+    svc.setVideoUrl.mockResolvedValue({ lesson_id: "l-1" } as never);
+    const req = fakeReq({ params: { lesson_id: "l-1" }, body: { video_url: "http://localhost:3000/a.mp4" } });
+
+    await setVideoUrl(req, fakeRes(), next);
+
+    expect(svc.setVideoUrl).toHaveBeenCalledWith("l-1", "http://localhost:3000/a.mp4");
+  });
+
+  it("still rejects a look-alike host when ALLOW_LOCALHOST_MEDIA is true", async () => {
+    vi.stubEnv("ALLOW_LOCALHOST_MEDIA", "true");
+    const req = fakeReq({ params: { lesson_id: "l-1" }, body: { video_url: "http://localhost.evil.example/a.mp4" } });
+
+    setVideoUrl(req, fakeRes(), next);
+    await flush();
+
+    expect(svc.setVideoUrl).not.toHaveBeenCalled();
   });
 });
 
