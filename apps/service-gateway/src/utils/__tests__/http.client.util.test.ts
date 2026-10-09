@@ -73,3 +73,47 @@ describe("throwForFailedResponse: the error message", () => {
     ).rejects.toThrow("Already assigned");
   });
 });
+
+describe("throwForFailedResponse: field errors from a 400", () => {
+  // Runs the call and hands back the error it throws, so the test can look inside it.
+  async function caught(promise: Promise<never>): Promise<ValidationError> {
+    try {
+      await promise;
+    } catch (err) {
+      return err as ValidationError;
+    }
+    throw new Error("expected throwForFailedResponse to throw");
+  }
+
+  it("keeps the downstream service's field errors on the ValidationError", async () => {
+    const err = await caught(
+      throwForFailedResponse(
+        fakeResponse(400, {
+          message: "Validation failed",
+          errors: [{ field: "file_url", message: "Must be an https:// URL" }],
+        }),
+        "fallback"
+      )
+    );
+
+    expect(err).toBeInstanceOf(ValidationError);
+    expect(err.fieldErrors).toEqual([{ field: "file_url", message: "Must be an https:// URL" }]);
+  });
+
+  it("drops entries that are not { field, message } pairs", async () => {
+    const err = await caught(
+      throwForFailedResponse(
+        fakeResponse(400, { errors: [{ field: "title", message: "Required" }, "oops", { field: 3 }, null] }),
+        "fallback"
+      )
+    );
+
+    expect(err.fieldErrors).toEqual([{ field: "title", message: "Required" }]);
+  });
+
+  it("has no field errors when the body has none", async () => {
+    const err = await caught(throwForFailedResponse(fakeResponse(400, { message: "Bad" }), "fallback"));
+
+    expect(err.fieldErrors).toBeUndefined();
+  });
+});

@@ -23,6 +23,7 @@ import {
   type FacultyLesson,
 } from "@/lib/faculty";
 import type { ResourceType } from "@/lib/course-player";
+import { errorMessageFor } from "@/lib/gateway-client";
 
 type Selection =
   | { kind: "course" }
@@ -244,7 +245,7 @@ export default function FacultyCourseEditorPage() {
       setNewResourceType("PDF");
       loadCourse();
     } catch (err) {
-      setResourceError(err instanceof Error ? err.message : "Could not add the resource");
+        setResourceError(errorMessageFor(err, "Could not add the resource"));
     } finally {
       setAddingResource(false);
     }

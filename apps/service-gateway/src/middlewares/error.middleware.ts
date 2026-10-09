@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { AppError } from "@rv-lms/shared-utils";
+import { AppError, ValidationError } from "@rv-lms/shared-utils";
 import { ZodError } from "zod";
 
 export const appErrorHandler = (
@@ -25,6 +25,7 @@ export const appErrorHandler = (
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      ...(err instanceof ValidationError && err.fieldErrors ? { errors: err.fieldErrors } : {}),
     });
     return;
   }
