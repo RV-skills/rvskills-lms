@@ -39,3 +39,9 @@ variable "frontend_origin" {
   type        = string
   default     = "https://lms1.rv-skills.com"
 }
+
+variable "secret_rotation_id" {
+  description = "Change this (e.g. to today's date) to generate a new JWT key pair and cookie secret on the next apply. Changing it logs everyone out."
+  type        = string
+  default     = "2026-10-09"
+}

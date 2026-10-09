@@ -8,14 +8,28 @@
 # is ever applied against production for real, not just a theoretical
 # concern to revisit "eventually".
 
+# Changing var.secret_rotation_id replaces this, which in turn replaces the
+# secrets below (see their lifecycle blocks), so rotation is a reviewed one-line change.
+resource "terraform_data" "secret_rotation" {
+  triggers_replace = var.secret_rotation_id
+}
+
 resource "tls_private_key" "jwt" {
   algorithm = "RSA"
   rsa_bits  = 2048
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.secret_rotation]
+  }
 }
 
 resource "random_password" "cookie_secret" {
   length  = 48
   special = false
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.secret_rotation]
+  }
 }
 
 resource "aws_secretsmanager_secret" "jwt_private_key" {
