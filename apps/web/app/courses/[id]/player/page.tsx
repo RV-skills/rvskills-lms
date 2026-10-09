@@ -12,6 +12,7 @@ import {
 } from "@/lib/course-player";
 import { enrollInCourse } from "@/lib/enrollment";
 import { AssessmentsTab } from "@/components/course-player/assessments-tab";
+import { LessonStage } from "@/components/course-player/lesson-stage";
 
 type Tab = "overview" | "resources" | "discussion" | "assessments";
 
@@ -157,24 +158,22 @@ export default function CoursePlayerPage() {
           </div>
         )}
 
-        {displayedResource ? (
-          <iframe
-            key={displayedResource.resource_id}
-            src={displayedResource.pdf_url}
-            className="aspect-video w-full rounded-lg border border-neutral-100 bg-white"
-          />
-        ) : displayedLesson.video_url ? (
-          <video
-            key={displayedLesson.lesson_id}
-            controls
-            className="aspect-video w-full rounded-lg bg-neutral-900"
-            src={displayedLesson.video_url}
-          />
-        ) : (
-          <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-neutral-900 text-sm text-neutral-500">
-            No video available for this lesson
-          </div>
+        {displayedResource && (
+          <button
+            onClick={() => setSelectedResourceId(null)}
+            className="mb-2 text-sm text-primary-700 hover:underline"
+          >
+            ← Back to lesson
+          </button>
         )}
+
+        <LessonStage
+          content={
+            displayedResource
+              ? { kind: "resource", resource: displayedResource }
+              : { kind: "lesson", lesson: displayedLesson }
+          }
+        />
 
         <h2 className="mt-4 text-lg text-neutral-900">{displayedLesson.title}</h2>
         {displayedLesson.estimated_duration_mins !== null && (
