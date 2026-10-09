@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ function dotColor(status: PlayerLesson["status"]): string {
 export default function CoursePlayerPage() {
   const params = useParams();
   const courseId = params.id as string;
+  const router = useRouter();
   const [result, setResult] = useState<CoursePlayerResult | undefined>(undefined);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
@@ -45,6 +46,13 @@ export default function CoursePlayerPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Not logged in: go to login, then come back to this course afterwards.
+  useEffect(() => {
+    if (result?.status === "unauthenticated") {
+      router.replace(`/login?redirect=${encodeURIComponent(`/courses/${courseId}/player`)}`);
+    }
+  }, [result, router, courseId]);
 
   async function handleEnroll() {
     setEnrolling(true);
@@ -63,6 +71,30 @@ export default function CoursePlayerPage() {
 
   if (result === undefined) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
+  }
+
+  if (result.status === "unauthenticated") {
+    return <main className="p-10 text-sm text-neutral-500">Taking you to login...</main>;
+  }
+
+  if (result.status === "error") {
+    return (
+      <main className="p-10 text-center">
+        <h1 className="text-xl text-neutral-900">Something went wrong</h1>
+        <p className="mt-2 text-sm text-neutral-500">
+          We couldn&apos;t load this course just now. Please try again.
+        </p>
+        <Button
+          className="mt-6"
+          onClick={() => {
+            setResult(undefined);
+            load();
+          }}
+        >
+          Try again
+        </Button>
+      </main>
+    );
   }
 
   if (result.status === "not_found") {

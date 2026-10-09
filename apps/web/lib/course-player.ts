@@ -38,7 +38,9 @@ export type CoursePlayerResult =
   | { status: "ok"; data: CoursePlayerData }
   | { status: "not_found" }
   | { status: "no_lessons" }
-  | { status: "not_enrolled" };
+  | { status: "not_enrolled" }
+  | { status: "unauthenticated" }
+  | { status: "error" };
 
 export async function getCoursePlayerData(courseId: string): Promise<CoursePlayerResult> {
   try {
@@ -54,8 +56,12 @@ export async function getCoursePlayerData(courseId: string): Promise<CoursePlaye
       if (err.statusCode === 400) {
         return { status: "not_enrolled" };
       }
+      if (err.statusCode === 401) {
+        return { status: "unauthenticated" };
+      }
     }
-    throw err;
+    // Gateway down, timed out, or an unexpected error: report it rather than crash the page.
+    return { status: "error" };
   }
 }
 

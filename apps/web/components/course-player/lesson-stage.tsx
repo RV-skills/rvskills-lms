@@ -1,7 +1,15 @@
 "use client";
 
 import type { JSX } from "react";
+import dynamic from "next/dynamic";
 import type { LessonContentType, PlayerLesson, PlayerResource } from "@/lib/course-player";
+
+// pdf.js needs browser-only features (canvas, a background worker), so the viewer is
+// loaded in the browser only and never during Next's server rendering (react-pdf README).
+const PdfViewer = dynamic(() => import("./pdf-viewer"), {
+  ssr: false,
+  loading: () => <StageMessage text="Loading document…" />,
+});
 
 // What the stage is showing: the lesson itself, or one of its resources.
 export type StageContent =
@@ -32,8 +40,10 @@ function toStageItem(content: StageContent): StageItem {
 
 export function LessonStage({ content }: { content: StageContent }): JSX.Element {
   const item = toStageItem(content);
+  // Video and slides are landscape; a PDF page is portrait, so documents get a taller stage.
+  const sizeClass = item.type === "PDF" ? "h-[80vh]" : "aspect-video";
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-lg border border-neutral-100 bg-neutral-900">
+    <div className={`${sizeClass} w-full overflow-hidden rounded-lg border border-neutral-100 bg-neutral-900`}>
       {/* key: switching items starts the viewer fresh instead of reusing the old one's state */}
       <StageBody key={item.key} item={item} />
     </div>
@@ -54,8 +64,7 @@ function StageBody({ item }: { item: StageItem }): JSX.Element {
       return <video className="h-full w-full" src={item.url} controls controlsList="nodownload" />;
     case "PDF":
     case "SLIDE":
-      // Stand-in until the PDF viewer (next steps)
-      return <StageMessage text={`Document viewer coming next: ${item.title}`} />;
+      return <PdfViewer url={item.url} title={item.title} />;
     case "LINK":
       return <LinkCard url={item.url} title={item.title} />;
     case "OTHER":
