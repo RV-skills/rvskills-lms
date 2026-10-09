@@ -1,8 +1,8 @@
 name: Grant Admin role to a user
 
-# Manually triggered, takes the target user's email as input. Same
-# one-off-ECS-task pattern as run-migrations.yml and run-seed.yml, same
-# reason: RDS is not publicly reachable.
+# Manually triggered with the user's email. Runs make-admin.ts inside the running
+# service-auth container through SSM Run Command (see .github/scripts/run-in-service-auth.sh),
+# instead of starting a separate ECS task, which no longer works on the EC2 setup.
 
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ permissions:
 
 env:
   AWS_REGION: ap-south-1
-  ECS_CLUSTER: rvskills-cluster
 
 jobs:
   make-admin:
@@ -27,46 +26,23 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Check the email
+        env:
+          TARGET_EMAIL: ${{ inputs.email }}
+        run: |
+          # The email ends up in a command on the server, so only plain addresses are allowed.
+          if ! [[ "$TARGET_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo "::error::That doesn't look like a plain email address"
+            exit 1
+          fi
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.8"
-
-      - name: Read network config from Terraform state
-        working-directory: terraform
-        run: |
-          terraform init
-          SUBNETS=$(terraform output -json private_subnet_ids | jq -c .)
-          SG=$(terraform output -raw app_security_group_id)
-          echo "SUBNETS=$SUBNETS" >> "$GITHUB_ENV"
-          echo "SG=$SG" >> "$GITHUB_ENV"
-
-      - name: Run make-admin.ts as a one-off ECS task
+      - name: Grant Admin inside the running service-auth container
         env:
           TARGET_EMAIL: ${{ inputs.email }}
-        run: |
-          TASK_ARN=$(aws ecs run-task \
-            --cluster "$ECS_CLUSTER" \
-            --task-definition "rvskills-service-auth" \
-            --launch-type FARGATE \
-            --network-configuration "{\"awsvpcConfiguration\":{\"subnets\":$SUBNETS,\"securityGroups\":[\"$SG\"],\"assignPublicIp\":\"DISABLED\"}}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"service-auth\",\"command\":[\"apps/service-auth/node_modules/.bin/tsx\",\"apps/service-auth/prisma/make-admin.ts\",\"$TARGET_EMAIL\"]}]}" \
-            --query 'tasks[0].taskArn' --output text)
-
-          echo "Started task: $TASK_ARN"
-          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
-
-          EXIT_CODE=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" \
-            --query 'tasks[0].containers[0].exitCode' --output text)
-
-          if [ "$EXIT_CODE" != "0" ]; then
-            echo "::error::make-admin failed with exit code $EXIT_CODE"
-            exit 1
-          fi
-          echo "Admin role granted successfully"
+        run: bash .github/scripts/run-in-service-auth.sh "apps/service-auth/node_modules/.bin/tsx apps/service-auth/prisma/make-admin.ts $TARGET_EMAIL"
