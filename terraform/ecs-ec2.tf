@@ -122,3 +122,11 @@ resource "aws_autoscaling_group" "ecs" {
   # cheap to have in place regardless.
   protect_from_scale_in = false
 }
+
+# Lets the SSM agent on the instance receive commands (SSM Run Command), so GitHub
+# Actions can run one-off scripts like make-admin inside a running container,
+# without SSH keys or open ports.
+resource "aws_iam_role_policy_attachment" "ecs_instance_ssm" {
+  role       = aws_iam_role.ecs_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
