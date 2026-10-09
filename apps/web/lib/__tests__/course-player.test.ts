@@ -46,17 +46,24 @@ describe("getCoursePlayerData", () => {
     await expect(getCoursePlayerData("course-1")).resolves.toEqual({ status: "not_enrolled" });
   });
 
-  it("rethrows any other GatewayError status", async () => {
+  it("returns unauthenticated for a 401, so the page can send the student to login", async () => {
+    mockFetch.mockRejectedValue(new GatewayError("No session found", 401));
+
+    await expect(getCoursePlayerData("course-1")).resolves.toEqual({ status: "unauthenticated" });
+  });
+
+  it("returns error, rather than throwing, for any other GatewayError status", async () => {
     mockFetch.mockRejectedValue(new GatewayError("Server error", 500));
 
-    await expect(getCoursePlayerData("course-1")).rejects.toMatchObject({ statusCode: 500 });
+    await expect(getCoursePlayerData("course-1")).resolves.toEqual({ status: "error" });
   });
 
-  it("rethrows a non-GatewayError failure", async () => {
+  it("returns error, rather than throwing, for a non-GatewayError failure", async () => {
     mockFetch.mockRejectedValue(new Error("network down"));
 
-    await expect(getCoursePlayerData("course-1")).rejects.toThrow("network down");
+    await expect(getCoursePlayerData("course-1")).resolves.toEqual({ status: "error" });
   });
+
 });
 
 describe("markLessonComplete", () => {
