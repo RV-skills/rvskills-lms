@@ -15,6 +15,20 @@ interface LoginResponse {
   roles: { role_name: string }[];
 }
 
+// Only follow a redirect back into this site. Without this check, a link like
+// /login?redirect=https://look-alike.example would send someone to another site right
+// after they log in on the real page, a common phishing trick.
+function safeRedirectPath(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const target = new URL(raw, window.location.origin);
+    return target.origin === window.location.origin ? target.pathname + target.search + target.hash : null;
+  } catch {
+    return null;
+  }
+}
+
+
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +46,7 @@ function LoginForm() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      const redirect = searchParams.get("redirect");
+      const redirect = safeRedirectPath(searchParams.get("redirect"));
       if (redirect) {
         window.location.href = redirect;
         return;

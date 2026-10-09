@@ -36,6 +36,7 @@ import * as enrollmentService from "../../services/enrollment.service";
 vi.mock("../../services/courses.service", () => ({
   listCourses: vi.fn(),
   getCourseDetail: vi.fn(),
+  getCourseDetailForViewer: vi.fn(),
   createCourse: vi.fn(),
   listMyCourses: vi.fn(),
   listCoursesForAdmin: vi.fn(),
@@ -100,20 +101,50 @@ describe("listCoursesController", () => {
 });
 
 describe("getCourseDetailController", () => {
-  it("returns the course when found", async () => {
-    courses.getCourseDetail.mockResolvedValue({ course_id: "course-1" } as never);
+  it("treats a visitor with no session as an anonymous viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
     const req = fakeReq({ params: { course_id: "course-1" } });
     const res = fakeRes();
 
     await getCourseDetailController(req, res, next);
 
-    expect(courses.getCourseDetail).toHaveBeenCalledWith("course-1", TOKEN);
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, undefined);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
+  it("marks a logged-in admin as an admin viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
+    const req = fakeReq({
+      params: { course_id: "course-1" },
+      user: { user_id: "u-admin", roles: [{ role_name: "Student" }, { role_name: "Admin" }] } as never,
+    });
+
+    await getCourseDetailController(req, fakeRes(), next);
+
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
+      user_id: "u-admin",
+      isAdmin: true,
+    });
+  });
+
+  it("marks any other logged-in user as a non-admin viewer", async () => {
+    courses.getCourseDetailForViewer.mockResolvedValue({ course_id: "course-1" } as never);
+    const req = fakeReq({
+      params: { course_id: "course-1" },
+      user: { user_id: "u-faculty", roles: [{ role_name: "Faculty" }] } as never,
+    });
+
+    await getCourseDetailController(req, fakeRes(), next);
+
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
+      user_id: "u-faculty",
+      isAdmin: false,
+    });
+  });
+
   it("turns a null result into a real NotFoundError", async () => {
-    courses.getCourseDetail.mockResolvedValue(null as never);
-    const req = fakeReq({ params: { course_id: "missing" } });
+    courses.getCourseDetailForViewer.mockResolvedValue(null as never);
+    const req = fakeReq({ params: { course_id: "course-1" } });
     const res = fakeRes();
 
     await getCourseDetailController(req, res, next);
@@ -403,11 +434,11 @@ describe("video and resource management", () => {
     expect(courses.removeLessonVideo).toHaveBeenCalledWith("course-1", "mod-1", "l-1", TOKEN);
   });
 
-  it("addLessonResourceController destructures the ids and the title/pdf_url, and responds 201", async () => {
+    it("addLessonResourceController forwards title, resource_type and file_url as one object, and responds 201", async () => {
     courses.addLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
     const req = fakeReq({
       params: { course_id: "course-1", module_id: "mod-1", lesson_id: "l-1" },
-      body: { title: "Slides", pdf_url: "/resources/a.pdf" },
+      body: { title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" },
     });
     const res = fakeRes();
 
@@ -417,32 +448,26 @@ describe("video and resource management", () => {
       "course-1",
       "mod-1",
       "l-1",
-      "Slides",
-      "/resources/a.pdf",
+      { title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" },
       TOKEN
     );
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
-  it("removeLessonResourceController destructures all four ids", async () => {
-    courses.removeLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
+  it("addLessonResourceController forwards only the three known fields from the body", async () => {
+    courses.addLessonResource.mockResolvedValue({ lesson_id: "l-1" } as never);
     const req = fakeReq({
-      params: {
-        course_id: "course-1",
-        module_id: "mod-1",
-        lesson_id: "l-1",
-        resource_id: "r-1",
-      },
+      params: { course_id: "course-1", module_id: "mod-1", lesson_id: "l-1" },
+      body: { title: "Notes", file_url: "https://cdn.example.com/n.pdf", lesson_id: "someone-elses", is_admin: true },
     });
-    const res = fakeRes();
 
-    await removeLessonResourceController(req, res, next);
+    await addLessonResourceController(req, fakeRes(), next);
 
-    expect(courses.removeLessonResource).toHaveBeenCalledWith(
+    expect(courses.addLessonResource).toHaveBeenCalledWith(
       "course-1",
       "mod-1",
       "l-1",
-      "r-1",
+      { title: "Notes", resource_type: undefined, file_url: "https://cdn.example.com/n.pdf" },
       TOKEN
     );
   });

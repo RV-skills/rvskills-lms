@@ -19,6 +19,8 @@ export interface LessonResourceDTO {
     pdf_url: string;
     order_index: number;
     created_at: Date;
+    resource_type: "VIDEO" | "PDF" | "LINK" | "SLIDE" | "QUIZ" | "OTHER";
+    file_url: string;
 }
 
 export interface LessonDTO {

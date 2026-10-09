@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/course-player";
 import { enrollInCourse } from "@/lib/enrollment";
 import { AssessmentsTab } from "@/components/course-player/assessments-tab";
+import { LessonStage } from "@/components/course-player/lesson-stage";
 
 type Tab = "overview" | "resources" | "discussion" | "assessments";
 
@@ -29,6 +30,7 @@ function dotColor(status: PlayerLesson["status"]): string {
 export default function CoursePlayerPage() {
   const params = useParams();
   const courseId = params.id as string;
+  const router = useRouter();
   const [result, setResult] = useState<CoursePlayerResult | undefined>(undefined);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
@@ -44,6 +46,13 @@ export default function CoursePlayerPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Not logged in: go to login, then come back to this course afterwards.
+  useEffect(() => {
+    if (result?.status === "unauthenticated") {
+      router.replace(`/login?redirect=${encodeURIComponent(`/courses/${courseId}/player`)}`);
+    }
+  }, [result, router, courseId]);
 
   async function handleEnroll() {
     setEnrolling(true);
@@ -62,6 +71,30 @@ export default function CoursePlayerPage() {
 
   if (result === undefined) {
     return <main className="p-10 text-sm text-neutral-500">Loading...</main>;
+  }
+
+  if (result.status === "unauthenticated") {
+    return <main className="p-10 text-sm text-neutral-500">Taking you to login...</main>;
+  }
+
+  if (result.status === "error") {
+    return (
+      <main className="p-10 text-center">
+        <h1 className="text-xl text-neutral-900">Something went wrong</h1>
+        <p className="mt-2 text-sm text-neutral-500">
+          We couldn&apos;t load this course just now. Please try again.
+        </p>
+        <Button
+          className="mt-6"
+          onClick={() => {
+            setResult(undefined);
+            load();
+          }}
+        >
+          Try again
+        </Button>
+      </main>
+    );
   }
 
   if (result.status === "not_found") {
@@ -157,24 +190,22 @@ export default function CoursePlayerPage() {
           </div>
         )}
 
-        {displayedResource ? (
-          <iframe
-            key={displayedResource.resource_id}
-            src={displayedResource.pdf_url}
-            className="aspect-video w-full rounded-lg border border-neutral-100 bg-white"
-          />
-        ) : displayedLesson.video_url ? (
-          <video
-            key={displayedLesson.lesson_id}
-            controls
-            className="aspect-video w-full rounded-lg bg-neutral-900"
-            src={displayedLesson.video_url}
-          />
-        ) : (
-          <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-neutral-900 text-sm text-neutral-500">
-            No video available for this lesson
-          </div>
+        {displayedResource && (
+          <button
+            onClick={() => setSelectedResourceId(null)}
+            className="mb-2 text-sm text-primary-700 hover:underline"
+          >
+            ← Back to lesson
+          </button>
         )}
+
+        <LessonStage
+          content={
+            displayedResource
+              ? { kind: "resource", resource: displayedResource }
+              : { kind: "lesson", lesson: displayedLesson }
+          }
+        />
 
         <h2 className="mt-4 text-lg text-neutral-900">{displayedLesson.title}</h2>
         {displayedLesson.estimated_duration_mins !== null && (

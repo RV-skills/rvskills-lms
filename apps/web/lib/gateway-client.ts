@@ -23,6 +23,15 @@ export class GatewayError extends Error {
   }
 }
 
+// The most useful single line to show someone: the first field's reason
+// (e.g. "Must be an https:// URL") when the backend sent one, else the general message.
+export function errorMessageFor(err: unknown, fallback = "Something went wrong. Please try again."): string {
+  if (err instanceof GatewayError) {
+    return err.fieldErrors?.[0]?.message ?? err.message;
+  }
+  return fallback;
+}
+
 export async function gatewayFetch<T>(
   path: string,
   options: RequestInit = {}

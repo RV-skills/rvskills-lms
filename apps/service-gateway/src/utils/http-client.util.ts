@@ -8,6 +8,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ConflictError,
+  type FieldError
 } from "@rv-lms/shared-utils";
 
 const TIMEOUT_MS = 15000;
@@ -32,20 +33,33 @@ export function correlationHeaders(): Record<string, string> {
   return { "x-correlation-id": getCorrelationId() };
 }
 
+// Keep only well-formed { field, message } entries from another service's error response.
+function toFieldErrors(raw: unknown): FieldError[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const valid = raw.filter(
+    (e): e is FieldError =>
+      typeof e === "object" &&
+      e !== null &&
+      typeof (e as FieldError).field === "string" &&
+      typeof (e as FieldError).message === "string"
+  );
+  return valid.length > 0 ? valid : undefined;
+}
+
 export async function throwForFailedResponse(
   res: Response,
   fallbackMessage: string,
-  parsedBody?: { message?: string }
+  parsedBody?: { message?: string; errors?: unknown }
 ): Promise<never> {
   const body = (parsedBody ??
     (await res.json().catch(() => undefined))) as
-    | { message?: string }
+    | { message?: string; errors?: unknown }
     | undefined;
   const message = body?.message ?? fallbackMessage;
 
   switch (res.status) {
     case 400:
-      throw new ValidationError(message);
+      throw new ValidationError(message, toFieldErrors(body?.errors));
     case 401:
       throw new UnauthorizedError(message);
     case 403:

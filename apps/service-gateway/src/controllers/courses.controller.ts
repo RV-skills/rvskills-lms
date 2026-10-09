@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
-import { listCourses, getCourseDetail, createCourse, listMyCourses } from "../services/courses.service";
+import { listCourses, createCourse, listMyCourses, getCourseDetailForViewer } from "../services/courses.service";
+
 import { NotFoundError } from "@rv-lms/shared-utils";
 import {
   listCourseRatings as fetchCourseRatings,
@@ -34,7 +35,10 @@ export async function listCoursesController(req: AuthenticatedRequest, res: Resp
 export async function getCourseDetailController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const course_id = req.params.course_id as string;
-    const course = await getCourseDetail(course_id, req.accessToken);
+    const viewer = req.user
+      ? { user_id: req.user.user_id, isAdmin: req.user.roles.some((r) => r.role_name === "Admin") }
+      : undefined;
+    const course = await getCourseDetailForViewer(course_id, req.accessToken, viewer);
     if (!course) {
       throw new NotFoundError("Course not found");
     }
@@ -277,8 +281,8 @@ export async function removeLessonVideoController(req: AuthenticatedRequest, res
 export async function addLessonResourceController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const { course_id, module_id, lesson_id } = req.params as { course_id: string; module_id: string; lesson_id: string };
-    const { title, pdf_url } = req.body as { title: string; pdf_url: string };
-    const lesson = await addLessonResource(course_id, module_id, lesson_id, title, pdf_url, req.accessToken!);
+    const { title, resource_type, file_url } = req.body as { title: string; resource_type?: string; file_url: string };
+    const lesson = await addLessonResource(course_id, module_id, lesson_id, { title, resource_type, file_url }, req.accessToken!);
     res.status(201).json({ success: true, data: lesson });
   } catch (err) {
     next(err);

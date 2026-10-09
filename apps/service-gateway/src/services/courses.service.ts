@@ -28,11 +28,12 @@ export interface CourseDetail {
     lessons: {
       lesson_id: string;
       title: string;
+      content_type: string;
       is_preview: boolean;
       estimated_duration_mins: number | null;
       video_url: string | null;
       description: string | null;
-      resources: { resource_id: string; title: string; pdf_url: string }[];
+      resources: { resource_id: string; title: string; resource_type: string; file_url: string }[];
     }[];
   }[];
 }
@@ -134,7 +135,10 @@ export async function listCourses(accessToken?: string): Promise<AggregatedCours
   });
 }
 
-export async function getCourseDetail(course_id: string, accessToken?: string): Promise<CourseDetail | null> {
+async function loadCourseDetail(
+  course_id: string,
+  accessToken?: string
+): Promise<{ detail: CourseDetail; facultyIds: string[] } | null> {
   const res = await fetchWithTimeout(`${serverConfig.SERVICE_COURSES_URL}/api/v1/courses/${course_id}`, {
     method: "GET",
     headers: {
@@ -161,7 +165,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
   const firstFacultyId = course.faculty?.[0]?.faculty_id;
   const instructorName = firstFacultyId ? nameById.get(firstFacultyId) : undefined;
 
-  return {
+  const detail: CourseDetail = {
     course_id: course.course_id,
     title: course.title,
     description: course.description,
@@ -175,6 +179,7 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
          lessons: m.lessons.map((l) => ({
         lesson_id: l.lesson_id,
         title: l.title,
+        content_type: l.content_type,
         is_preview: l.is_preview,
         estimated_duration_mins: l.estimated_duration_mins,
         video_url: l.content_metadata?.video_url ?? null,
@@ -182,9 +187,53 @@ export async function getCourseDetail(course_id: string, accessToken?: string): 
         resources: (l.resources ?? []).map((r) => ({
           resource_id: r.resource_id,
           title: r.title,
-          pdf_url: r.pdf_url,
+          resource_type: r.resource_type,
+          file_url: r.file_url,
         })),
       })),
+    })),
+  };
+
+  return { detail, facultyIds };
+}
+
+// Same result as before, for callers that only need the course (e.g. the player,
+// which does its own enrollment checks).
+export async function getCourseDetail(course_id: string, accessToken?: string): Promise<CourseDetail | null> {
+  const loaded = await loadCourseDetail(course_id, accessToken);
+  return loaded ? loaded.detail : null;
+}
+
+export interface CourseViewer {
+  user_id: string;
+  isAdmin: boolean;
+}
+
+// For the public course page. Content links go only to people who manage the course;
+// everyone else sees the outline, plus the content of lessons marked as free previews.
+export async function getCourseDetailForViewer(
+  course_id: string,
+  accessToken: string | undefined,
+  viewer: CourseViewer | undefined
+): Promise<CourseDetail | null> {
+  const loaded = await loadCourseDetail(course_id, accessToken);
+  if (!loaded) {
+    return null;
+  }
+
+  const { detail, facultyIds } = loaded;
+  const canManage = viewer !== undefined && (viewer.isAdmin || facultyIds.includes(viewer.user_id));
+  return canManage ? detail : withoutContentLinks(detail);
+}
+
+function withoutContentLinks(detail: CourseDetail): CourseDetail {
+  return {
+    ...detail,
+    modules: detail.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) =>
+        l.is_preview ? l : { ...l, video_url: null, resources: [] }
+      ),
     })),
   };
 }
@@ -420,8 +469,14 @@ export async function removeLessonVideo(course_id: string, module_id: string, le
   return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/video`, "DELETE", accessToken);
 }
 
-export async function addLessonResource(course_id: string, module_id: string, lesson_id: string, title: string, pdf_url: string, accessToken: string): Promise<LessonRecord> {
-  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, { title, pdf_url });
+export async function addLessonResource(
+  course_id: string,
+  module_id: string,
+  lesson_id: string,
+  resource: { title: string; resource_type?: string; file_url: string },
+  accessToken: string
+): Promise<LessonRecord> {
+  return coursesServiceRequest(`/${course_id}/modules/${module_id}/lessons/${lesson_id}/resources`, "POST", accessToken, resource);
 }
 
 export async function removeLessonResource(course_id: string, module_id: string, lesson_id: string, resource_id: string, accessToken: string): Promise<LessonRecord> {

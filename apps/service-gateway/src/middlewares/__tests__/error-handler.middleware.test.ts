@@ -93,3 +93,31 @@ describe("genericErrorHandler", () => {
     });
   });
 });
+
+describe("appErrorHandler: a ValidationError carrying field errors", () => {
+  it("passes them on as `errors`, the same shape a Zod error gets", () => {
+    const res = fakeRes();
+
+    appErrorHandler(
+      new ValidationError("Validation failed", [{ field: "file_url", message: "Must be an https:// URL" }]),
+      req,
+      res as never,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Validation failed",
+      errors: [{ field: "file_url", message: "Must be an https:// URL" }],
+    });
+  });
+
+  it("leaves `errors` out entirely when there are none", () => {
+    const res = fakeRes();
+
+    appErrorHandler(new ValidationError("Bad input"), req, res as never, next);
+
+    expect(res.json).toHaveBeenCalledWith({ success: false, message: "Bad input" });
+  });
+});

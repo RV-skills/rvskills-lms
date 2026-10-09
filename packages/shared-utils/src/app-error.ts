@@ -32,9 +32,15 @@ export class UnauthorizedError extends AppError {
     }
 }
 
+export interface FieldError {
+    field: string;
+    message: string;
+}
+
 export class ValidationError extends AppError {
     constructor(
-        message: string = "Validation failed"
+        message: string = "Validation failed",
+        public readonly fieldErrors?: FieldError[]
     ){
         super(message, 400);
         Object.setPrototypeOf(this, ValidationError.prototype);

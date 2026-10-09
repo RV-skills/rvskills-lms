@@ -1,14 +1,19 @@
 import { gatewayFetch, GatewayError } from "./gateway-client";
 
+export type LessonContentType = "VIDEO" | "PDF" | "LINK" | "SLIDE" | "QUIZ" | "OTHER";
+export type ResourceType = "VIDEO" | "PDF" | "LINK" | "SLIDE";
+
 export interface PlayerResource {
   resource_id: string;
   title: string;
-  pdf_url: string;
+  resource_type: ResourceType;
+  file_url: string;
 }
 
 export interface PlayerLesson {
   lesson_id: string;
   title: string;
+  content_type: LessonContentType;
   estimated_duration_mins: number | null;
   video_url: string | null;
   description: string | null;
@@ -33,7 +38,9 @@ export type CoursePlayerResult =
   | { status: "ok"; data: CoursePlayerData }
   | { status: "not_found" }
   | { status: "no_lessons" }
-  | { status: "not_enrolled" };
+  | { status: "not_enrolled" }
+  | { status: "unauthenticated" }
+  | { status: "error" };
 
 export async function getCoursePlayerData(courseId: string): Promise<CoursePlayerResult> {
   try {
@@ -49,8 +56,12 @@ export async function getCoursePlayerData(courseId: string): Promise<CoursePlaye
       if (err.statusCode === 400) {
         return { status: "not_enrolled" };
       }
+      if (err.statusCode === 401) {
+        return { status: "unauthenticated" };
+      }
     }
-    throw err;
+    // Gateway down, timed out, or an unexpected error: report it rather than crash the page.
+    return { status: "error" };
   }
 }
 

@@ -42,8 +42,17 @@ export interface DatabaseConnectionConfig {
   user: string;
   password: string;
   database: string;
-  ssl: { rejectUnauthorized: boolean };
+    ssl: { rejectUnauthorized: boolean } | false;
 }
+
+
+// SSL stays on unless DB_SSL is explicitly "false". RDS needs it; a local Postgres has no
+// SSL set up, so only local .env files opt out. Defaulting to on means a missing setting
+// can never silently drop SSL in production.
+function resolveSsl(): { rejectUnauthorized: boolean } | false {
+  return process.env.DB_SSL === "false" ? false : { rejectUnauthorized: false };
+}
+
 
 /**
  * Same resolution as resolveDatabaseUrl(), but returns discrete fields
@@ -66,7 +75,7 @@ export interface DatabaseConnectionConfig {
  * project's own application code.
  */
 export function resolveDatabaseConnectionConfig(): DatabaseConnectionConfig {
-  const ssl = { rejectUnauthorized: false };
+  const ssl = resolveSsl();
 
   if (process.env.DATABASE_URL) {
     const url = new URL(process.env.DATABASE_URL);

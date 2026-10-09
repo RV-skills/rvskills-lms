@@ -22,6 +22,8 @@ import {
   type FacultyModule,
   type FacultyLesson,
 } from "@/lib/faculty";
+import type { ResourceType } from "@/lib/course-player";
+import { errorMessageFor } from "@/lib/gateway-client";
 
 type Selection =
   | { kind: "course" }
@@ -61,6 +63,9 @@ export default function FacultyCourseEditorPage() {
   const [newResourceTitle, setNewResourceTitle] = useState("");
   const [newResourceUrl, setNewResourceUrl] = useState("");
   const [addingResource, setAddingResource] = useState(false);
+
+  const [newResourceType, setNewResourceType] = useState<ResourceType>("PDF");
+  const [resourceError, setResourceError] = useState<string | null>(null);
 
   const [addingModule, setAddingModule] = useState(false);
   const [newModuleTitle, setNewModuleTitle] = useState("");
@@ -228,11 +233,19 @@ export default function FacultyCourseEditorPage() {
     e.preventDefault();
     if (selection?.kind !== "lesson") return;
     setAddingResource(true);
+    setResourceError(null);
     try {
-      await addLessonResource(courseId, selection.moduleId, selection.lessonId, newResourceTitle, newResourceUrl);
+      await addLessonResource(courseId, selection.moduleId, selection.lessonId, {
+        title: newResourceTitle,
+        resource_type: newResourceType,
+        file_url: newResourceUrl,
+      });
       setNewResourceTitle("");
       setNewResourceUrl("");
+      setNewResourceType("PDF");
       loadCourse();
+    } catch (err) {
+        setResourceError(errorMessageFor(err, "Could not add the resource"));
     } finally {
       setAddingResource(false);
     }
@@ -573,13 +586,25 @@ export default function FacultyCourseEditorPage() {
                         onChange={(e) => setNewResourceTitle(e.target.value)}
                         className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
                       />
+                      <select
+                        value={newResourceType}
+                        onChange={(e) => setNewResourceType(e.target.value as ResourceType)}
+                        className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+                      >
+                        <option value="PDF">PDF</option>
+                        <option value="SLIDE">Slides (uploaded as PDF)</option>
+                        <option value="VIDEO">Video</option>
+                        <option value="LINK">Link</option>
+                      </select>
                       <input
                         required
-                        placeholder="/resources/file.pdf"
+                        type="url"
+                        placeholder="https://..."
                         value={newResourceUrl}
                         onChange={(e) => setNewResourceUrl(e.target.value)}
                         className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
                       />
+                      {resourceError && <p className="text-xs text-danger">{resourceError}</p>}
                       <button
                         type="submit"
                         disabled={addingResource}
