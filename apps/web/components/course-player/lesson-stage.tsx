@@ -2,6 +2,7 @@
 
 import type { JSX } from "react";
 import dynamic from "next/dynamic";
+import VideoPlayer from "./video-player";
 import type { LessonContentType, PlayerLesson, PlayerResource } from "@/lib/course-player";
 
 // pdf.js needs browser-only features (canvas, a background worker), so the viewer is
@@ -60,8 +61,7 @@ function StageBody({ item }: { item: StageItem }): JSX.Element {
 
   switch (item.type) {
     case "VIDEO":
-      // Stand-in until the custom player (next steps)
-      return <video className="h-full w-full" src={item.url} controls controlsList="nodownload" />;
+      return <VideoPlayer src={item.url} title={item.title} positionKey={item.key} />;
     case "PDF":
     case "SLIDE":
       return <PdfViewer url={item.url} title={item.title} />;
