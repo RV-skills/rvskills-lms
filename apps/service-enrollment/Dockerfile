@@ -28,4 +28,4 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nodeuser
 COPY --from=builder --chown=nodeuser:nodejs /app .
 USER nodeuser
 EXPOSE 3003
-CMD ["node", "apps/service-enrollment/dist/server.js"]
+CMD ["sh", "-c", "node packages/shared-utils/dist/bin/migrate.js service-enrollment && exec node apps/service-enrollment/dist/server.js"]
