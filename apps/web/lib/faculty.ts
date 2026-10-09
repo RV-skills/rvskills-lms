@@ -1,4 +1,5 @@
 import { gatewayFetch, GatewayError } from "./gateway-client";
+import type { ResourceType } from "./course-player";
 
 export interface MyCourse {
   course_id: string;
@@ -148,10 +149,15 @@ export async function removeLessonVideo(courseId: string, moduleId: string, less
   });
 }
 
-export async function addLessonResource(courseId: string, moduleId: string, lessonId: string, title: string, pdfUrl: string): Promise<FacultyLesson> {
+export async function addLessonResource(
+  courseId: string,
+  moduleId: string,
+  lessonId: string,
+  resource: { title: string; resource_type: ResourceType; file_url: string }
+): Promise<FacultyLesson> {
   return gatewayFetch<FacultyLesson>(`/api/v1/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/resources`, {
     method: "POST",
-    body: JSON.stringify({ title, pdf_url: pdfUrl }),
+    body: JSON.stringify(resource),
   });
 }
 

@@ -182,14 +182,21 @@ describe("video and resource management", () => {
     );
   });
 
-  it("addLessonResource posts the title and pdf_url", async () => {
+  it("addLessonResource posts the title, resource_type and file_url", async () => {
     mockFetch.mockResolvedValue({ lesson_id: "l-1" } as never);
 
-    await addLessonResource("course-1", "mod-1", "l-1", "Slides", "/resources/a.pdf");
+    await addLessonResource("course-1", "mod-1", "l-1", {
+      title: "Slides",
+      resource_type: "SLIDE",
+      file_url: "https://cdn.example.com/a.pdf",
+    });
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/v1/courses/course-1/modules/mod-1/lessons/l-1/resources",
-      { method: "POST", body: JSON.stringify({ title: "Slides", pdf_url: "/resources/a.pdf" }) }
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "Slides", resource_type: "SLIDE", file_url: "https://cdn.example.com/a.pdf" }),
+      }
     );
   });
 
