@@ -45,7 +45,10 @@ describe("listPendingReviewController", () => {
 
     await listPendingReviewController(req, res, next);
 
-    expect(svc.listPendingReview).toHaveBeenCalledWith("tenant-1");
+    expect(svc.listPendingReview).toHaveBeenCalledWith(
+      "tenant-1",
+      expect.objectContaining({ isAdmin: false })
+    );
     expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ attempt_id: "att-1" }] });
   });
 });
@@ -79,5 +82,25 @@ describe("gradeAnswerController", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(res.status).not.toHaveBeenCalled();
+  });
+});
+
+describe("gradeAnswerController: validation", () => {
+  it.each([
+    ["negative points", { is_correct: false, points_awarded: -1 }],
+    ["fractional points", { is_correct: true, points_awarded: 2.5 }],
+    ["a missing is_correct", { points_awarded: 3 }],
+    ["points sent as text", { is_correct: true, points_awarded: "5" }],
+  ])("rejects %s without calling the service", async (_label, body) => {
+    const req = fakeReq({
+      params: { answer_id: "a-1" },
+      body,
+      headers: { authorization: "Bearer faculty-token" },
+    });
+
+    await gradeAnswerController(req, fakeRes(), next);
+
+    expect(svc.gradeAnswer).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
   });
 });

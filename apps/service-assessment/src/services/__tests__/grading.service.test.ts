@@ -34,7 +34,7 @@ vi.mock("../../repositories/assessment.repository", () => ({
 vi.mock("../scoring.util", () => ({ computeFinalScore: vi.fn() }));
 
 vi.mock("../../clients/course-service.client", () => ({
-  courseServiceClient: { canEditCourse: vi.fn() },
+  courseServiceClient: { canEditCourse: vi.fn(), listMyCourseIds: vi.fn() },
 }));
 
 const findAnswer = vi.mocked(prisma.answer.findUnique);
@@ -288,14 +288,48 @@ describe("gradingService.gradeAnswer: grading an answer in an attempt under revi
 });
 
 describe("gradingService.listPendingReview", () => {
-  it("lists the attempts waiting for review within a tenant", async () => {
-    vi.mocked(attemptRepository.findPendingReview).mockResolvedValue([
-      { attempt_id: "att-1" },
-    ] as never);
+  it("gives an admin every course's attempts, without asking service-courses", async () => {
+    vi.mocked(attemptRepository.findPendingReview).mockResolvedValue([{ attempt_id: "att-1" }] as never);
 
-    const result = await gradingService.listPendingReview("tenant-1");
+    const result = await gradingService.listPendingReview("tenant-1", { isAdmin: true, authHeader: "Bearer admin" });
 
-    expect(attemptRepository.findPendingReview).toHaveBeenCalledWith("tenant-1");
+    expect(courseServiceClient.listMyCourseIds).not.toHaveBeenCalled();
+    expect(attemptRepository.findPendingReview).toHaveBeenCalledWith("tenant-1", null);
     expect(result).toEqual([{ attempt_id: "att-1" }]);
+  });
+
+  it("gives faculty only the attempts for courses they teach", async () => {
+    vi.mocked(courseServiceClient.listMyCourseIds).mockResolvedValue(["course-1", "course-2"]);
+    vi.mocked(attemptRepository.findPendingReview).mockResolvedValue([] as never);
+
+    await gradingService.listPendingReview("tenant-1", { isAdmin: false, authHeader: "Bearer faculty" });
+
+    expect(courseServiceClient.listMyCourseIds).toHaveBeenCalledWith("Bearer faculty");
+    expect(attemptRepository.findPendingReview).toHaveBeenCalledWith("tenant-1", ["course-1", "course-2"]);
+  });
+
+  it("returns nothing, without querying, for faculty who teach no courses", async () => {
+    vi.mocked(courseServiceClient.listMyCourseIds).mockResolvedValue([]);
+
+    const result = await gradingService.listPendingReview("tenant-1", { isAdmin: false, authHeader: "Bearer faculty" });
+
+    expect(result).toEqual([]);
+    expect(attemptRepository.findPendingReview).not.toHaveBeenCalled();
+  });
+});
+
+describe("gradingService.gradeAnswer: points cap", () => {
+  it("refuses more points than the question is worth, and grades nothing", async () => {
+    findAnswer.mockResolvedValue({
+      answer_id: "a-1",
+      attempt_id: "att-1",
+      question: { type: "MANUAL", points: 5 },
+      attempt: { attempt_id: "att-1", status: "PENDING_REVIEW", assessment_id: "as-1" },
+    } as never);
+
+    await expect(
+      gradingService.gradeAnswer("a-1", { is_correct: true, points_awarded: 6 }, "Bearer faculty")
+    ).rejects.toThrow(ValidationError);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

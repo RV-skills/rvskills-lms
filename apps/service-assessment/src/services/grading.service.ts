@@ -8,8 +8,15 @@ import { courseServiceClient } from "../clients/course-service.client";
 import { computeFinalScore } from "./scoring.util";
 
 export const gradingService = {
-    async listPendingReview(tenant_id: string) {
-        return attemptRepository.findPendingReview(tenant_id);
+    async listPendingReview(tenant_id: string, viewer: { isAdmin: boolean; authHeader: string }) {
+        const course_ids = viewer.isAdmin
+            ? null
+            : await courseServiceClient.listMyCourseIds(viewer.authHeader);
+
+        if (course_ids && course_ids.length === 0) {
+            return [];
+        }
+        return attemptRepository.findPendingReview(tenant_id, course_ids);
     },
 
     async gradeAnswer(
@@ -29,6 +36,12 @@ export const gradingService = {
         if(answer.question.type !== "MANUAL") {
             throw new ValidationError(
                 "Only manually-graded questions can be graded through this endpoint"
+            );
+        }
+
+        if (data.points_awarded > answer.question.points) {
+            throw new ValidationError(
+                `Points awarded can't be more than this question is worth (${answer.question.points})`
             );
         }
 
