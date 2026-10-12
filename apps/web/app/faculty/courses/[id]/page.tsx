@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/user-session";
@@ -280,6 +281,9 @@ export default function FacultyCourseEditorPage() {
             >
               <p className="text-xs text-neutral-500">Editing</p>
               <h1 className="mt-1 text-lg text-neutral-900">{course.title}</h1>
+              <Link href={`/faculty/courses/${courseId}/assessments`} className="mt-1 inline-block text-sm text-primary-700 hover:underline">
+                Assessments →
+              </Link>
             </button>
             <span
               className={`ml-2 mt-2 self-start rounded-full px-2.5 py-1 text-xs ${
