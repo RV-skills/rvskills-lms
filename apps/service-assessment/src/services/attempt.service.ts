@@ -25,6 +25,14 @@ export const attemptService = {
         return prisma.$transaction(async (tx) => {
             await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assessment_id} || ${student_id}))`;
 
+            // Resume an unfinished attempt rather than starting another: otherwise every
+            // click on Start used up an attempt, and abandoned ones could lock a student out.
+            // Checked after the lock, so two quick clicks can't both create one.
+            const unfinished = await attemptRepository.findInProgress(assessment_id, student_id, tx);
+            if (unfinished) {
+                return unfinished;
+            }
+
             // Counted AFTER the lock is taken. Counting before it let two
             // simultaneous requests read the same number and both get through.
             const existingCount = await attemptRepository.countByAssessmentAndStudent(

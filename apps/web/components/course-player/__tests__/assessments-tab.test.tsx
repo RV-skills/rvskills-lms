@@ -8,11 +8,11 @@ import {
   getAssessment,
   startAttempt,
   submitAnswer,
-  submitAttempt,
-} from "@/lib/assessment";
+  submitAttempt, getMyAttempts } from "@/lib/assessment";
 import { GatewayError } from "@/lib/gateway-client";
 
 vi.mock("@/lib/assessment", () => ({
+  getMyAttempts: vi.fn(),
   listAssessmentsForCourse: vi.fn(),
   getAssessment: vi.fn(),
   startAttempt: vi.fn(),
@@ -25,6 +25,11 @@ const mockGetAssessment = vi.mocked(getAssessment);
 const mockStartAttempt = vi.mocked(startAttempt);
 const mockSubmitAnswer = vi.mocked(submitAnswer);
 const mockSubmitAttempt = vi.mocked(submitAttempt);
+const mockMyAttempts = vi.mocked(getMyAttempts);
+
+beforeEach(() => {
+  mockMyAttempts.mockResolvedValue([]);
+});
 
 const ASSESSMENT_SUMMARY = {
   assessment_id: "asm-1",
@@ -89,7 +94,7 @@ describe("AssessmentsTab: list view", () => {
 
     await waitFor(() => expect(screen.getByText("Final Quiz")).toBeInTheDocument());
     expect(screen.getByText(/passing score: 70%/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 attempts allowed/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 of 3 attempts used/i)).toBeInTheDocument();
   });
 
   it("omits the attempts text when max_attempts is null", async () => {
@@ -97,7 +102,7 @@ describe("AssessmentsTab: list view", () => {
     render(<AssessmentsTab courseId="course-1" />);
 
     await waitFor(() => expect(screen.getByText("Final Quiz")).toBeInTheDocument());
-    expect(screen.queryByText(/attempts allowed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/attempts used/i)).not.toBeInTheDocument();
   });
 });
 
@@ -235,5 +240,62 @@ describe("AssessmentsTab: taking and submitting the quiz", () => {
     await waitFor(() => expect(screen.getByText("Final Quiz")).toBeInTheDocument());
     expect(mockSubmitAnswer).not.toHaveBeenCalled();
     expect(mockSubmitAttempt).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("AssessmentsTab: results and resuming", () => {
+  const attempt = (n: number, over: Record<string, unknown>) => ({
+    attempt_id: "att-" + n, assessment_id: ASSESSMENT_SUMMARY.assessment_id, attempt_number: n,
+    status: "GRADED", score_percentage: null, passed: null, ...over,
+  });
+
+  it("shows the best graded score and whether it passed", async () => {
+    mockList.mockResolvedValue([ASSESSMENT_SUMMARY]);
+    mockMyAttempts.mockResolvedValue([
+      attempt(1, { score_percentage: 40, passed: false }),
+      attempt(2, { score_percentage: 85, passed: true }),
+    ] as never);
+    render(<AssessmentsTab courseId="course-1" />);
+
+    await waitFor(() => expect(screen.getByText(/best score: 85%/i)).toBeInTheDocument());
+    expect(screen.getByText("Passed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retake" })).toBeInTheDocument();
+  });
+
+  it("offers Resume when an attempt is unfinished", async () => {
+    mockList.mockResolvedValue([ASSESSMENT_SUMMARY]);
+    mockMyAttempts.mockResolvedValue([attempt(1, { status: "IN_PROGRESS" })] as never);
+    render(<AssessmentsTab courseId="course-1" />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Resume" })).toBeInTheDocument());
+  });
+
+  it("says an attempt is waiting for marking", async () => {
+    mockList.mockResolvedValue([ASSESSMENT_SUMMARY]);
+    mockMyAttempts.mockResolvedValue([attempt(1, { status: "PENDING_REVIEW" })] as never);
+    render(<AssessmentsTab courseId="course-1" />);
+
+    await waitFor(() => expect(screen.getByText(/waiting for marking/i)).toBeInTheDocument());
+  });
+
+  it("shows no button once every allowed attempt is used", async () => {
+    mockList.mockResolvedValue([{ ...ASSESSMENT_SUMMARY, max_attempts: 2 }]);
+    mockMyAttempts.mockResolvedValue([
+      attempt(1, { score_percentage: 20, passed: false }),
+      attempt(2, { score_percentage: 30, passed: false }),
+    ] as never);
+    render(<AssessmentsTab courseId="course-1" />);
+
+    await waitFor(() => expect(screen.getByText(/no attempts left/i)).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /start|retake|resume/i })).not.toBeInTheDocument();
+  });
+
+  it("still lists the assessment if loading its attempts fails", async () => {
+    mockList.mockResolvedValue([ASSESSMENT_SUMMARY]);
+    mockMyAttempts.mockRejectedValue(new Error("network"));
+    render(<AssessmentsTab courseId="course-1" />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument());
   });
 });

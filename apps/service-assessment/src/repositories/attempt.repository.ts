@@ -86,6 +86,13 @@ export const attemptRepository = {
         });
     },
 
+    async findInProgress(assessment_id: string, student_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.assessmentAttempt.findFirst({
+            where: { assessment_id, student_id, status: "IN_PROGRESS" },
+            orderBy: { attempt_number: "desc" },
+        });
+    },
+
     async findByAssessmentAndStudent(
         assessment_id: string,
         student_id: string,
