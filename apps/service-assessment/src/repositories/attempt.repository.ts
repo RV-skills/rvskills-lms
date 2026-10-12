@@ -62,10 +62,27 @@ export const attemptRepository = {
         });
     },
 
-    async findPendingReview(tenant_id: string, client: Prisma.TransactionClient = prisma) {
+    // course_ids null means "every course" (admins); otherwise only those courses.
+    async findPendingReview(
+        tenant_id: string,
+        course_ids: string[] | null,
+        client: Prisma.TransactionClient = prisma
+    ) {
         return client.assessmentAttempt.findMany({
-            where: { tenant_id, status: "PENDING_REVIEW" },
-            include: { answers: true },
+            where: {
+                tenant_id,
+                status: "PENDING_REVIEW",
+                ...(course_ids ? { assessment: { course_id: { in: course_ids } } } : {}),
+            },
+            include: {
+                assessment: { select: { assessment_id: true, title: true, course_id: true } },
+                answers: {
+                    include: {
+                        question: { select: { question_id: true, prompt: true, type: true, points: true } },
+                    },
+                },
+            },
+            orderBy: { submitted_at: "asc" },
         });
     },
 

@@ -38,4 +38,17 @@ export const courseServiceClient = {
 
         return true;
     },
+
+    async listMyCourseIds(authHeader: string): Promise<string[]> {
+        const response = await fetch(`${SERVICE_COURSES_URL}/api/v1/courses/mine`, {
+            headers: { Authorization: authHeader },
+        });
+
+        if (!response.ok) {
+            throw new InternalServerError("Failed to list the caller's courses from service-courses");
+        }
+
+        const body = (await response.json()) as { data: { course_id: string }[] };
+        return body.data.map((c) => c.course_id);
+    },
 };
