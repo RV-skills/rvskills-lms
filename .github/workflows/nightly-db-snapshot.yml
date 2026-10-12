@@ -1,0 +1,47 @@
+name: Nightly database snapshot
+
+# Automated RDS backups are off (the Free Tier account rejects a retention above 0),
+# but manual snapshots work. This takes one every night at 02:00 IST and keeps 7.
+
+on:
+  schedule:
+    - cron: "30 20 * * *"   # 20:30 UTC = 02:00 IST
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  DB_ID: rvskills-db
+  PREFIX: rvskills-db-nightly
+  KEEP: 7
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Take tonight's snapshot
+        run: |
+          NAME="$PREFIX-$(date -u +%Y-%m-%d-%H%M)"
+          aws rds create-db-snapshot --db-instance-identifier "$DB_ID" --db-snapshot-identifier "$NAME"
+          aws rds wait db-snapshot-available --db-snapshot-identifier "$NAME"
+          echo "Created $NAME"
+
+      - name: Delete nightly snapshots beyond the newest 7
+        run: |
+          # Only snapshots made by this workflow (by name prefix); manual ones you take are never touched.
+          OLD=$(aws rds describe-db-snapshots --db-instance-identifier "$DB_ID" --snapshot-type manual \
+            --query "sort_by(DBSnapshots[?starts_with(DBSnapshotIdentifier, '$PREFIX')], &SnapshotCreateTime)[].DBSnapshotIdentifier" \
+            --output text | tr '\t' '\n' | head -n -"$KEEP")
+          for s in $OLD; do
+            echo "Deleting $s"
+            aws rds delete-db-snapshot --db-snapshot-identifier "$s" > /dev/null
+          done
