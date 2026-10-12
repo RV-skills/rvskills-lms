@@ -97,30 +97,3 @@ jobs:
             done
             [ "$code" = "200" ] || { echo "::error::$url did not return 200 after deploy (last: $code)"; exit 1; }
           done
-
-  verify:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Wait for every ECS service to settle
-        run: |
-          SERVICES=$(aws ecs list-services --cluster "$ECS_CLUSTER" --query 'serviceArns[]' --output text)
-          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services $SERVICES
-
-      - name: Check the live site answers
-        run: |
-          # Retry for up to 5 minutes: right after a deploy, services restart one by one.
-          for url in "https://lms1.rv-skills.com/" "${{ vars.NEXT_PUBLIC_GATEWAY_URL }}/api/v1/courses"; do
-            for i in $(seq 1 30); do
-              code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
-              if [ "$code" = "200" ]; then echo "OK $url"; break; fi
-              echo "Waiting for $url (got $code), attempt $i"; sleep 10
-            done
-            [ "$code" = "200" ] || { echo "::error::$url did not return 200 after deploy (last: $code)"; exit 1; }
-          done
