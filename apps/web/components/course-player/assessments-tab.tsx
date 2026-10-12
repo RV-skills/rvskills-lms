@@ -7,6 +7,7 @@ import {
   listAssessmentsForCourse,
   getAssessment,
   startAttempt,
+  getMyAttempts,
   submitAnswer,
   submitAttempt,
   type AssessmentSummary,
@@ -26,8 +27,18 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
   const [startError, setStartError] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
 
+  const [myAttempts, setMyAttempts] = useState<Record<string, Attempt[]>>({});
+
   const loadList = useCallback(() => {
-    listAssessmentsForCourse(courseId).then(setAssessments);
+    listAssessmentsForCourse(courseId).then(async (list) => {
+      setAssessments(list);
+      // Each assessment's own attempts, so the list can show results. One failing
+      // lookup just shows that assessment without history.
+      const entries = await Promise.all(
+        list.map(async (a) => [a.assessment_id, await getMyAttempts(a.assessment_id).catch(() => [] as Attempt[])] as const)
+      );
+      setMyAttempts(Object.fromEntries(entries));
+    });
   }, [courseId]);
 
   useEffect(() => {
@@ -108,27 +119,44 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {assessments.map((assessment) => (
-        <div
-          key={assessment.assessment_id}
-          className="flex items-center justify-between rounded-md bg-neutral-50 px-4 py-3"
-        >
-          <div>
-            <p className="text-sm text-neutral-900">{assessment.title}</p>
-            <p className="text-xs text-neutral-500">
-              Passing score: {assessment.passing_percentage}%
-              {assessment.max_attempts !== null && ` \u00b7 ${assessment.max_attempts} attempts allowed`}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => handleStart(assessment.assessment_id)}
-            loading={startingId === assessment.assessment_id}
+      {assessments.map((assessment) => {
+        const s = summarise(assessment, myAttempts[assessment.assessment_id] ?? []);
+        const label = s.inProgress ? "Resume" : s.used > 0 ? "Retake" : "Start";
+        const canStart = Boolean(s.inProgress) || s.left === null || s.left > 0;
+        return (
+          <div
+            key={assessment.assessment_id}
+            className="flex items-center justify-between gap-4 rounded-md bg-neutral-50 px-4 py-3"
           >
-            Start
-          </Button>
-        </div>
-      ))}
+            <div>
+              <p className="text-sm text-neutral-900">{assessment.title}</p>
+              <p className="text-xs text-neutral-500">
+                Passing score: {assessment.passing_percentage}%
+                {assessment.max_attempts !== null && ` \u00b7 ${s.used} of ${assessment.max_attempts} attempts used`}
+              </p>
+              {s.best && (
+                <p className="mt-1 flex items-center gap-2 text-xs text-neutral-900">
+                  Best score: {s.best.score_percentage}%
+                  <Badge tone={s.passed ? "success" : "danger"}>{s.passed ? "Passed" : "Not passed yet"}</Badge>
+                </p>
+              )}
+              {s.waiting && <p className="mt-1 text-xs text-neutral-500">Submitted, waiting for marking.</p>}
+            </div>
+            {canStart ? (
+              <Button
+                size="sm"
+                variant={s.passed && !s.inProgress ? "secondary" : undefined}
+                onClick={() => handleStart(assessment.assessment_id)}
+                loading={startingId === assessment.assessment_id}
+              >
+                {label}
+              </Button>
+            ) : (
+              <span className="text-xs text-neutral-500">No attempts left</span>
+            )}
+          </div>
+        );
+      })}
       {startError && <p className="text-sm text-danger">{startError}</p>}
     </div>
   );
@@ -221,4 +249,21 @@ function QuizForm({
       </div>
     </div>
   );
+}
+// What the list shows for one assessment, worked out from the student's own attempts.
+function summarise(assessment: AssessmentSummary, attempts: Attempt[]) {
+  const inProgress = attempts.find((a) => a.status === "IN_PROGRESS") ?? null;
+  const graded = attempts.filter((a) => a.status === "GRADED");
+  const best = graded.reduce<Attempt | null>(
+    (top, a) => (top === null || (a.score_percentage ?? 0) > (top.score_percentage ?? 0) ? a : top),
+    null
+  );
+  return {
+    inProgress,
+    best,
+    passed: graded.some((a) => a.passed),
+    waiting: attempts.some((a) => a.status === "PENDING_REVIEW" || a.status === "SUBMITTED"),
+    used: attempts.length,
+    left: assessment.max_attempts === null ? null : Math.max(assessment.max_attempts - attempts.length, 0),
+  };
 }

@@ -61,6 +61,10 @@ export async function startAttempt(assessmentId: string): Promise<Attempt> {
   }
 }
 
+export async function getMyAttempts(assessmentId: string): Promise<Attempt[]> {
+  return gatewayFetch<Attempt[]>(`/api/v1/assessments/${assessmentId}/attempts/mine`);
+}
+
 export async function submitAnswer(
   attemptId: string,
   data: { question_id: string; selected_option_id?: string; text_response?: string }

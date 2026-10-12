@@ -22,6 +22,7 @@ vi.mock("../../repositories/assessment.repository", () => ({
 
 vi.mock("../../repositories/attempt.repository", () => ({
   attemptRepository: {
+    findInProgress: vi.fn(),
     countByAssessmentAndStudent: vi.fn(),
     create: vi.fn(),
     findById: vi.fn(),
@@ -246,6 +247,32 @@ describe("attemptService.startAttempt", () => {
   // The test above shows the count is read inside the serialised section. It
   // cannot show that the advisory lock itself serialises real database
   // sessions; that needs a real database (integration tests).
+
+  it("resumes an unfinished attempt instead of creating a new one", async () => {
+    arrange({ existing: 1 });
+    vi.mocked(attemptRepository.findInProgress).mockResolvedValue({ attempt_id: "att-open", status: "IN_PROGRESS" } as never);
+
+    const result = await start();
+
+    expect(result).toEqual({ attempt_id: "att-open", status: "IN_PROGRESS" });
+    expect(createAttempt).not.toHaveBeenCalled();
+    expect(countAttempts).not.toHaveBeenCalled();
+  });
+
+  it("still lets a student resume when every allowed attempt is used", async () => {
+    arrange({ maxAttempts: 1, existing: 1 });
+    vi.mocked(attemptRepository.findInProgress).mockResolvedValue({ attempt_id: "att-open", status: "IN_PROGRESS" } as never);
+
+    await expect(start()).resolves.toEqual({ attempt_id: "att-open", status: "IN_PROGRESS" });
+  });
+
+  it("starts a new attempt when nothing is unfinished", async () => {
+    arrange({ existing: 1 });
+    vi.mocked(attemptRepository.findInProgress).mockResolvedValue(null);
+
+    await expect(start()).resolves.toEqual({ attempt_id: "att-1" });
+    expect(createAttempt).toHaveBeenCalled();
+  });
 });
 
 describe("attemptService.submitAnswer", () => {
