@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 
 const LINKS = [
   { href: "/faculty", label: "My Courses" },
+  { href: "/faculty/grading", label: "Grading" },
 ];
 
 export function FacultySidebarNav() {
