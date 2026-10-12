@@ -78,6 +78,7 @@ resource "aws_db_instance" "main" {
   # (skip_final_snapshot = false, with a real final_snapshot_identifier)
   # once this is genuinely stable and holding real data.
   skip_final_snapshot = true
+  deletion_protection = true
 
   tags = {
     Name = "${var.project_name}-db"
