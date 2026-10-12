@@ -21,7 +21,7 @@ export const gradingService = {
 
     async gradeAnswer(
         answer_id: string,
-        data: { is_correct: boolean, points_awarded: number },
+        data: { is_correct: boolean, points_awarded: number, feedback?: string | null },
         authHeader: string
     ) {
         const answer = await prisma.answer.findUnique({

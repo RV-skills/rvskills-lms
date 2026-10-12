@@ -81,6 +81,7 @@ model Answer {
     text_response String?
     is_correct Boolean?
     points_awarded Int?
+    feedback String?
     attempt AssessmentAttempt @relation(fields: [attempt_id], references: [attempt_id], onDelete: Cascade)
     question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
     @@unique([attempt_id, question_id])

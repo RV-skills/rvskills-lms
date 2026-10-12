@@ -67,7 +67,7 @@ describe("gradeAnswerController", () => {
 
     expect(svc.gradeAnswer).toHaveBeenCalledWith(
       "a-1",
-      { is_correct: true, points_awarded: 5 },
+      { is_correct: true, points_awarded: 5, feedback: null },
       "Bearer faculty-token"
     );
     expect(res.status).toHaveBeenCalledWith(200);

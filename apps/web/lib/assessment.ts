@@ -38,6 +38,8 @@ export interface Attempt {
   status: "IN_PROGRESS" | "SUBMITTED" | "PENDING_REVIEW" | "GRADED";
   score_percentage: number | null;
   passed: boolean | null;
+  // Teacher comments, only filled in once the attempt is fully marked.
+  feedback?: { question_prompt: string; feedback: string }[];
 }
 
 export async function listAssessmentsForCourse(courseId: string): Promise<AssessmentSummary[]> {

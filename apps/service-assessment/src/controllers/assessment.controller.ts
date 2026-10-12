@@ -1,7 +1,12 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { assessmentService } from "../services/assessment.service";
-import { AddQuestionSchema, CreateAssessmentSchema, UpdateQuestionSchema } from "../validators/assessment.validator";
+import {
+    AddQuestionSchema,
+    CreateAssessmentSchema,
+    UpdateAssessmentSchema,
+    UpdateQuestionSchema,
+} from "../validators/assessment.validator";
 
 export async function createAssessmentController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -63,6 +68,27 @@ export async function getAssessmentFullController(req: AuthenticatedRequest, res
         const assessment_id = req.params.assessment_id as string;
         const assessment = await assessmentService.getAssessmentFull(assessment_id, req.headers.authorization!);
         res.status(200).json({ success: true, data: assessment });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function updateAssessmentController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const assessment_id = req.params.assessment_id as string;
+        const input = UpdateAssessmentSchema.parse(req.body);
+        const assessment = await assessmentService.updateAssessment(assessment_id, input, req.headers.authorization!);
+        res.status(200).json({ success: true, data: assessment });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function deleteQuestionController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const question_id = req.params.question_id as string;
+        const result = await assessmentService.deleteQuestion(question_id, req.headers.authorization!);
+        res.status(200).json({ success: true, data: result });
     } catch (err) {
         next(err);
     }

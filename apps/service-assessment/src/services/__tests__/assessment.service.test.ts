@@ -32,6 +32,12 @@ vi.mock("../../repositories/question.repository", () => ({
   },
 }));
 
+// The service imports the database client (for the delete transaction); never
+// let it connect in tests.
+vi.mock("../../db/prisma", () => ({
+  prisma: { $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn({})) },
+}));
+
 vi.mock("../../repositories/attempt.repository", () => ({
   attemptRepository: {
     existsForAssessment: vi.fn(),

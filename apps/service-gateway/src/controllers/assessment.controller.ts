@@ -60,3 +60,23 @@ export async function getAssessmentFullController(req: AuthenticatedRequest, res
     next(err);
   }
 }
+
+export async function updateAssessmentController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const assessment_id = req.params.assessment_id as string;
+    const data = await assessmentService.updateAssessment(assessment_id, req.body, req.accessToken!);
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteQuestionController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const question_id = req.params.question_id as string;
+    const data = await assessmentService.deleteQuestion(question_id, req.accessToken!);
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}

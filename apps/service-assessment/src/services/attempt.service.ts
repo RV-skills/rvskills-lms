@@ -168,7 +168,19 @@ export const attemptService = {
         });
     },
 
+    // Each attempt comes with the teacher's comments, but only once it's fully
+    // marked, so students don't see half-finished feedback.
     async getMyAttempts(assessment_id: string, student_id: string) {
-        return attemptRepository.findByAssessmentAndStudent(assessment_id, student_id);
+        const attempts = await attemptRepository.findByAssessmentAndStudent(assessment_id, student_id);
+        const gradedIds = attempts.filter((a) => a.status === "GRADED").map((a) => a.attempt_id);
+        const comments = gradedIds.length > 0 ? (await answerRepository.findFeedbackByAttempts(gradedIds)) ?? [] : [];
+
+        return attempts.map((a) => ({
+            ...a,
+            feedback: comments
+                .filter((c) => c.attempt_id === a.attempt_id)
+                .sort((x, y) => x.question.order_index - y.question.order_index)
+                .map((c) => ({ question_prompt: c.question.prompt, feedback: c.feedback as string })),
+        }));
     },
 };

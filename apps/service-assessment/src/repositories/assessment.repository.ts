@@ -20,6 +20,14 @@ export const assessmentRepository = {
         });
     },
 
+    async update(
+        assessment_id: string,
+        data: { title?: string, passing_percentage?: number, max_attempts?: number | null },
+        client: Prisma.TransactionClient = prisma
+    ) {
+        return client.assessment.update({ where: { assessment_id }, data });
+    },
+
     async findManyByCourseId(course_id: string, tenant_id: string, client: Prisma.TransactionClient = prisma) {
         return client.assessment.findMany({
             where: { course_id, tenant_id },

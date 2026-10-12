@@ -878,7 +878,8 @@ export const AnswerScalarFieldEnum = {
   selected_option_id: 'selected_option_id',
   text_response: 'text_response',
   is_correct: 'is_correct',
-  points_awarded: 'points_awarded'
+  points_awarded: 'points_awarded',
+  feedback: 'feedback'
 } as const
 
 export type AnswerScalarFieldEnum = (typeof AnswerScalarFieldEnum)[keyof typeof AnswerScalarFieldEnum]

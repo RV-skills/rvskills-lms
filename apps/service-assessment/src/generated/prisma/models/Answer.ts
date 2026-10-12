@@ -42,6 +42,7 @@ export type AnswerMinAggregateOutputType = {
   text_response: string | null
   is_correct: boolean | null
   points_awarded: number | null
+  feedback: string | null
 }
 
 export type AnswerMaxAggregateOutputType = {
@@ -52,6 +53,7 @@ export type AnswerMaxAggregateOutputType = {
   text_response: string | null
   is_correct: boolean | null
   points_awarded: number | null
+  feedback: string | null
 }
 
 export type AnswerCountAggregateOutputType = {
@@ -62,6 +64,7 @@ export type AnswerCountAggregateOutputType = {
   text_response: number
   is_correct: number
   points_awarded: number
+  feedback: number
   _all: number
 }
 
@@ -82,6 +85,7 @@ export type AnswerMinAggregateInputType = {
   text_response?: true
   is_correct?: true
   points_awarded?: true
+  feedback?: true
 }
 
 export type AnswerMaxAggregateInputType = {
@@ -92,6 +96,7 @@ export type AnswerMaxAggregateInputType = {
   text_response?: true
   is_correct?: true
   points_awarded?: true
+  feedback?: true
 }
 
 export type AnswerCountAggregateInputType = {
@@ -102,6 +107,7 @@ export type AnswerCountAggregateInputType = {
   text_response?: true
   is_correct?: true
   points_awarded?: true
+  feedback?: true
   _all?: true
 }
 
@@ -199,6 +205,7 @@ export type AnswerGroupByOutputType = {
   text_response: string | null
   is_correct: boolean | null
   points_awarded: number | null
+  feedback: string | null
   _count: AnswerCountAggregateOutputType | null
   _avg: AnswerAvgAggregateOutputType | null
   _sum: AnswerSumAggregateOutputType | null
@@ -232,6 +239,7 @@ export type AnswerWhereInput = {
   text_response?: Prisma.StringNullableFilter<"Answer"> | string | null
   is_correct?: Prisma.BoolNullableFilter<"Answer"> | boolean | null
   points_awarded?: Prisma.IntNullableFilter<"Answer"> | number | null
+  feedback?: Prisma.StringNullableFilter<"Answer"> | string | null
   attempt?: Prisma.XOR<Prisma.AssessmentAttemptScalarRelationFilter, Prisma.AssessmentAttemptWhereInput>
   question?: Prisma.XOR<Prisma.QuestionScalarRelationFilter, Prisma.QuestionWhereInput>
 }
@@ -244,6 +252,7 @@ export type AnswerOrderByWithRelationInput = {
   text_response?: Prisma.SortOrderInput | Prisma.SortOrder
   is_correct?: Prisma.SortOrderInput | Prisma.SortOrder
   points_awarded?: Prisma.SortOrderInput | Prisma.SortOrder
+  feedback?: Prisma.SortOrderInput | Prisma.SortOrder
   attempt?: Prisma.AssessmentAttemptOrderByWithRelationInput
   question?: Prisma.QuestionOrderByWithRelationInput
 }
@@ -260,6 +269,7 @@ export type AnswerWhereUniqueInput = Prisma.AtLeast<{
   text_response?: Prisma.StringNullableFilter<"Answer"> | string | null
   is_correct?: Prisma.BoolNullableFilter<"Answer"> | boolean | null
   points_awarded?: Prisma.IntNullableFilter<"Answer"> | number | null
+  feedback?: Prisma.StringNullableFilter<"Answer"> | string | null
   attempt?: Prisma.XOR<Prisma.AssessmentAttemptScalarRelationFilter, Prisma.AssessmentAttemptWhereInput>
   question?: Prisma.XOR<Prisma.QuestionScalarRelationFilter, Prisma.QuestionWhereInput>
 }, "answer_id" | "attempt_id_question_id">
@@ -272,6 +282,7 @@ export type AnswerOrderByWithAggregationInput = {
   text_response?: Prisma.SortOrderInput | Prisma.SortOrder
   is_correct?: Prisma.SortOrderInput | Prisma.SortOrder
   points_awarded?: Prisma.SortOrderInput | Prisma.SortOrder
+  feedback?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AnswerCountOrderByAggregateInput
   _avg?: Prisma.AnswerAvgOrderByAggregateInput
   _max?: Prisma.AnswerMaxOrderByAggregateInput
@@ -290,6 +301,7 @@ export type AnswerScalarWhereWithAggregatesInput = {
   text_response?: Prisma.StringNullableWithAggregatesFilter<"Answer"> | string | null
   is_correct?: Prisma.BoolNullableWithAggregatesFilter<"Answer"> | boolean | null
   points_awarded?: Prisma.IntNullableWithAggregatesFilter<"Answer"> | number | null
+  feedback?: Prisma.StringNullableWithAggregatesFilter<"Answer"> | string | null
 }
 
 export type AnswerCreateInput = {
@@ -298,6 +310,7 @@ export type AnswerCreateInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
   attempt: Prisma.AssessmentAttemptCreateNestedOneWithoutAnswersInput
   question: Prisma.QuestionCreateNestedOneWithoutAnswersInput
 }
@@ -310,6 +323,7 @@ export type AnswerUncheckedCreateInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerUpdateInput = {
@@ -318,6 +332,7 @@ export type AnswerUpdateInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempt?: Prisma.AssessmentAttemptUpdateOneRequiredWithoutAnswersNestedInput
   question?: Prisma.QuestionUpdateOneRequiredWithoutAnswersNestedInput
 }
@@ -330,6 +345,7 @@ export type AnswerUncheckedUpdateInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerCreateManyInput = {
@@ -340,6 +356,7 @@ export type AnswerCreateManyInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerUpdateManyMutationInput = {
@@ -348,6 +365,7 @@ export type AnswerUpdateManyMutationInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerUncheckedUpdateManyInput = {
@@ -358,6 +376,7 @@ export type AnswerUncheckedUpdateManyInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerListRelationFilter = {
@@ -383,6 +402,7 @@ export type AnswerCountOrderByAggregateInput = {
   text_response?: Prisma.SortOrder
   is_correct?: Prisma.SortOrder
   points_awarded?: Prisma.SortOrder
+  feedback?: Prisma.SortOrder
 }
 
 export type AnswerAvgOrderByAggregateInput = {
@@ -397,6 +417,7 @@ export type AnswerMaxOrderByAggregateInput = {
   text_response?: Prisma.SortOrder
   is_correct?: Prisma.SortOrder
   points_awarded?: Prisma.SortOrder
+  feedback?: Prisma.SortOrder
 }
 
 export type AnswerMinOrderByAggregateInput = {
@@ -407,6 +428,7 @@ export type AnswerMinOrderByAggregateInput = {
   text_response?: Prisma.SortOrder
   is_correct?: Prisma.SortOrder
   points_awarded?: Prisma.SortOrder
+  feedback?: Prisma.SortOrder
 }
 
 export type AnswerSumOrderByAggregateInput = {
@@ -507,6 +529,7 @@ export type AnswerCreateWithoutQuestionInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
   attempt: Prisma.AssessmentAttemptCreateNestedOneWithoutAnswersInput
 }
 
@@ -517,6 +540,7 @@ export type AnswerUncheckedCreateWithoutQuestionInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerCreateOrConnectWithoutQuestionInput = {
@@ -556,6 +580,7 @@ export type AnswerScalarWhereInput = {
   text_response?: Prisma.StringNullableFilter<"Answer"> | string | null
   is_correct?: Prisma.BoolNullableFilter<"Answer"> | boolean | null
   points_awarded?: Prisma.IntNullableFilter<"Answer"> | number | null
+  feedback?: Prisma.StringNullableFilter<"Answer"> | string | null
 }
 
 export type AnswerCreateWithoutAttemptInput = {
@@ -564,6 +589,7 @@ export type AnswerCreateWithoutAttemptInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
   question: Prisma.QuestionCreateNestedOneWithoutAnswersInput
 }
 
@@ -574,6 +600,7 @@ export type AnswerUncheckedCreateWithoutAttemptInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerCreateOrConnectWithoutAttemptInput = {
@@ -609,6 +636,7 @@ export type AnswerCreateManyQuestionInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerUpdateWithoutQuestionInput = {
@@ -617,6 +645,7 @@ export type AnswerUpdateWithoutQuestionInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempt?: Prisma.AssessmentAttemptUpdateOneRequiredWithoutAnswersNestedInput
 }
 
@@ -627,6 +656,7 @@ export type AnswerUncheckedUpdateWithoutQuestionInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerUncheckedUpdateManyWithoutQuestionInput = {
@@ -636,6 +666,7 @@ export type AnswerUncheckedUpdateManyWithoutQuestionInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerCreateManyAttemptInput = {
@@ -645,6 +676,7 @@ export type AnswerCreateManyAttemptInput = {
   text_response?: string | null
   is_correct?: boolean | null
   points_awarded?: number | null
+  feedback?: string | null
 }
 
 export type AnswerUpdateWithoutAttemptInput = {
@@ -653,6 +685,7 @@ export type AnswerUpdateWithoutAttemptInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.QuestionUpdateOneRequiredWithoutAnswersNestedInput
 }
 
@@ -663,6 +696,7 @@ export type AnswerUncheckedUpdateWithoutAttemptInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AnswerUncheckedUpdateManyWithoutAttemptInput = {
@@ -672,6 +706,7 @@ export type AnswerUncheckedUpdateManyWithoutAttemptInput = {
   text_response?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   is_correct?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   points_awarded?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -684,6 +719,7 @@ export type AnswerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   text_response?: boolean
   is_correct?: boolean
   points_awarded?: boolean
+  feedback?: boolean
   attempt?: boolean | Prisma.AssessmentAttemptDefaultArgs<ExtArgs>
   question?: boolean | Prisma.QuestionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["answer"]>
@@ -696,6 +732,7 @@ export type AnswerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   text_response?: boolean
   is_correct?: boolean
   points_awarded?: boolean
+  feedback?: boolean
   attempt?: boolean | Prisma.AssessmentAttemptDefaultArgs<ExtArgs>
   question?: boolean | Prisma.QuestionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["answer"]>
@@ -708,6 +745,7 @@ export type AnswerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   text_response?: boolean
   is_correct?: boolean
   points_awarded?: boolean
+  feedback?: boolean
   attempt?: boolean | Prisma.AssessmentAttemptDefaultArgs<ExtArgs>
   question?: boolean | Prisma.QuestionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["answer"]>
@@ -720,9 +758,10 @@ export type AnswerSelectScalar = {
   text_response?: boolean
   is_correct?: boolean
   points_awarded?: boolean
+  feedback?: boolean
 }
 
-export type AnswerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"answer_id" | "attempt_id" | "question_id" | "selected_option_id" | "text_response" | "is_correct" | "points_awarded", ExtArgs["result"]["answer"]>
+export type AnswerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"answer_id" | "attempt_id" | "question_id" | "selected_option_id" | "text_response" | "is_correct" | "points_awarded" | "feedback", ExtArgs["result"]["answer"]>
 export type AnswerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   attempt?: boolean | Prisma.AssessmentAttemptDefaultArgs<ExtArgs>
   question?: boolean | Prisma.QuestionDefaultArgs<ExtArgs>
@@ -750,6 +789,7 @@ export type $AnswerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     text_response: string | null
     is_correct: boolean | null
     points_awarded: number | null
+    feedback: string | null
   }, ExtArgs["result"]["answer"]>
   composites: {}
 }
@@ -1182,6 +1222,7 @@ export interface AnswerFieldRefs {
   readonly text_response: Prisma.FieldRef<"Answer", 'String'>
   readonly is_correct: Prisma.FieldRef<"Answer", 'Boolean'>
   readonly points_awarded: Prisma.FieldRef<"Answer", 'Int'>
+  readonly feedback: Prisma.FieldRef<"Answer", 'String'>
 }
     
 

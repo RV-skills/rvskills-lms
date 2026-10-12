@@ -50,6 +50,18 @@ export const questionRepository = {
         });
     },
 
+    async delete(question_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.question.delete({ where: { question_id } });
+    },
+
+    // Closes the gap a deleted question leaves, so order_index stays 0, 1, 2...
+    async shiftDownAfter(assessment_id: string, order_index: number, client: Prisma.TransactionClient = prisma) {
+        return client.question.updateMany({
+            where: { assessment_id, order_index: { gt: order_index } },
+            data: { order_index: { decrement: 1 } },
+        });
+    },
+
     async lockAllForAssessment(assessment_id: string, client: Prisma.TransactionClient = prisma){
         return client.question.updateMany({
             where: { assessment_id },

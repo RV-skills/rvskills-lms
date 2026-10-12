@@ -76,9 +76,17 @@ resource "aws_launch_template" "ecs" {
   # process outright when RAM is briefly tight -- slower than real RAM
   # under sustained pressure, but free, and plenty for a near-zero-
   # traffic deployment.
+  #
+  # The cleanup settings make the agent delete old images every 10 minutes.
+  # Without them the 30GB disk filled up after a few dozen deploys, new image
+  # pulls failed, and ECS quietly kept starting the old cached image.
   user_data = base64encode(<<-EOF
     #!/bin/bash
     echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+    echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=15m >> /etc/ecs/ecs.config
+    echo ECS_IMAGE_CLEANUP_INTERVAL=10m >> /etc/ecs/ecs.config
+    echo ECS_IMAGE_MINIMUM_CLEANUP_AGE=15m >> /etc/ecs/ecs.config
+    echo ECS_NUM_IMAGES_DELETE_PER_CYCLE=10 >> /etc/ecs/ecs.config
     fallocate -l 1G /swapfile
     chmod 600 /swapfile
     mkswap /swapfile

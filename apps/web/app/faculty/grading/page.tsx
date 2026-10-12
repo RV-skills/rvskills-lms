@@ -90,6 +90,7 @@ function AnswerGrader({ answer, onGraded }: { answer: PendingAnswer; onGraded: (
   const max = answer.question.points;
   const [points, setPoints] = useState<string>(answer.points_awarded?.toString() ?? "");
   const [correct, setCorrect] = useState<boolean>(answer.is_correct ?? false);
+  const [feedback, setFeedback] = useState<string>(answer.feedback ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const alreadyGraded = answer.points_awarded !== null;
@@ -104,7 +105,11 @@ function AnswerGrader({ answer, onGraded }: { answer: PendingAnswer; onGraded: (
     setSaving(true);
     setError(null);
     try {
-      await gradeAnswer(answer.answer_id, { is_correct: correct, points_awarded: value });
+      await gradeAnswer(answer.answer_id, {
+        is_correct: correct,
+        points_awarded: value,
+        feedback: feedback.trim() || null,
+      });
       onGraded();
     } catch (err) {
       setError(errorMessageFor(err, "Couldn't save this mark."));
@@ -119,6 +124,17 @@ function AnswerGrader({ answer, onGraded }: { answer: PendingAnswer; onGraded: (
       <div className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-50 px-4 py-3 text-sm text-neutral-900">
         {answer.text_response?.trim() || <span className="text-neutral-500">No answer given.</span>}
       </div>
+
+      <label className="mt-3 flex flex-col gap-1 text-sm text-neutral-900">
+        Feedback for the student <span className="text-xs text-neutral-500">(optional, shown once the attempt is fully marked)</span>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          rows={2}
+          maxLength={2000}
+          className="rounded-md border border-neutral-100 px-3 py-2 text-sm"
+        />
+      </label>
 
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm text-neutral-900">
