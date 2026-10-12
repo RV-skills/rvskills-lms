@@ -1,3 +1,14 @@
 packages:
   - "apps/*"
   - "packages/*"
+# Patched versions of vulnerable transitive dependencies (keep in sync with
+# "pnpm.overrides" in package.json, which pnpm 9 reads; pnpm 10+ reads this file).
+overrides:
+  proxy-addr: ^2.0.8
+  hono: ^4.12.25
+  fast-uri: ^3.1.7
+  mysql2: ^3.22.0
+  deepmerge-ts: ^8.0.0
+  postcss: ^8.5.18
+  source-map-js: ^1.2.2
+  sharp: ^0.35.5
