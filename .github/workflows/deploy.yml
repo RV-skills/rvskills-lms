@@ -86,6 +86,30 @@ jobs:
           SERVICES=$(aws ecs list-services --cluster "$ECS_CLUSTER" --query 'serviceArns[]' --output text)
           aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services $SERVICES
 
+      - name: Check every service runs the image built in this run
+        run: |
+          # A service can be "stable" while running an old image: if the server
+          # can't pull the new one (e.g. a full disk), ECS falls back to its cached
+          # copy. Compare what's running with what this run pushed.
+          failed=0
+          for svc in $(aws ecs list-services --cluster "$ECS_CLUSTER" --query 'serviceArns[]' --output text); do
+            name=${svc##*/}
+            repo="rvskills/${name#rvskills-}"
+            want=$(aws ecr describe-images --repository-name "$repo" --image-ids imageTag=${{ github.sha }} \
+              --query 'imageDetails[0].imageDigest' --output text)
+            tasks=$(aws ecs list-tasks --cluster "$ECS_CLUSTER" --service-name "$name" --desired-status RUNNING \
+              --query 'taskArns[]' --output text)
+            have=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks $tasks \
+              --query 'tasks[].containers[0].imageDigest' --output text)
+            if [ -n "$have" ] && [ -z "$(echo "$have" | tr '\t' '\n' | grep -v "^$want$")" ]; then
+              echo "OK $name runs $want"
+            else
+              echo "::error::$name is not running this run's image (want $want, running: $have)"
+              failed=1
+            fi
+          done
+          exit $failed
+
       - name: Check the live site answers
         run: |
           # Retry for up to 5 minutes: right after a deploy, services restart one by one.

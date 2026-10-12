@@ -11,7 +11,9 @@ import { listAssessmentsForCourse, type AssessmentSummary } from "@/lib/assessme
 import {
   addQuestion,
   createAssessment,
+  deleteQuestion,
   getAssessmentFull,
+  updateAssessment,
   updateQuestion,
   type AuthoringAssessment,
   type AuthoringQuestion,
@@ -129,6 +131,7 @@ function NewAssessmentForm({ courseId, onCreated }: { courseId: string; onCreate
 function AssessmentEditor({ assessmentId }: { assessmentId: string }) {
   const [assessment, setAssessment] = useState<AuthoringAssessment | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [editingSettings, setEditingSettings] = useState(false);
 
   const load = useCallback(() => {
     getAssessmentFull(assessmentId)
@@ -148,12 +151,30 @@ function AssessmentEditor({ assessmentId }: { assessmentId: string }) {
 
   return (
     <section className="rounded-lg border border-neutral-100 bg-white p-6">
-      <h2 className="text-lg text-neutral-900">{assessment.title}</h2>
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-lg text-neutral-900">{assessment.title}</h2>
+        {!editingSettings && (
+          <button onClick={() => setEditingSettings(true)} className="text-xs text-primary-700 underline">
+            Edit settings
+          </button>
+        )}
+      </div>
       <p className="mt-1 text-sm text-neutral-500">
         Pass mark {assessment.passing_percentage}% ·{" "}
-        {assessment.max_attempts === null ? "unlimited attempts" : `${assessment.max_attempts} attempts allowed`} ·{" "}
+        {assessment.max_attempts === null ? "unlimited attempts" : `${assessment.max_attempts} attempt${assessment.max_attempts === 1 ? "" : "s"} allowed`} ·{" "}
         {assessment.questions.length} question{assessment.questions.length === 1 ? "" : "s"}, {totalPoints} points
       </p>
+      {editingSettings && (
+        <SettingsForm
+          assessment={assessment}
+          locked={locked}
+          onDone={() => {
+            setEditingSettings(false);
+            load();
+          }}
+          onCancel={() => setEditingSettings(false)}
+        />
+      )}
       {locked && (
         <p className="mt-3 rounded-md bg-neutral-50 px-4 py-2 text-xs text-neutral-500">
           Students have started this assessment, so its questions are locked.
@@ -177,6 +198,21 @@ function QuestionRow({ index, question, onSaved }: { index: number; question: Au
   const [points, setPoints] = useState(String(question.points));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this question? This can't be undone.")) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteQuestion(question.question_id);
+      onSaved();
+    } catch (err) {
+      setError(errorMessageFor(err, "Couldn't delete the question."));
+      setDeleting(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -220,10 +256,16 @@ function QuestionRow({ index, question, onSaved }: { index: number; question: Au
       )}
 
       {!question.is_locked && !editing && (
-        <button onClick={() => setEditing(true)} className="mt-2 text-xs text-primary-700 underline">
-          Edit wording or points
-        </button>
+        <div className="mt-2 flex gap-4">
+          <button onClick={() => setEditing(true)} className="text-xs text-primary-700 underline">
+            Edit wording or points
+          </button>
+          <button onClick={handleDelete} disabled={deleting} className="text-xs text-danger underline disabled:opacity-50">
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
       )}
+      {error && !editing && <p className="mt-2 text-xs text-danger">{error}</p>}
 
       {editing && (
         <form onSubmit={handleSave} className="mt-3 flex flex-col gap-2">
@@ -348,6 +390,95 @@ function QuestionForm({ assessmentId, onAdded }: { assessmentId: string; onAdded
       <Button size="sm" type="submit" loading={saving} className="self-start">
         Add question
       </Button>
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </form>
+  );
+}
+
+// Title can always change. Once students have started, the pass mark is fixed
+// and the attempt limit can only go up; the backend enforces the same rules.
+function SettingsForm({
+  assessment,
+  locked,
+  onDone,
+  onCancel,
+}: {
+  assessment: AuthoringAssessment;
+  locked: boolean;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(assessment.title);
+  const [pass, setPass] = useState(String(assessment.passing_percentage));
+  const [limit, setLimit] = useState(assessment.max_attempts === null ? "" : String(assessment.max_attempts));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const passing = Number(pass);
+    const maxAttempts = limit === "" ? null : Number(limit);
+    if (!title.trim()) return setError("Give the assessment a title.");
+    if (!Number.isInteger(passing) || passing < 0 || passing > 100) return setError("Pass mark must be a whole number from 0 to 100.");
+    if (maxAttempts !== null && (!Number.isInteger(maxAttempts) || maxAttempts < 1)) return setError("Attempts allowed must be 1 or more, or left empty for unlimited.");
+    if (locked && maxAttempts !== null && (assessment.max_attempts === null || maxAttempts < assessment.max_attempts)) {
+      return setError("Students have started, so the attempt limit can only be raised.");
+    }
+
+    const change: { title?: string; passing_percentage?: number; max_attempts?: number | null } = {};
+    if (title.trim() !== assessment.title) change.title = title.trim();
+    if (!locked && passing !== assessment.passing_percentage) change.passing_percentage = passing;
+    if (maxAttempts !== assessment.max_attempts) change.max_attempts = maxAttempts;
+    if (Object.keys(change).length === 0) return onCancel();
+
+    setSaving(true);
+    setError(null);
+    try {
+      await updateAssessment(assessment.assessment_id, change);
+      onDone();
+    } catch (err) {
+      setError(errorMessageFor(err, "Couldn't save the settings."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 rounded-md bg-neutral-50 p-4">
+      <div className="flex flex-wrap items-end gap-4">
+        <label className="flex flex-1 flex-col gap-1 text-sm text-neutral-900">
+          Title
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className={input} />
+        </label>
+        <label className="flex w-32 flex-col gap-1 text-sm text-neutral-900">
+          Pass mark (%)
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            disabled={locked}
+            className={`${input} disabled:opacity-50`}
+          />
+        </label>
+        <label className="flex w-40 flex-col gap-1 text-sm text-neutral-900">
+          Attempts allowed
+          <input type="number" min={1} step={1} placeholder="Unlimited" value={limit} onChange={(e) => setLimit(e.target.value)} className={input} />
+        </label>
+      </div>
+      {locked && (
+        <p className="text-xs text-neutral-500">
+          Students have started, so the pass mark is fixed and the attempt limit can only go up.
+        </p>
+      )}
+      <div className="flex items-center gap-3">
+        <Button size="sm" type="submit" loading={saving}>Save settings</Button>
+        <button type="button" onClick={onCancel} className="text-xs text-neutral-500 underline">
+          Cancel
+        </button>
+      </div>
       {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );

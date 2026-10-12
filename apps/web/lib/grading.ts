@@ -6,6 +6,7 @@ export interface PendingAnswer {
   selected_option_id: string | null;
   points_awarded: number | null;
   is_correct: boolean | null;
+  feedback: string | null;
   question: { question_id: string; prompt: string; type: "MCQ" | "MANUAL" | string; points: number };
 }
 
@@ -23,7 +24,7 @@ export function listPendingReview(): Promise<PendingAttempt[]> {
   return gatewayFetch<PendingAttempt[]>("/api/v1/assessments/attempts/pending-review");
 }
 
-export function gradeAnswer(answerId: string, grade: { is_correct: boolean; points_awarded: number }): Promise<unknown> {
+export function gradeAnswer(answerId: string, grade: { is_correct: boolean; points_awarded: number; feedback?: string | null }): Promise<unknown> {
   return gatewayFetch(`/api/v1/assessments/attempts/answers/${answerId}/grade`, {
     method: "PATCH",
     body: JSON.stringify(grade),

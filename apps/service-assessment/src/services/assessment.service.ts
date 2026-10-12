@@ -4,6 +4,7 @@ import { assessmentRepository } from "../repositories/assessment.repository";
 import { QuestionType } from "../generated/prisma/enums";
 import { questionRepository } from "../repositories/question.repository";
 import { attemptRepository } from "../repositories/attempt.repository";
+import { prisma } from "../db/prisma";
 // Only the course's own faculty (or an admin) may create or change its assessment.
 // canEditCourse also throws NotFoundError if the course doesn't exist.
 async function assertCanEditCourse(course_id: string, authHeader: string) {
@@ -101,6 +102,62 @@ export const assessmentService = {
         return questionRepository.update(question_id, data);
     },
 
+    // Once students have started, the pass mark is fixed (changing it would rewrite
+    // results already given) and the attempt limit can only go up. The title can
+    // always change.
+    async updateAssessment(
+        assessment_id: string,
+        data: { title?: string; passing_percentage?: number; max_attempts?: number | null },
+        authHeader: string
+    ) {
+        const assessment = await assessmentRepository.findById(assessment_id);
+        if (!assessment) {
+            throw new NotFoundError("Assessment not found");
+        }
+        await assertCanEditCourse(assessment.course_id, authHeader);
+
+        const hasAttempts = await attemptRepository.existsForAssessment(assessment_id);
+        if (hasAttempts) {
+            if (data.passing_percentage !== undefined && data.passing_percentage !== assessment.passing_percentage) {
+                throw new ForbiddenError(
+                    "Students have already attempted this assessment, so its pass mark can no longer change"
+                );
+            }
+            if (data.max_attempts !== undefined && !isRaiseOrSame(assessment.max_attempts, data.max_attempts)) {
+                throw new ForbiddenError(
+                    "Students have already attempted this assessment, so the attempt limit can only be raised"
+                );
+            }
+        }
+
+        return assessmentRepository.update(assessment_id, data);
+    },
+
+    async deleteQuestion(question_id: string, authHeader: string) {
+        const question = await questionRepository.findById(question_id);
+        if (!question) {
+            throw new NotFoundError("Question not found");
+        }
+        const assessment = await assessmentRepository.findById(question.assessment_id);
+        if (!assessment) {
+            throw new NotFoundError("Assessment not found");
+        }
+        await assertCanEditCourse(assessment.course_id, authHeader);
+
+        const hasAttempts = await attemptRepository.existsForAssessment(question.assessment_id);
+        if (question.is_locked || hasAttempts) {
+            throw new ForbiddenError(
+                "This question can no longer be deleted - a student has already attempted this assessment"
+            );
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await questionRepository.delete(question_id, tx);
+            await questionRepository.shiftDownAfter(question.assessment_id, question.order_index, tx);
+        });
+        return { question_id };
+    },
+
     async getAssessmentForStudent(assessment_id: string) {
         const assessment = await assessmentRepository.findByIdWithQuestions(assessment_id);
         if(!assessment) {
@@ -132,4 +189,11 @@ export const assessmentService = {
     async getAssessmentsForCourse(course_id: string, tenant_id: string) {
         return assessmentRepository.findManyByCourseId(course_id, tenant_id);
     },
+}
+
+// null means unlimited, so going to null is always a raise.
+function isRaiseOrSame(current: number | null, next: number | null) {
+    if (next === null) return true;
+    if (current === null) return false;
+    return next >= current;
 }

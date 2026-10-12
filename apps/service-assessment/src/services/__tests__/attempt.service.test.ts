@@ -41,7 +41,7 @@ vi.mock("../../repositories/question.repository", () => ({
 }));
 
 vi.mock("../../repositories/answer.repository", () => ({
-  answerRepository: { upsert: vi.fn() },
+  answerRepository: { upsert: vi.fn(), findFeedbackByAttempts: vi.fn() },
 }));
 
 vi.mock("../../clients/enrollment-service.client", () => ({
@@ -640,6 +640,26 @@ describe("attemptService.getMyAttempts", () => {
       "asm-1",
       OWNER
     );
-    expect(result).toEqual([{ attempt_id: "att-1" }]);
+    expect(result).toEqual([{ attempt_id: "att-1", feedback: [] }]);
   });
 });
+
+  it("adds teacher feedback to fully marked attempts only, in question order", async () => {
+    vi.mocked(attemptRepository.findByAssessmentAndStudent).mockResolvedValue([
+      { attempt_id: "att-2", status: "PENDING_REVIEW" },
+      { attempt_id: "att-1", status: "GRADED" },
+    ] as never);
+    vi.mocked(answerRepository.findFeedbackByAttempts).mockResolvedValue([
+      { attempt_id: "att-1", feedback: "Explain more", question: { prompt: "Q2", order_index: 1 } },
+      { attempt_id: "att-1", feedback: "Good", question: { prompt: "Q1", order_index: 0 } },
+    ] as never);
+
+    const result = await attemptService.getMyAttempts("asm-1", OWNER);
+
+    expect(answerRepository.findFeedbackByAttempts).toHaveBeenCalledWith(["att-1"]);
+    expect(result[0].feedback).toEqual([]);
+    expect(result[1].feedback).toEqual([
+      { question_prompt: "Q1", feedback: "Good" },
+      { question_prompt: "Q2", feedback: "Explain more" },
+    ]);
+  });

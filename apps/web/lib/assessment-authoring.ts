@@ -59,3 +59,19 @@ export function updateQuestion(questionId: string, change: { prompt?: string; po
     body: JSON.stringify(change),
   });
 }
+
+export function deleteQuestion(questionId: string): Promise<{ question_id: string }> {
+  return gatewayFetch(`/api/v1/assessments/questions/${questionId}`, { method: "DELETE" });
+}
+
+// Before students start, everything can change. After that, the backend only
+// accepts a new title or a higher attempt limit.
+export function updateAssessment(
+  assessmentId: string,
+  change: { title?: string; passing_percentage?: number; max_attempts?: number | null }
+): Promise<AuthoringAssessment> {
+  return gatewayFetch(`/api/v1/assessments/${assessmentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(change),
+  });
+}

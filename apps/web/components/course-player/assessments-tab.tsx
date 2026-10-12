@@ -141,6 +141,19 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
                 </p>
               )}
               {s.waiting && <p className="mt-1 text-xs text-neutral-500">Submitted, waiting for marking.</p>}
+              {s.feedback.length > 0 && (
+                <div className="mt-2 rounded-md bg-white px-3 py-2">
+                  <p className="text-xs text-neutral-500">Feedback on your latest marked attempt</p>
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {s.feedback.map((f, i) => (
+                      <li key={i} className="text-xs text-neutral-900">
+                        <span className="text-neutral-500">{f.question_prompt}: </span>
+                        {f.feedback}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             {canStart ? (
               <Button
@@ -258,9 +271,12 @@ function summarise(assessment: AssessmentSummary, attempts: Attempt[]) {
     (top, a) => (top === null || (a.score_percentage ?? 0) > (top.score_percentage ?? 0) ? a : top),
     null
   );
+  // Attempts arrive newest first, so the first graded one is the latest.
+  const latestGraded = graded[0] ?? null;
   return {
     inProgress,
     best,
+    feedback: latestGraded?.feedback ?? [],
     passed: graded.some((a) => a.passed),
     waiting: attempts.some((a) => a.status === "PENDING_REVIEW" || a.status === "SUBMITTED"),
     used: attempts.length,

@@ -32,6 +32,18 @@ export const UpdateQuestionSchema = z
     .object({ prompt: Prompt.optional(), points: Points })
     .refine((d) => d.prompt !== undefined || d.points !== undefined, "Nothing to update");
 
+export const UpdateAssessmentSchema = z
+    .object({
+        title: z.string().trim().min(1, "Title is required").max(200).optional(),
+        passing_percentage: z.number().int().min(0).max(100).optional(),
+        max_attempts: z.number().int().positive().nullable().optional(),
+    })
+    .refine(
+        (d) => d.title !== undefined || d.passing_percentage !== undefined || d.max_attempts !== undefined,
+        "Nothing to update"
+    );
+
+export type UpdateAssessmentInput = z.infer<typeof UpdateAssessmentSchema>;
 export type CreateAssessmentInput = z.infer<typeof CreateAssessmentSchema>;
 export type AddQuestionInput = z.infer<typeof AddQuestionSchema>;
 export type UpdateQuestionInput = z.infer<typeof UpdateQuestionSchema>;

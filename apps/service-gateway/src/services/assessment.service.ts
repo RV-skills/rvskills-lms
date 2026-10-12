@@ -36,6 +36,12 @@ export const assessmentService = {
   updateQuestion: (question_id: string, data: unknown, accessToken: string) =>
     forward(`/api/v1/assessments/questions/${question_id}`, "PATCH", accessToken, data),
 
+  updateAssessment: (assessment_id: string, data: unknown, accessToken: string) =>
+    forward(`/api/v1/assessments/${assessment_id}`, "PATCH", accessToken, data),
+
+  deleteQuestion: (question_id: string, accessToken: string) =>
+    forward(`/api/v1/assessments/questions/${question_id}`, "DELETE", accessToken),
+
   listAssessmentsForCourse: (course_id: string, accessToken: string) =>
     forward(`/api/v1/assessments/course/${course_id}`, "GET", accessToken),
 

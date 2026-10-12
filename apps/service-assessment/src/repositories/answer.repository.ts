@@ -34,12 +34,24 @@ export const answerRepository = {
 
     async gradeAnswer(
         answer_id: string,
-        data: { is_correct: boolean, points_awarded: number },
+        data: { is_correct: boolean, points_awarded: number, feedback?: string | null },
         client: Prisma.TransactionClient = prisma
     ) {
         return client.answer.update({
             where: { answer_id },
             data,
+        });
+    },
+
+    // Teacher comments on these attempts, for showing alongside a student's results.
+    async findFeedbackByAttempts(attempt_ids: string[], client: Prisma.TransactionClient = prisma) {
+        return client.answer.findMany({
+            where: { attempt_id: { in: attempt_ids }, feedback: { not: null } },
+            select: {
+                attempt_id: true,
+                feedback: true,
+                question: { select: { prompt: true, order_index: true } },
+            },
         });
     },
 }
