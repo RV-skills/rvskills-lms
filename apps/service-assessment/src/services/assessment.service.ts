@@ -4,6 +4,15 @@ import { assessmentRepository } from "../repositories/assessment.repository";
 import { QuestionType } from "../generated/prisma/enums";
 import { questionRepository } from "../repositories/question.repository";
 import { attemptRepository } from "../repositories/attempt.repository";
+// Only the course's own faculty (or an admin) may create or change its assessment.
+// canEditCourse also throws NotFoundError if the course doesn't exist.
+async function assertCanEditCourse(course_id: string, authHeader: string) {
+    const allowed = await courseServiceClient.canEditCourse(course_id, authHeader);
+    if (!allowed) {
+        throw new ForbiddenError("You do not teach this course, so you cannot change its assessment");
+    }
+}
+
 export const assessmentService = {
     async createAssessment(data: {
         course_id: string;
@@ -11,8 +20,8 @@ export const assessmentService = {
         title: string;
         passing_percentage: number;
         max_attempts?: number | null;
-    }) {
-        await courseServiceClient.getCourse(data.course_id);
+    }, authHeader: string) {
+        await assertCanEditCourse(data.course_id, authHeader);
 
         if(data.passing_percentage < 0 || data.passing_percentage > 100) {
             throw new ValidationError("passing_percentage must be between 0 and 100");
@@ -31,12 +40,14 @@ export const assessmentService = {
             prompt:string;
             points?: number;
             options: { text: string; is_correct: boolean }[];
-        }
+        },
+        authHeader: string
     ) {
         const assessment = await assessmentRepository.findById(assessment_id);
         if(!assessment) {
             throw new NotFoundError("Assessment not found");
         }
+        await assertCanEditCourse(assessment.course_id, authHeader);
 
         const hasAttempts = await attemptRepository.existsForAssessment(assessment_id);
         if(hasAttempts) {
@@ -70,12 +81,18 @@ export const assessmentService = {
 
     async updateQuestion(
         question_id: string,
-        data: { prompt?: string, points?: number }
+        data: { prompt?: string, points?: number },
+        authHeader: string
     ) {
         const question = await questionRepository.findById(question_id);
         if(!question) {
             throw new NotFoundError("Question not found");
         }
+        const assessment = await assessmentRepository.findById(question.assessment_id);
+        if (!assessment) {
+            throw new NotFoundError("Assessment not found");
+        }
+        await assertCanEditCourse(assessment.course_id, authHeader);
         if(question.is_locked) {
             throw new ForbiddenError(
                 "This question can no longer be edited - a student has already attempted this assessment"
@@ -102,11 +119,13 @@ export const assessmentService = {
         };
     },
     
-    async getAssessmentFull(assessment_id: string) {
+    async getAssessmentFull(assessment_id: string, authHeader: string) {
         const assessment = await assessmentRepository.findByIdWithQuestions(assessment_id);
         if (!assessment) {
             throw new NotFoundError("Assessment not found");
         }
+        // This view includes the correct answers, so only the course's own faculty may see it.
+        await assertCanEditCourse(assessment.course_id, authHeader);
         return assessment;
     },
 

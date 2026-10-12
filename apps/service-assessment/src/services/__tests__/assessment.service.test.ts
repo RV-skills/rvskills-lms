@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ForbiddenError,
   NotFoundError,
@@ -11,7 +11,7 @@ import { questionRepository } from "../../repositories/question.repository";
 import { attemptRepository } from "../../repositories/attempt.repository";
 
 vi.mock("../../clients/course-service.client", () => ({
-  courseServiceClient: { getCourse: vi.fn() },
+  courseServiceClient: { getCourse: vi.fn(), canEditCourse: vi.fn() },
 }));
 
 vi.mock("../../repositories/assessment.repository", () => ({
@@ -38,7 +38,8 @@ vi.mock("../../repositories/attempt.repository", () => ({
   },
 }));
 
-const getCourse = vi.mocked(courseServiceClient.getCourse);
+const canEdit = vi.mocked(courseServiceClient.canEditCourse);
+const AUTH = "Bearer faculty-token";
 const createAssessmentRow = vi.mocked(assessmentRepository.create);
 const findAssessment = vi.mocked(assessmentRepository.findById);
 const findWithQuestions = vi.mocked(assessmentRepository.findByIdWithQuestions);
@@ -51,6 +52,13 @@ const hasAttempts = vi.mocked(attemptRepository.existsForAssessment);
 
 type Option = { text: string; is_correct: boolean };
 
+// By default the caller teaches the course, and every question belongs to assessment asm-1 on course-1.
+// Tests about refusals or missing records override these.
+beforeEach(() => {
+  canEdit.mockResolvedValue(true);
+  findAssessment.mockResolvedValue({ assessment_id: "asm-1", course_id: "course-1" } as never);
+});
+
 describe("assessmentService.createAssessment", () => {
   const base = {
     course_id: "course-1",
@@ -59,18 +67,18 @@ describe("assessmentService.createAssessment", () => {
     passing_percentage: 70,
   };
 
-  it("checks that the course exists before creating", async () => {
+  it("checks the caller may edit the course before creating", async () => {
     createAssessmentRow.mockResolvedValue({ assessment_id: "asm-1" } as never);
 
-    await assessmentService.createAssessment(base);
+    await assessmentService.createAssessment(base, AUTH);
 
-    expect(getCourse).toHaveBeenCalledWith("course-1");
+    expect(canEdit).toHaveBeenCalledWith("course-1", AUTH);
   });
 
   it("creates nothing when the course lookup fails", async () => {
-    getCourse.mockRejectedValue(new NotFoundError("Course not found"));
+    canEdit.mockRejectedValue(new NotFoundError("Course not found"));
 
-    await expect(assessmentService.createAssessment(base)).rejects.toThrow(
+    await expect(assessmentService.createAssessment(base, AUTH)).rejects.toThrow(
       NotFoundError
     );
     expect(createAssessmentRow).not.toHaveBeenCalled();
@@ -78,7 +86,7 @@ describe("assessmentService.createAssessment", () => {
 
   it.each([-1, 101])("rejects a passing percentage of %i", async (pct) => {
     await expect(
-      assessmentService.createAssessment({ ...base, passing_percentage: pct })
+      assessmentService.createAssessment({ ...base, passing_percentage: pct }, AUTH)
     ).rejects.toThrow(ValidationError);
     expect(createAssessmentRow).not.toHaveBeenCalled();
   });
@@ -87,14 +95,14 @@ describe("assessmentService.createAssessment", () => {
     createAssessmentRow.mockResolvedValue({ assessment_id: "asm-1" } as never);
 
     await expect(
-      assessmentService.createAssessment({ ...base, passing_percentage: pct })
+      assessmentService.createAssessment({ ...base, passing_percentage: pct }, AUTH)
     ).resolves.toEqual({ assessment_id: "asm-1" });
   });
 
   it("stores no attempt limit as null", async () => {
     createAssessmentRow.mockResolvedValue({ assessment_id: "asm-1" } as never);
 
-    await assessmentService.createAssessment(base);
+    await assessmentService.createAssessment(base, AUTH);
 
     expect(createAssessmentRow).toHaveBeenCalledWith({
       ...base,
@@ -105,7 +113,7 @@ describe("assessmentService.createAssessment", () => {
   it("keeps an explicit attempt limit", async () => {
     createAssessmentRow.mockResolvedValue({ assessment_id: "asm-1" } as never);
 
-    await assessmentService.createAssessment({ ...base, max_attempts: 3 });
+    await assessmentService.createAssessment({ ...base, max_attempts: 3 }, AUTH);
 
     expect(createAssessmentRow).toHaveBeenCalledWith({
       ...base,
@@ -136,7 +144,7 @@ describe("assessmentService.addQuestion", () => {
         type: "MCQ",
         prompt: "2 + 2?",
         options: mcqOptions,
-      })
+      }, AUTH)
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -151,7 +159,7 @@ describe("assessmentService.addQuestion", () => {
         type: "MCQ",
         prompt: "?",
         options,
-      })
+      }, AUTH)
     ).rejects.toThrow(ValidationError);
     expect(createQuestionRow).not.toHaveBeenCalled();
   });
@@ -179,7 +187,7 @@ describe("assessmentService.addQuestion", () => {
         type: "MCQ",
         prompt: "?",
         options,
-      })
+      }, AUTH)
     ).rejects.toThrow(ValidationError);
     expect(createQuestionRow).not.toHaveBeenCalled();
   });
@@ -193,7 +201,7 @@ describe("assessmentService.addQuestion", () => {
       prompt: "2 + 2?",
       points: 2,
       options: mcqOptions,
-    });
+    }, AUTH);
 
     expect(createQuestionRow).toHaveBeenCalledWith({
       assessment_id: "asm-1",
@@ -214,7 +222,7 @@ describe("assessmentService.addQuestion", () => {
       type: "MCQ",
       prompt: "?",
       options: mcqOptions,
-    });
+    }, AUTH);
 
     expect(createQuestionRow).toHaveBeenCalledWith(
       expect.objectContaining({ order_index: 3 })
@@ -230,7 +238,7 @@ describe("assessmentService.addQuestion", () => {
       prompt: "Explain caching.",
       points: 5,
       options: [],
-    });
+    }, AUTH);
 
     expect(createQuestionRow).toHaveBeenCalledWith({
       assessment_id: "asm-1",
@@ -250,7 +258,7 @@ describe("assessmentService.addQuestion", () => {
         type: "MCQ",
         prompt: "New question",
         options: mcqOptions,
-      })
+      }, AUTH)
     ).rejects.toThrow(ForbiddenError);
     expect(createQuestionRow).not.toHaveBeenCalled();
   });
@@ -264,7 +272,7 @@ describe("assessmentService.addQuestion", () => {
         type: "MCQ",
         prompt: "New question",
         options: mcqOptions,
-      })
+      }, AUTH)
     ).resolves.toEqual({ question_id: "q-2" });
   });
 });
@@ -274,7 +282,7 @@ describe("assessmentService.updateQuestion", () => {
     findQuestion.mockResolvedValue(null as never);
 
     await expect(
-      assessmentService.updateQuestion("q-1", { prompt: "New" })
+      assessmentService.updateQuestion("q-1", { prompt: "New" }, AUTH)
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -285,7 +293,7 @@ describe("assessmentService.updateQuestion", () => {
     } as never);
 
     await expect(
-      assessmentService.updateQuestion("q-1", { prompt: "New" })
+      assessmentService.updateQuestion("q-1", { prompt: "New" }, AUTH)
     ).rejects.toThrow(ForbiddenError);
     expect(updateQuestionRow).not.toHaveBeenCalled();
   });
@@ -300,7 +308,7 @@ describe("assessmentService.updateQuestion", () => {
     const result = await assessmentService.updateQuestion("q-1", {
       prompt: "New",
       points: 3,
-    });
+    }, AUTH);
 
     expect(updateQuestionRow).toHaveBeenCalledWith("q-1", {
       prompt: "New",
@@ -367,7 +375,7 @@ describe("assessmentService.getAssessmentFull", () => {
   it("throws NotFoundError when the assessment does not exist", async () => {
     findWithQuestions.mockResolvedValue(null as never);
 
-    await expect(assessmentService.getAssessmentFull("asm-1")).rejects.toThrow(
+    await expect(assessmentService.getAssessmentFull("asm-1", AUTH)).rejects.toThrow(
       NotFoundError
     );
   });
@@ -381,7 +389,7 @@ describe("assessmentService.getAssessmentFull", () => {
     };
     findWithQuestions.mockResolvedValue(full as never);
 
-    await expect(assessmentService.getAssessmentFull("asm-1")).resolves.toEqual(
+    await expect(assessmentService.getAssessmentFull("asm-1", AUTH)).resolves.toEqual(
       full
     );
   });
@@ -403,5 +411,42 @@ describe("assessmentService.getAssessmentsForCourse", () => {
       "tenant-1"
     );
     expect(result).toEqual([{ assessment_id: "asm-1" }]);
+  });
+});
+
+describe("assessmentService: only the course's own faculty may change it", () => {
+  it("refuses to create an assessment for a course the caller doesn't teach", async () => {
+    canEdit.mockResolvedValue(false);
+
+    await expect(
+      assessmentService.createAssessment({ course_id: "course-1", tenant_id: "tenant-1", title: "Quiz", passing_percentage: 50 }, AUTH)
+    ).rejects.toThrow(ForbiddenError);
+    expect(createAssessmentRow).not.toHaveBeenCalled();
+  });
+
+  it("refuses to add a question to another course's assessment", async () => {
+    canEdit.mockResolvedValue(false);
+
+    await expect(
+      assessmentService.addQuestion("asm-1", { type: "MANUAL", prompt: "Explain", options: [] } as never, AUTH)
+    ).rejects.toThrow(ForbiddenError);
+    expect(canEdit).toHaveBeenCalledWith("course-1", AUTH);
+    expect(createQuestionRow).not.toHaveBeenCalled();
+  });
+
+  it("refuses to edit a question on another course's assessment", async () => {
+    findQuestion.mockResolvedValue({ question_id: "q-1", assessment_id: "asm-1", is_locked: false } as never);
+    canEdit.mockResolvedValue(false);
+
+    await expect(assessmentService.updateQuestion("q-1", { prompt: "Changed" }, AUTH)).rejects.toThrow(ForbiddenError);
+    expect(canEdit).toHaveBeenCalledWith("course-1", AUTH);
+    expect(updateQuestionRow).not.toHaveBeenCalled();
+  });
+
+  it("refuses the full view, which includes correct answers, to someone who doesn't teach the course", async () => {
+    findWithQuestions.mockResolvedValue({ assessment_id: "asm-1", course_id: "course-1", questions: [] } as never);
+    canEdit.mockResolvedValue(false);
+
+    await expect(assessmentService.getAssessmentFull("asm-1", AUTH)).rejects.toThrow(ForbiddenError);
   });
 });

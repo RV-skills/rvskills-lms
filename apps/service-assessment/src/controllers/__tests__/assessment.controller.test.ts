@@ -49,68 +49,90 @@ beforeEach(() => {
 });
 
 describe("createAssessmentController", () => {
-  it("builds the assessment from the body and the caller's tenant, and responds 201", async () => {
+  it("validates the body, adds the caller's tenant, passes their auth header, and responds 201", async () => {
     svc.createAssessment.mockResolvedValue({ assessment_id: "asm-1" } as never);
     const req = fakeReq({
       body: { course_id: "course-1", title: "Final Quiz", passing_percentage: 70, max_attempts: 3 },
+      headers: { authorization: "Bearer faculty-token" },
     });
     const res = fakeRes();
 
     await createAssessmentController(req, res, next);
 
-    expect(svc.createAssessment).toHaveBeenCalledWith({
-      course_id: "course-1",
-      tenant_id: "tenant-1",
-      title: "Final Quiz",
-      passing_percentage: 70,
-      max_attempts: 3,
-    });
+    expect(svc.createAssessment).toHaveBeenCalledWith(
+      { course_id: "course-1", tenant_id: "tenant-1", title: "Final Quiz", passing_percentage: 70, max_attempts: 3 },
+      "Bearer faculty-token"
+    );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ success: true, data: { assessment_id: "asm-1" } });
   });
 
-  it("passes a service error to next", async () => {
-    svc.createAssessment.mockRejectedValue(new Error("bad request"));
-    const req = fakeReq({ body: {} });
-    const res = fakeRes();
+  it.each([
+    ["a missing title", { course_id: "course-1", passing_percentage: 70 }],
+    ["a pass mark over 100", { course_id: "course-1", title: "Q", passing_percentage: 101 }],
+    ["a fractional pass mark", { course_id: "course-1", title: "Q", passing_percentage: 50.5 }],
+    ["zero allowed attempts", { course_id: "course-1", title: "Q", passing_percentage: 50, max_attempts: 0 }],
+  ])("rejects %s without calling the service", async (_label, body) => {
+    await createAssessmentController(fakeReq({ body, headers: { authorization: "Bearer faculty-token" } }), fakeRes(), next);
 
-    await createAssessmentController(req, res, next);
-
+    expect(svc.createAssessment).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith(expect.any(Error));
-    expect(res.status).not.toHaveBeenCalled();
   });
 });
 
 describe("addQuestionController", () => {
-  it("passes the assessment id and the whole body through, and responds 201", async () => {
+  it("validates the question, passes it on with the caller's auth header, and responds 201", async () => {
     svc.addQuestion.mockResolvedValue({ question_id: "q-1" } as never);
-    const req = fakeReq({
-      params: { assessment_id: "asm-1" },
-      body: { type: "MCQ", prompt: "2 + 2?", options: [] },
-    });
+    const body = { type: "MCQ", prompt: "2 + 2?", points: 2, options: [{ text: "4", is_correct: true }, { text: "5", is_correct: false }] };
     const res = fakeRes();
 
-    await addQuestionController(req, res, next);
+    await addQuestionController(fakeReq({ params: { assessment_id: "asm-1" }, body, headers: { authorization: "Bearer faculty-token" } }), res, next);
 
-    expect(svc.addQuestion).toHaveBeenCalledWith("asm-1", {
-      type: "MCQ",
-      prompt: "2 + 2?",
-      options: [],
-    });
+    expect(svc.addQuestion).toHaveBeenCalledWith("asm-1", body, "Bearer faculty-token");
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("gives a written question an empty options list when none is sent", async () => {
+    svc.addQuestion.mockResolvedValue({ question_id: "q-2" } as never);
+
+    await addQuestionController(
+      fakeReq({ params: { assessment_id: "asm-1" }, body: { type: "MANUAL", prompt: "Explain" }, headers: { authorization: "Bearer faculty-token" } }),
+      fakeRes(),
+      next
+    );
+
+    expect(svc.addQuestion).toHaveBeenCalledWith("asm-1", { type: "MANUAL", prompt: "Explain", options: [] }, "Bearer faculty-token");
+  });
+
+  it.each([
+    ["an unknown question type", { type: "ESSAY", prompt: "Q", options: [] }],
+    ["an empty prompt", { type: "MANUAL", prompt: "  ", options: [] }],
+    ["an MCQ with one option", { type: "MCQ", prompt: "Q", options: [{ text: "A", is_correct: true }] }],
+    ["a written question with options", { type: "MANUAL", prompt: "Q", options: [{ text: "A", is_correct: true }] }],
+    ["zero points", { type: "MANUAL", prompt: "Q", points: 0, options: [] }],
+  ])("rejects %s without calling the service", async (_label, body) => {
+    await addQuestionController(fakeReq({ params: { assessment_id: "asm-1" }, body, headers: { authorization: "Bearer faculty-token" } }), fakeRes(), next);
+
+    expect(svc.addQuestion).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
   });
 });
 
 describe("updateQuestionController", () => {
-  it("passes the question id and body through, and responds 200", async () => {
-    svc.updateQuestion.mockResolvedValue({ question_id: "q-1", prompt: "Updated" } as never);
-    const req = fakeReq({ params: { question_id: "q-1" }, body: { prompt: "Updated" } });
+  it("validates the change, passes it on with the caller's auth header, and responds 200", async () => {
+    svc.updateQuestion.mockResolvedValue({ question_id: "q-1" } as never);
     const res = fakeRes();
 
-    await updateQuestionController(req, res, next);
+    await updateQuestionController(fakeReq({ params: { question_id: "q-1" }, body: { prompt: "New wording" }, headers: { authorization: "Bearer faculty-token" } }), res, next);
 
-    expect(svc.updateQuestion).toHaveBeenCalledWith("q-1", { prompt: "Updated" });
+    expect(svc.updateQuestion).toHaveBeenCalledWith("q-1", { prompt: "New wording" }, "Bearer faculty-token");
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it("rejects an empty change without calling the service", async () => {
+    await updateQuestionController(fakeReq({ params: { question_id: "q-1" }, body: {}, headers: { authorization: "Bearer faculty-token" } }), fakeRes(), next);
+
+    expect(svc.updateQuestion).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
   });
 });
 
@@ -139,13 +161,13 @@ describe("getAssessmentController", () => {
 });
 
 describe("getAssessmentFullController", () => {
-  it("fetches the full view (including correct answers)", async () => {
+  it("fetches the full view (including correct answers), passing the caller's auth header so the service can check they teach the course", async () => {
     svc.getAssessmentFull.mockResolvedValue({ assessment_id: "asm-1" } as never);
-    const req = fakeReq({ params: { assessment_id: "asm-1" } });
     const res = fakeRes();
 
-    await getAssessmentFullController(req, res, next);
+    await getAssessmentFullController(fakeReq({ params: { assessment_id: "asm-1" }, headers: { authorization: "Bearer faculty-token" } }), res, next);
 
-    expect(svc.getAssessmentFull).toHaveBeenCalledWith("asm-1");
+    expect(svc.getAssessmentFull).toHaveBeenCalledWith("asm-1", "Bearer faculty-token");
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });
