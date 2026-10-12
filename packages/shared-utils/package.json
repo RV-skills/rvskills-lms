@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "winston": "^3.17.0"
