@@ -27,8 +27,8 @@ const clearCookie = vi.mocked(clearSessionCookie);
 
 const next = vi.fn();
 // req only needs what the middleware actually reads from it.
-const req = {} as never;
-const res = {} as never;
+const req = {} as unknown as import("../auth.middleware").AuthenticatedRequest;
+const res = {} as unknown as import("express").Response;
 
 const SESSION = { accessToken: "old-access", refreshToken: "old-refresh" };
 

@@ -1,12 +1,7 @@
-# NOTE ON STATE: every value generated below (the RSA private key, the
-# cookie secret) gets written into Terraform's own state file in
-# plaintext -- an inherent Terraform limitation, not something specific
-# to this file. Right now this project still uses local state (see the
-# comment in versions.tf), which means these real secrets currently sit
-# in plaintext on whichever machine runs terraform apply. This is a real
-# reason to prioritize the S3 + encrypted-state migration before this
-# is ever applied against production for real, not just a theoretical
-# concern to revisit "eventually".
+# NOTE ON STATE: values generated below (the RSA private key, the cookie secret)
+# are written into Terraform state in plaintext, an inherent Terraform limitation.
+# State lives in the encrypted S3 backend (see versions.tf), so access to that
+# bucket must stay restricted to the people and roles that run Terraform.
 
 # Changing var.secret_rotation_id replaces this, which in turn replaces the
 # secrets below (see their lifecycle blocks), so rotation is a reviewed one-line change.

@@ -36,7 +36,7 @@ describe("appErrorHandler: real HTTP status codes for each AppError subclass", (
   ])("%s -> status %i", (error, expectedStatus) => {
     const res = fakeRes();
 
-    appErrorHandler(error, req, res, next);
+    appErrorHandler(error, req, res as never, next);
 
     expect(res.status).toHaveBeenCalledWith(expectedStatus);
     expect(res.json).toHaveBeenCalledWith({
@@ -53,7 +53,7 @@ describe("appErrorHandler: a Zod validation error", () => {
     const result = schema.safeParse({ email: "not-an-email", age: "not-a-number" });
     const res = fakeRes();
 
-    appErrorHandler(result.error!, req, res, next);
+    appErrorHandler(result.error!, req, res as never, next);
 
     expect(res.status).toHaveBeenCalledWith(400);
     const body = res.json.mock.calls[0][0];
@@ -73,7 +73,7 @@ describe("appErrorHandler: anything else", () => {
     const res = fakeRes();
     const plainError = new Error("something unexpected");
 
-    appErrorHandler(plainError, req, res, next);
+    appErrorHandler(plainError, req, res as never, next);
 
     expect(res.status).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith(plainError);
@@ -84,7 +84,7 @@ describe("genericErrorHandler", () => {
   it("always answers 500, regardless of what the error actually is", () => {
     const res = fakeRes();
 
-    genericErrorHandler(new Error("anything"), req, res, next);
+    genericErrorHandler(new Error("anything"), req, res as never, next);
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
