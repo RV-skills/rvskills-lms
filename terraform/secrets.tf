@@ -2,6 +2,11 @@
 # are written into Terraform state in plaintext, an inherent Terraform limitation.
 # State lives in the encrypted S3 backend (see versions.tf), so access to that
 # bucket must stay restricted to the people and roles that run Terraform.
+
+# Changing var.secret_rotation_id replaces this, which in turn replaces the
+# secrets below (see their lifecycle blocks), so rotation is a reviewed one-line change.
+resource "terraform_data" "secret_rotation" {
+  triggers_replace = var.secret_rotation_id
 }
 
 resource "tls_private_key" "jwt" {
