@@ -10,6 +10,7 @@ import {
     getAssessmentFullController,
     updateAssessmentController,
     deleteQuestionController,
+    getResultsController,
 } from "../controllers/assessment.controller";
 import {
     getMyAttemptsController,
@@ -20,6 +21,7 @@ import {
 import {
     listPendingReviewController,
     gradeAnswerController,
+    pendingReviewSummaryController,
 } from "../controllers/grading.controller";
 
 const assessmentRouter: Router = Router();
@@ -29,8 +31,10 @@ assessmentRouter.post("/:assessment_id/questions", authMiddleware, requirePermis
 assessmentRouter.patch("/questions/:question_id", authMiddleware, requirePermission("exam:write"), updateQuestionController);
 assessmentRouter.delete("/questions/:question_id", authMiddleware, requirePermission("exam:write"), deleteQuestionController);
 assessmentRouter.patch("/:assessment_id", authMiddleware, requirePermission("exam:write"), updateAssessmentController);
+assessmentRouter.get("/:assessment_id/results", authMiddleware, requirePermission("exam:write"), getResultsController);
 assessmentRouter.get("/:assessment_id/full", authMiddleware, requirePermission("exam:write"), getAssessmentFullController);
 
+assessmentRouter.get("/attempts/pending-review/summary", authMiddleware, requirePermission("assignment:grade"), pendingReviewSummaryController);
 assessmentRouter.get("/attempts/pending-review", authMiddleware, requirePermission("assignment:grade"), listPendingReviewController);
 assessmentRouter.patch("/attempts/answers/:answer_id/grade", authMiddleware, requirePermission("assignment:grade"), gradeAnswerController);
 

@@ -14,3 +14,9 @@ export const GradeAnswerSchema = z.object({
 });
 
 export type GradeAnswerInput = z.infer<typeof GradeAnswerSchema>;
+
+export const PendingPageQuerySchema = z.object({
+    assessment_id: z.string().trim().min(1),
+    offset: z.coerce.number().int().min(0).default(0),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+});

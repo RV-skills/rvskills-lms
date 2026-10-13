@@ -9,6 +9,7 @@ import {
   getAssessmentFullController,
   updateAssessmentController,
   deleteQuestionController,
+  getResultsController,
 } from "../../controllers/assessment.controller";
 import {
     getMyAttemptsController,
@@ -19,6 +20,7 @@ import {
 import {
   listPendingReviewController,
   gradeAnswerController,
+  pendingReviewSummaryController,
 } from "../../controllers/grading.controller";
 
 const assessmentsRouter: Router = Router();
@@ -28,8 +30,10 @@ assessmentsRouter.post("/:assessment_id/questions", authMiddleware, addQuestionC
 assessmentsRouter.patch("/questions/:question_id", authMiddleware, updateQuestionController);
 assessmentsRouter.delete("/questions/:question_id", authMiddleware, deleteQuestionController);
 assessmentsRouter.patch("/:assessment_id", authMiddleware, updateAssessmentController);
+assessmentsRouter.get("/:assessment_id/results", authMiddleware, getResultsController);
 assessmentsRouter.get("/:assessment_id/full", authMiddleware, getAssessmentFullController);
 
+assessmentsRouter.get("/attempts/pending-review/summary", authMiddleware, pendingReviewSummaryController);
 assessmentsRouter.get("/attempts/pending-review", authMiddleware, listPendingReviewController);
 assessmentsRouter.patch("/attempts/answers/:answer_id/grade", authMiddleware, gradeAnswerController);
 

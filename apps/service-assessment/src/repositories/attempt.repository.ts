@@ -86,6 +86,70 @@ export const attemptRepository = {
         });
     },
 
+    // One page of an assessment's waiting attempts, oldest first.
+    async findPendingReviewPage(
+        tenant_id: string,
+        course_ids: string[] | null,
+        page: { assessment_id: string; skip: number; take: number },
+        client: Prisma.TransactionClient = prisma
+    ) {
+        return client.assessmentAttempt.findMany({
+            where: {
+                tenant_id,
+                status: "PENDING_REVIEW",
+                assessment_id: page.assessment_id,
+                ...(course_ids ? { assessment: { course_id: { in: course_ids } } } : {}),
+            },
+            include: {
+                assessment: { select: { assessment_id: true, title: true, course_id: true } },
+                answers: {
+                    include: {
+                        question: { select: { question_id: true, prompt: true, type: true, points: true, order_index: true } },
+                    },
+                },
+            },
+            orderBy: { submitted_at: "asc" },
+            skip: page.skip,
+            take: page.take,
+        });
+    },
+
+    // How many attempts are waiting per assessment, and since when.
+    async countPendingByAssessment(
+        tenant_id: string,
+        course_ids: string[] | null,
+        client: Prisma.TransactionClient = prisma
+    ) {
+        return client.assessmentAttempt.groupBy({
+            by: ["assessment_id"],
+            where: {
+                tenant_id,
+                status: "PENDING_REVIEW",
+                ...(course_ids ? { assessment: { course_id: { in: course_ids } } } : {}),
+            },
+            _count: { _all: true },
+            _min: { submitted_at: true },
+        });
+    },
+
+    // Every attempt at an assessment with just the marks, for the results page.
+    async findAllForAssessment(assessment_id: string, client: Prisma.TransactionClient = prisma) {
+        return client.assessmentAttempt.findMany({
+            where: { assessment_id },
+            select: {
+                attempt_id: true,
+                student_id: true,
+                attempt_number: true,
+                status: true,
+                score_percentage: true,
+                passed: true,
+                submitted_at: true,
+                answers: { select: { question_id: true, points_awarded: true } },
+            },
+            orderBy: [{ student_id: "asc" }, { attempt_number: "asc" }],
+        });
+    },
+
     async findInProgress(assessment_id: string, student_id: string, client: Prisma.TransactionClient = prisma) {
         return client.assessmentAttempt.findFirst({
             where: { assessment_id, student_id, status: "IN_PROGRESS" },

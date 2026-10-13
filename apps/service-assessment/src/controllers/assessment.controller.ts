@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { assessmentService } from "../services/assessment.service";
+import { resultsService } from "../services/results.service";
 import {
     AddQuestionSchema,
     CreateAssessmentSchema,
@@ -89,6 +90,16 @@ export async function deleteQuestionController(req: AuthenticatedRequest, res: R
         const question_id = req.params.question_id as string;
         const result = await assessmentService.deleteQuestion(question_id, req.headers.authorization!);
         res.status(200).json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getResultsController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const assessment_id = req.params.assessment_id as string;
+        const results = await resultsService.getResults(assessment_id, req.headers.authorization!);
+        res.status(200).json({ success: true, data: results });
     } catch (err) {
         next(err);
     }
