@@ -292,6 +292,12 @@ export default function FacultyCourseEditorPage() {
             >
               {course.status}
             </span>
+            <Link
+              href={`/faculty/courses/${courseId}/preview`}
+              className="ml-2 mt-3 self-start rounded-md border border-primary-500 px-3 py-1.5 text-sm text-primary-700 hover:bg-primary-100"
+            >
+              Preview as student
+            </Link>
 
             <div className="mt-8 flex flex-col gap-1">
               {course.modules.map((module) => (
