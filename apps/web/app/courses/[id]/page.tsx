@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Star } from "lucide-react";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { getCourseDetail, moduleDurationMins, type CourseDetail } from "@/lib/course-details";
+import { getCourseDetail, type CourseDetail } from "@/lib/course-details";
+import { CourseHeader, Stars, SyllabusList } from "@/components/course-detail/course-summary";
 import {
   getCourseRatings,
   getAverageRating,
@@ -17,33 +16,6 @@ import {
 import Link from "next/link";
 
 type Tab = "syllabus" | "reviews";
-
-function difficultyToTone(difficulty: string): BadgeTone {
-  switch (difficulty.toLowerCase()) {
-    case "beginner":
-      return "success";
-    case "intermediate":
-      return "warning";
-    case "advanced":
-      return "danger";
-    default:
-      return "neutral";
-  }
-}
-
-function Stars({ value, size = 16 }: { value: number; size?: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={size}
-          className={n <= Math.round(value) ? "fill-primary-500 text-primary-500" : "text-neutral-100"}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -110,31 +82,7 @@ export default function CourseDetailPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10 pb-28">
-      <div className="flex flex-col gap-8 sm:flex-row">
-        <div className="h-64 flex-1 rounded-lg bg-neutral-100" />
-        <div className="flex flex-1 flex-col gap-3">
-          <Badge tone={difficultyToTone(course.difficulty)} className="self-start">
-            {course.difficulty}
-          </Badge>
-          <h1 className="text-2xl text-neutral-900">{course.title}</h1>
-          {course.description && (
-            <p className="text-sm text-neutral-500">{course.description}</p>
-          )}
-          <div className="flex items-center gap-2">
-            <Avatar name={course.instructorName} size="sm" />
-            <span className="text-sm text-neutral-900">{course.instructorName}</span>
-          </div>
-          {average && average.count > 0 && (
-            <div className="flex items-center gap-2">
-              <Stars value={average.average ?? 0} />
-              <span className="text-sm text-neutral-900">{average.average?.toFixed(1)}</span>
-              <span className="text-sm text-neutral-500">
-                ({average.count} review{average.count !== 1 ? "s" : ""})
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+      <CourseHeader course={course} average={average} />
 
       <div className="mt-10 flex gap-6 border-b border-neutral-100">
         <button
@@ -159,30 +107,7 @@ export default function CourseDetailPage() {
         </button>
       </div>
 
-      {activeTab === "syllabus" && (
-        <div className="mt-6 flex flex-col gap-2">
-          {course.modules.map((module) => {
-            const duration = moduleDurationMins(module);
-            return (
-              <div
-                key={module.module_id}
-                className="flex items-center justify-between rounded-md bg-neutral-50 px-4 py-3"
-              >
-                <span className="text-sm text-neutral-900">
-                  {module.title}
-                  {module.is_locked && (
-                    <span className="ml-2 text-xs text-neutral-500">(locked)</span>
-                  )}
-                </span>
-                <span className="text-xs text-neutral-500">
-                  {module.lessons.length} lesson{module.lessons.length !== 1 ? "s" : ""}
-                  {duration !== null && ` \u00b7 ${duration} min`}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {activeTab === "syllabus" && <SyllabusList modules={course.modules} />}
 
       {activeTab === "reviews" && (
         <div className="mt-6 flex flex-col gap-6">

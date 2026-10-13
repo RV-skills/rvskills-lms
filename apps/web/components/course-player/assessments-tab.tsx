@@ -14,14 +14,40 @@ import {
   type AssessmentDetail,
   type Attempt,
 } from "@/lib/assessment";
+import { getAssessmentFull, type AuthoringAssessment } from "@/lib/assessment-authoring";
 import { GatewayError } from "@/lib/gateway-client";
 
 type ViewState =
   | { view: "list" }
   | { view: "taking"; assessment: AssessmentDetail; attempt: Attempt }
+  | { view: "previewing"; assessment: AssessmentDetail }
   | { view: "result"; attempt: Attempt; assessmentTitle: string };
 
-export function AssessmentsTab({ courseId }: { courseId: string }) {
+// Faculty preview loads the questions through the faculty-only endpoint, then drops the
+// correct answers so the screen shows exactly what a student gets.
+export function toStudentView(full: AuthoringAssessment): AssessmentDetail {
+  return {
+    assessment_id: full.assessment_id,
+    course_id: full.course_id,
+    title: full.title,
+    passing_percentage: full.passing_percentage,
+    max_attempts: full.max_attempts,
+    questions: [...full.questions]
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((q) => ({
+        question_id: q.question_id,
+        type: q.type,
+        prompt: q.prompt,
+        points: q.points,
+        order_index: q.order_index,
+        options: q.options.map((o) => ({ option_id: o.option_id, text: o.text })),
+      })),
+  };
+}
+
+// preview: faculty looking at the course as a student would. No attempt is started,
+// because the first attempt locks the questions and would show up in grading.
+export function AssessmentsTab({ courseId, preview = false }: { courseId: string; preview?: boolean }) {
   const [assessments, setAssessments] = useState<AssessmentSummary[] | undefined>(undefined);
   const [state, setState] = useState<ViewState>({ view: "list" });
   const [startError, setStartError] = useState<string | null>(null);
@@ -32,6 +58,7 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
   const loadList = useCallback(() => {
     listAssessmentsForCourse(courseId).then(async (list) => {
       setAssessments(list);
+      if (preview) return;
       // Each assessment's own attempts, so the list can show results. One failing
       // lookup just shows that assessment without history.
       const entries = await Promise.all(
@@ -39,7 +66,7 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
       );
       setMyAttempts(Object.fromEntries(entries));
     });
-  }, [courseId]);
+  }, [courseId, preview]);
 
   useEffect(() => {
     loadList();
@@ -48,6 +75,17 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
   async function handleStart(assessment_id: string) {
     setStartingId(assessment_id);
     setStartError(null);
+    if (preview) {
+      try {
+        const full = await getAssessmentFull(assessment_id);
+        setState({ view: "previewing", assessment: toStudentView(full) });
+      } catch (err) {
+        setStartError(err instanceof GatewayError ? err.message : "Something went wrong. Please try again.");
+      } finally {
+        setStartingId(null);
+      }
+      return;
+    }
     try {
       const [assessment, attempt] = await Promise.all([
         getAssessment(assessment_id),
@@ -80,6 +118,10 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
         onCancel={handleBackToList}
       />
     );
+  }
+
+  if (state.view === "previewing") {
+    return <QuizForm assessment={state.assessment} attempt={null} onCancel={handleBackToList} />;
   }
 
   if (state.view === "result") {
@@ -121,7 +163,7 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
     <div className="flex flex-col gap-3">
       {assessments.map((assessment) => {
         const s = summarise(assessment, myAttempts[assessment.assessment_id] ?? []);
-        const label = s.inProgress ? "Resume" : s.used > 0 ? "Retake" : "Start";
+        const label = preview ? "Start" : s.inProgress ? "Resume" : s.used > 0 ? "Retake" : "Start";
         const canStart = Boolean(s.inProgress) || s.left === null || s.left > 0;
         return (
           <div
@@ -182,10 +224,12 @@ function QuizForm({
   onCancel,
 }: {
   assessment: AssessmentDetail;
-  attempt: Attempt;
-  onSubmitted: (attempt: Attempt) => void;
+  attempt: Attempt | null;
+  onSubmitted?: (attempt: Attempt) => void;
   onCancel: () => void;
 }) {
+  // No attempt means faculty preview: answers can be tried out but never sent.
+  const readOnly = attempt === null;
   const [answers, setAnswers] = useState<Record<string, { selected_option_id?: string; text_response?: string }>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,6 +243,7 @@ function QuizForm({
   }
 
   async function handleSubmit() {
+    if (!attempt || !onSubmitted) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -219,6 +264,11 @@ function QuizForm({
   return (
     <div className="flex flex-col gap-6">
       <h3 className="text-lg text-neutral-900">{assessment.title}</h3>
+      {readOnly && (
+        <p className="-mt-3 rounded-md bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+          Preview: this is what students see when they start. Answers can&apos;t be submitted here.
+        </p>
+      )}
 
       {assessment.questions.map((question, i) => (
         <div key={question.question_id}>
@@ -254,11 +304,15 @@ function QuizForm({
 
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={onCancel}>
-          Cancel
+          {readOnly ? "Back" : "Cancel"}
         </Button>
-        <Button onClick={handleSubmit} loading={submitting}>
-          Submit
-        </Button>
+        {readOnly ? (
+          <Button disabled>Submit</Button>
+        ) : (
+          <Button onClick={handleSubmit} loading={submitting}>
+            Submit
+          </Button>
+        )}
       </div>
     </div>
   );
