@@ -28,6 +28,13 @@ export const assessmentRepository = {
         return client.assessment.update({ where: { assessment_id }, data });
     },
 
+    async findManyByIds(assessment_ids: string[], client: Prisma.TransactionClient = prisma) {
+        return client.assessment.findMany({
+            where: { assessment_id: { in: assessment_ids } },
+            select: { assessment_id: true, title: true, course_id: true },
+        });
+    },
+
     async findManyByCourseId(course_id: string, tenant_id: string, client: Prisma.TransactionClient = prisma) {
         return client.assessment.findMany({
             where: { course_id, tenant_id },

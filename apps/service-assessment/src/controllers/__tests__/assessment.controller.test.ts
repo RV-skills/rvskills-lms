@@ -11,6 +11,9 @@ import {
 } from "../assessment.controller";
 import { assessmentService } from "../../services/assessment.service";
 
+// The controller also loads the results service; keep it (and the database) out of these tests.
+vi.mock("../../services/results.service", () => ({ resultsService: { getResults: vi.fn() } }));
+
 vi.mock("../../services/assessment.service", () => ({
   assessmentService: {
     createAssessment: vi.fn(),

@@ -48,6 +48,9 @@ export const assessmentService = {
   getAssessment: (assessment_id: string, accessToken: string) =>
     forward(`/api/v1/assessments/${assessment_id}`, "GET", accessToken),
 
+  getResults: (assessment_id: string, accessToken: string) =>
+    forward(`/api/v1/assessments/${assessment_id}/results`, "GET", accessToken),
+
   getAssessmentFull: (assessment_id: string, accessToken: string) =>
     forward(`/api/v1/assessments/${assessment_id}/full`, "GET", accessToken),
 
@@ -62,6 +65,20 @@ export const assessmentService = {
 
   listPendingReview: (accessToken: string) =>
     forward("/api/v1/assessments/attempts/pending-review", "GET", accessToken),
+
+  pendingReviewSummary: (accessToken: string) =>
+    forward("/api/v1/assessments/attempts/pending-review/summary", "GET", accessToken),
+
+  listPendingReviewPage: (query: { assessment_id: string; offset: number; limit: number }, accessToken: string) =>
+    forward(
+      `/api/v1/assessments/attempts/pending-review?${new URLSearchParams({
+        assessment_id: query.assessment_id,
+        offset: String(query.offset),
+        limit: String(query.limit),
+      })}`,
+      "GET",
+      accessToken
+    ),
 
   gradeAnswer: (answer_id: string, data: unknown, accessToken: string) =>
     forward(`/api/v1/assessments/attempts/answers/${answer_id}/grade`, "PATCH", accessToken, data),

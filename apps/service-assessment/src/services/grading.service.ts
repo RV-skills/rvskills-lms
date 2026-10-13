@@ -7,7 +7,48 @@ import { assessmentRepository } from "../repositories/assessment.repository";
 import { courseServiceClient } from "../clients/course-service.client";
 import { computeFinalScore } from "./scoring.util";
 
+// null means every course (admins); otherwise only the courses this faculty teaches.
+async function visibleCourseIds(viewer: { isAdmin: boolean; authHeader: string }) {
+    return viewer.isAdmin ? null : courseServiceClient.listMyCourseIds(viewer.authHeader);
+}
+
 export const gradingService = {
+    async pendingReviewSummary(tenant_id: string, viewer: { isAdmin: boolean; authHeader: string }) {
+        const course_ids = await visibleCourseIds(viewer);
+        if (course_ids && course_ids.length === 0) {
+            return [];
+        }
+        const groups = await attemptRepository.countPendingByAssessment(tenant_id, course_ids);
+        if (groups.length === 0) {
+            return [];
+        }
+        const assessments = await assessmentRepository.findManyByIds(groups.map((g) => g.assessment_id));
+        const byId = new Map(assessments.map((a) => [a.assessment_id, a]));
+
+        return groups
+            .map((g) => ({
+                assessment_id: g.assessment_id,
+                title: byId.get(g.assessment_id)?.title ?? "Assessment",
+                course_id: byId.get(g.assessment_id)?.course_id ?? null,
+                waiting: g._count._all,
+                oldest_submitted_at: g._min.submitted_at,
+            }))
+            // Whatever has been waiting longest comes first.
+            .sort((a, b) => (a.oldest_submitted_at?.getTime() ?? 0) - (b.oldest_submitted_at?.getTime() ?? 0));
+    },
+
+    async listPendingReviewPage(
+        tenant_id: string,
+        viewer: { isAdmin: boolean; authHeader: string },
+        page: { assessment_id: string; skip: number; take: number }
+    ) {
+        const course_ids = await visibleCourseIds(viewer);
+        if (course_ids && course_ids.length === 0) {
+            return [];
+        }
+        return attemptRepository.findPendingReviewPage(tenant_id, course_ids, page);
+    },
+
     async listPendingReview(tenant_id: string, viewer: { isAdmin: boolean; authHeader: string }) {
         const course_ids = viewer.isAdmin
             ? null

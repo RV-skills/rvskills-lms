@@ -153,11 +153,19 @@ function AssessmentEditor({ assessmentId }: { assessmentId: string }) {
     <section className="rounded-lg border border-neutral-100 bg-white p-6">
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-lg text-neutral-900">{assessment.title}</h2>
-        {!editingSettings && (
-          <button onClick={() => setEditingSettings(true)} className="text-xs text-primary-700 underline">
-            Edit settings
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/faculty/courses/${assessment.course_id}/assessments/${assessment.assessment_id}/results`}
+            className="text-xs text-primary-700 underline"
+          >
+            Results
+          </Link>
+          {!editingSettings && (
+            <button onClick={() => setEditingSettings(true)} className="text-xs text-primary-700 underline">
+              Edit settings
+            </button>
+          )}
+        </div>
       </div>
       <p className="mt-1 text-sm text-neutral-500">
         Pass mark {assessment.passing_percentage}% ·{" "}
