@@ -27,41 +27,26 @@ resource "random_password" "cookie_secret" {
   }
 }
 
-resource "aws_secretsmanager_secret" "jwt_private_key" {
-  name = "${var.project_name}/jwt-private-key"
+# Stored in SSM Parameter Store as SecureString (encrypted with the AWS-managed
+# key). Standard parameters are free; Secrets Manager charged $0.40 per secret
+# a month. The values come from the same key and password resources as before,
+# so moving them does not change any key or log anyone out.
+# (The database password stays in Secrets Manager: RDS creates and manages it.)
 
-  tags = {
-    Name = "${var.project_name}-jwt-private-key"
-  }
+resource "aws_ssm_parameter" "jwt_private_key" {
+  name  = "/${var.project_name}/jwt-private-key"
+  type  = "SecureString"
+  value = tls_private_key.jwt.private_key_pem
 }
 
-resource "aws_secretsmanager_secret_version" "jwt_private_key" {
-  secret_id     = aws_secretsmanager_secret.jwt_private_key.id
-  secret_string = tls_private_key.jwt.private_key_pem
+resource "aws_ssm_parameter" "jwt_public_key" {
+  name  = "/${var.project_name}/jwt-public-key"
+  type  = "SecureString"
+  value = tls_private_key.jwt.public_key_pem
 }
 
-resource "aws_secretsmanager_secret" "jwt_public_key" {
-  name = "${var.project_name}/jwt-public-key"
-
-  tags = {
-    Name = "${var.project_name}-jwt-public-key"
-  }
-}
-
-resource "aws_secretsmanager_secret_version" "jwt_public_key" {
-  secret_id     = aws_secretsmanager_secret.jwt_public_key.id
-  secret_string = tls_private_key.jwt.public_key_pem
-}
-
-resource "aws_secretsmanager_secret" "cookie_secret" {
-  name = "${var.project_name}/cookie-secret"
-
-  tags = {
-    Name = "${var.project_name}-cookie-secret"
-  }
-}
-
-resource "aws_secretsmanager_secret_version" "cookie_secret" {
-  secret_id     = aws_secretsmanager_secret.cookie_secret.id
-  secret_string = random_password.cookie_secret.result
+resource "aws_ssm_parameter" "cookie_secret" {
+  name  = "/${var.project_name}/cookie-secret"
+  type  = "SecureString"
+  value = random_password.cookie_secret.result
 }

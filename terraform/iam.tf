@@ -38,8 +38,15 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
 
     resources = [
       aws_db_instance.main.master_user_secret[0].secret_arn,
-      "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.project_name}/*",
     ]
+  }
+
+  # The app's own keys live in SSM Parameter Store (see secrets.tf).
+  # SecureString with the AWS-managed key needs no extra KMS permission.
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:GetParameters"]
+    resources = ["arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/*"]
   }
 }
 

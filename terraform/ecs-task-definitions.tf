@@ -43,8 +43,8 @@ resource "aws_ecs_task_definition" "service_auth" {
       secrets = [
         { name = "DB_USER", valueFrom = "${local.db_secret_arn}:username::" },
         { name = "DB_PASSWORD", valueFrom = "${local.db_secret_arn}:password::" },
-        { name = "JWT_PRIVATE_KEY", valueFrom = aws_secretsmanager_secret.jwt_private_key.arn },
-        { name = "JWT_PUBLIC_KEY", valueFrom = aws_secretsmanager_secret.jwt_public_key.arn },
+        { name = "JWT_PRIVATE_KEY", valueFrom = aws_ssm_parameter.jwt_private_key.arn },
+        { name = "JWT_PUBLIC_KEY", valueFrom = aws_ssm_parameter.jwt_public_key.arn },
       ]
 
       logConfiguration = {
@@ -99,7 +99,7 @@ resource "aws_ecs_task_definition" "service_courses" {
       secrets = [
         { name = "DB_USER", valueFrom = "${local.db_secret_arn}:username::" },
         { name = "DB_PASSWORD", valueFrom = "${local.db_secret_arn}:password::" },
-        { name = "JWT_PUBLIC_KEY", valueFrom = aws_secretsmanager_secret.jwt_public_key.arn },
+        { name = "JWT_PUBLIC_KEY", valueFrom = aws_ssm_parameter.jwt_public_key.arn },
       ]
 
       logConfiguration = {
@@ -155,7 +155,7 @@ resource "aws_ecs_task_definition" "service_enrollment" {
       secrets = [
         { name = "DB_USER", valueFrom = "${local.db_secret_arn}:username::" },
         { name = "DB_PASSWORD", valueFrom = "${local.db_secret_arn}:password::" },
-        { name = "JWT_PUBLIC_KEY", valueFrom = aws_secretsmanager_secret.jwt_public_key.arn },
+        { name = "JWT_PUBLIC_KEY", valueFrom = aws_ssm_parameter.jwt_public_key.arn },
       ]
 
       logConfiguration = {
@@ -212,7 +212,7 @@ resource "aws_ecs_task_definition" "service_assessment" {
       secrets = [
         { name = "DB_USER", valueFrom = "${local.db_secret_arn}:username::" },
         { name = "DB_PASSWORD", valueFrom = "${local.db_secret_arn}:password::" },
-        { name = "JWT_PUBLIC_KEY", valueFrom = aws_secretsmanager_secret.jwt_public_key.arn },
+        { name = "JWT_PUBLIC_KEY", valueFrom = aws_ssm_parameter.jwt_public_key.arn },
       ]
 
       logConfiguration = {
@@ -268,7 +268,7 @@ resource "aws_ecs_task_definition" "service_gateway" {
       ]
 
       secrets = [
-        { name = "COOKIE_SECRET", valueFrom = aws_secretsmanager_secret.cookie_secret.arn },
+        { name = "COOKIE_SECRET", valueFrom = aws_ssm_parameter.cookie_secret.arn },
       ]
 
       logConfiguration = {
