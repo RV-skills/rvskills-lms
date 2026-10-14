@@ -57,8 +57,8 @@ resource "aws_ecr_lifecycle_policy" "services" {
         selection = {
           tagStatus      = "tagged"
           tagPatternList = ["*"]
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          countType      = "imageCountMoreThan"
+          countNumber    = 10
         }
         action = {
           type = "expire"
