@@ -1,9 +1,12 @@
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 
+  # Off on purpose: Container Insights bills every metric it creates
+  # (about $31 a month here, a third of the whole bill). The free ECS
+  # metrics (CPU and memory per service) still show in CloudWatch.
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
   }
 
   tags = {

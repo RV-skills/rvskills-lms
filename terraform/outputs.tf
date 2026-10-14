@@ -44,18 +44,18 @@ output "ecs_task_role_arn" {
 }
 
 output "jwt_private_key_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding the JWT private key."
-  value       = aws_secretsmanager_secret.jwt_private_key.arn
+  description = "ARN of the SSM parameter holding the JWT private key."
+  value       = aws_ssm_parameter.jwt_private_key.arn
 }
 
 output "jwt_public_key_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding the JWT public key."
-  value       = aws_secretsmanager_secret.jwt_public_key.arn
+  description = "ARN of the SSM parameter holding the JWT public key."
+  value       = aws_ssm_parameter.jwt_public_key.arn
 }
 
 output "cookie_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding the cookie signing secret."
-  value       = aws_secretsmanager_secret.cookie_secret.arn
+  description = "ARN of the SSM parameter holding the cookie signing secret."
+  value       = aws_ssm_parameter.cookie_secret.arn
 }
 
 output "alb_dns_name" {

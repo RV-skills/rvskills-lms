@@ -52,9 +52,11 @@ resource "aws_ecr_lifecycle_policy" "services" {
       {
         rulePriority = 2
         description  = "Keep only the 10 most recent tagged images"
+        # Deploys tag images with the bare commit SHA (no prefix), so a prefix
+        # list never matched them and old images piled up. "*" matches any tag.
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["v", "latest", "sha-"]
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
           countType     = "imageCountMoreThan"
           countNumber   = 10
         }
