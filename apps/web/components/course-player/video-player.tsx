@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, Volume2, VolumeX } from "lucide-react";
+import { videoSourceFor } from "@/lib/video-source";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SKIP_SECONDS = 10;
@@ -42,6 +43,20 @@ function clearPosition(key: string): void {
   }
 }
 
+// The controls below drive either a plain <video> element or Vimeo's player through
+// this one interface, so both look and behave the same for students.
+interface Engine {
+  play(): void;
+  pause(): void;
+  seek(seconds: number): void;
+  setVolume(volume: number): void;
+  setMuted(muted: boolean): void;
+  setRate(rate: number): void;
+  isPaused(): boolean;
+  currentTime(): number;
+  duration(): number;
+}
+
 export default function VideoPlayer({
   src,
   title,
@@ -51,8 +66,11 @@ export default function VideoPlayer({
   title: string;
   positionKey: string;
 }): JSX.Element {
+  const source = videoSourceFor(src);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const vimeoHostRef = useRef<HTMLDivElement>(null);
+  const engineRef = useRef<Engine | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaved = useRef(0);
   const storageKey = `rvlms:video-position:${positionKey}`;
@@ -68,13 +86,14 @@ export default function VideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [resumedFrom, setResumedFrom] = useState<number | null>(null);
+  const [failMessage, setFailMessage] = useState<string | null>(null);
 
   // Show the controls, then hide them again after a pause in mouse movement (only while playing).
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => {
-      if (videoRef.current && !videoRef.current.paused) setControlsVisible(false);
+      if (engineRef.current && !engineRef.current.isPaused()) setControlsVisible(false);
     }, HIDE_CONTROLS_AFTER_MS);
   }, []);
 
@@ -90,44 +109,198 @@ export default function VideoPlayer({
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  // --- Events, shared by both engines.
+
+  function handleLoaded(total: number): void {
+    setDuration(total);
+    const saved = readPosition(storageKey);
+    // Only resume if it's meaningful: not the first few seconds, not the very end.
+    if (saved > 5 && saved < total - 10) {
+      engineRef.current?.seek(saved);
+      setResumedFrom(saved);
+    }
+  }
+
+  function handleTime(t: number): void {
+    setCurrent(t);
+    if (Math.abs(t - lastSaved.current) >= SAVE_EVERY_SECONDS) {
+      writePosition(storageKey, t);
+      lastSaved.current = t;
+    }
+  }
+
+  function handlePlay(): void {
+    setPlaying(true);
+    showControls();
+  }
+
+  function handlePause(t: number): void {
+    setPlaying(false);
+    setControlsVisible(true);
+    writePosition(storageKey, t);
+  }
+
+  function handleEnded(): void {
+    setPlaying(false);
+    setControlsVisible(true);
+    clearPosition(storageKey);
+  }
+
+  // Plain file: wrap the <video> element.
+  useEffect(() => {
+    if (source.kind !== "file") return;
+    const v = videoRef.current;
+    if (!v) return;
+    engineRef.current = {
+      play: () => void v.play().catch(() => setPlaying(false)),
+      pause: () => v.pause(),
+      seek: (t) => {
+        v.currentTime = Math.min(Math.max(t, 0), v.duration || 0);
+      },
+      setVolume: (vol) => {
+        v.volume = vol;
+        v.muted = vol === 0;
+      },
+      setMuted: (m) => {
+        v.muted = m;
+      },
+      setRate: (r) => {
+        v.playbackRate = r;
+      },
+      isPaused: () => v.paused,
+      currentTime: () => v.currentTime,
+      duration: () => v.duration || 0,
+    };
+    return () => {
+      engineRef.current = null;
+    };
+  }, [source.kind]);
+
+  // Vimeo: load Vimeo's player with its own controls hidden, and mirror its events.
+  // The SDK is loaded only when a lesson actually uses Vimeo.
+  const vimeoUrl = source.kind === "vimeo" ? source.url : null;
+  useEffect(() => {
+    if (!vimeoUrl || !vimeoHostRef.current) return;
+    let cancelled = false;
+    let player: import("@vimeo/player").default | null = null;
+    const state = { paused: true, time: 0, duration: 0 };
+
+    void import("@vimeo/player").then(({ default: VimeoPlayer }) => {
+      if (cancelled || !vimeoHostRef.current) return;
+      player = new VimeoPlayer(vimeoHostRef.current, {
+        url: vimeoUrl as `https://player.vimeo.com/video/${string}`,
+        controls: false,
+        dnt: true,
+        playsinline: true,
+        responsive: false,
+        title: false,
+        byline: false,
+        portrait: false,
+        keyboard: false,
+      });
+      const p = player;
+      engineRef.current = {
+        play: () => void p.play().catch(() => setPlaying(false)),
+        pause: () => void p.pause().catch(() => undefined),
+        seek: (t) => void p.setCurrentTime(Math.min(Math.max(t, 0), state.duration || t)).catch(() => undefined),
+        setVolume: (vol) => {
+          void p.setVolume(vol).catch(() => undefined);
+          void p.setMuted(vol === 0).catch(() => undefined);
+        },
+        setMuted: (m) => void p.setMuted(m).catch(() => undefined),
+        // Some Vimeo plans don't allow speed changes; if refused, the speed simply stays at 1x.
+        setRate: (r) => void p.setPlaybackRate(r).catch(() => setSpeed(1)),
+        isPaused: () => state.paused,
+        currentTime: () => state.time,
+        duration: () => state.duration,
+      };
+
+      p.on("loaded", () => {
+        void p.getDuration().then((d) => {
+          state.duration = d;
+          handleLoaded(d);
+        });
+      });
+      p.on("timeupdate", (e) => {
+        state.time = e.seconds;
+        handleTime(e.seconds);
+      });
+      p.on("play", () => {
+        state.paused = false;
+        handlePlay();
+      });
+      p.on("pause", (e) => {
+        state.paused = true;
+        handlePause(e.seconds);
+      });
+      p.on("ended", () => {
+        state.paused = true;
+        handleEnded();
+      });
+      p.on("bufferstart", () => setWaiting(true));
+      p.on("bufferend", () => setWaiting(false));
+      p.on("volumechange", (e) => {
+        setVolume(e.volume);
+        setMuted(e.muted);
+      });
+      p.on("playbackratechange", (e) => setSpeed(e.playbackRate));
+      p.on("error", (e) => {
+        // A privacy error means Vimeo refused this site: the domain isn't in the video's
+        // "Specific domains" list (true for localhost, which Vimeo won't accept).
+        setFailMessage(
+          e.name === "PrivacyError"
+            ? "This video can only be played on the live site. Its Vimeo privacy settings don't allow this address."
+            : null
+        );
+        setFailed(true);
+      });
+      p.ready().catch((err: { name?: string }) => {
+        setFailMessage(
+          err?.name === "PrivacyError"
+            ? "This video can only be played on the live site. Its Vimeo privacy settings don't allow this address."
+            : null
+        );
+        setFailed(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      engineRef.current = null;
+      void player?.destroy().catch(() => undefined);
+    };
+  }, [vimeoUrl]);
+
   // --- Actions: each one tells the <video> element what to do. The element then fires an
   // event (play, pause, volumechange...) and the handlers below update what's on screen.
 
   function togglePlay(): void {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
-      v.play().catch(() => setPlaying(false));
-    } else {
-      v.pause();
-    }
+    const e = engineRef.current;
+    if (!e) return;
+    if (e.isPaused()) e.play();
+    else e.pause();
   }
 
   function seekTo(seconds: number): void {
-    const v = videoRef.current;
-    if (!v) return;
-    v.currentTime = Math.min(Math.max(seconds, 0), v.duration || 0);
+    engineRef.current?.seek(seconds);
+    // Vimeo reports the new time a moment later; show it straight away.
+    if (source.kind === "vimeo") setCurrent(Math.min(Math.max(seconds, 0), duration || seconds));
   }
 
   function skip(by: number): void {
-    seekTo((videoRef.current?.currentTime ?? 0) + by);
+    seekTo((engineRef.current?.currentTime() ?? 0) + by);
   }
 
   function changeVolume(next: number): void {
-    const v = videoRef.current;
-    if (!v) return;
-    v.volume = Math.min(Math.max(next, 0), 1);
-    v.muted = v.volume === 0;
+    engineRef.current?.setVolume(Math.min(Math.max(next, 0), 1));
   }
 
   function toggleMute(): void {
-    const v = videoRef.current;
-    if (v) v.muted = !v.muted;
+    engineRef.current?.setMuted(!muted);
   }
 
   function changeSpeed(next: number): void {
-    const v = videoRef.current;
-    if (v) v.playbackRate = next;
+    engineRef.current?.setRate(next);
   }
 
   function toggleFullscreen(): void {
@@ -184,7 +357,8 @@ export default function VideoPlayer({
   if (failed) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-center text-sm text-neutral-500">
-        This video couldn&apos;t be played. The file may have moved, or its format isn&apos;t supported by this browser.
+        {failMessage ??
+          "This video couldn't be played. The file may have moved, or its format isn't supported by this browser."}
       </div>
     );
   }
@@ -201,59 +375,46 @@ export default function VideoPlayer({
       aria-label={`Video: ${title}`}
       className={`relative h-full w-full bg-black outline-none ${controlsVisible ? "" : "cursor-none"}`}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        className="h-full w-full"
-        playsInline
-        preload="metadata"
-        controlsList="nodownload"
-        disablePictureInPicture
-        onContextMenu={(e) => e.preventDefault()}
-        onClick={togglePlay}
-        onDoubleClick={toggleFullscreen}
-        onLoadedMetadata={(e) => {
-          const v = e.currentTarget;
-          setDuration(v.duration);
-          const saved = readPosition(storageKey);
-          // Only resume if it's meaningful: not the first few seconds, not the very end.
-          if (saved > 5 && saved < v.duration - 10) {
-            v.currentTime = saved;
-            setResumedFrom(saved);
-          }
-        }}
-        onTimeUpdate={(e) => {
-          const t = e.currentTarget.currentTime;
-          setCurrent(t);
-          if (Math.abs(t - lastSaved.current) >= SAVE_EVERY_SECONDS) {
-            writePosition(storageKey, t);
-            lastSaved.current = t;
-          }
-        }}
-        onPlay={() => {
-          setPlaying(true);
-          showControls();
-        }}
-        onPause={(e) => {
-          setPlaying(false);
-          setControlsVisible(true);
-          writePosition(storageKey, e.currentTarget.currentTime);
-        }}
-        onEnded={() => {
-          setPlaying(false);
-          setControlsVisible(true);
-          clearPosition(storageKey);
-        }}
-        onWaiting={() => setWaiting(true)}
-        onPlaying={() => setWaiting(false)}
-        onCanPlay={() => setWaiting(false)}
-        onVolumeChange={(e) => {
-          setVolume(e.currentTarget.volume);
-          setMuted(e.currentTarget.muted);
-        }}
-        onRateChange={(e) => setSpeed(e.currentTarget.playbackRate)}
-        onError={() => setFailed(true)}
-      />
+      {source.kind === "file" ? (
+        <video
+          ref={videoRef}
+          src={source.url}
+          className="h-full w-full"
+          playsInline
+          preload="metadata"
+          controlsList="nodownload"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={togglePlay}
+          onDoubleClick={toggleFullscreen}
+          onLoadedMetadata={(e) => handleLoaded(e.currentTarget.duration)}
+          onTimeUpdate={(e) => handleTime(e.currentTarget.currentTime)}
+          onPlay={handlePlay}
+          onPause={(e) => handlePause(e.currentTarget.currentTime)}
+          onEnded={handleEnded}
+          onWaiting={() => setWaiting(true)}
+          onPlaying={() => setWaiting(false)}
+          onCanPlay={() => setWaiting(false)}
+          onVolumeChange={(e) => {
+            setVolume(e.currentTarget.volume);
+            setMuted(e.currentTarget.muted);
+          }}
+          onRateChange={(e) => setSpeed(e.currentTarget.playbackRate)}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <>
+          {/* Vimeo puts its iframe in here. The layer on top takes clicks, so students use our
+              controls and can't reach Vimeo's own menus or its link to vimeo.com. */}
+          <div ref={vimeoHostRef} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
+          <div
+            className="absolute inset-0"
+            onClick={togglePlay}
+            onDoubleClick={toggleFullscreen}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        </>
+      )}
 
       {waiting && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
