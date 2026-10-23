@@ -124,6 +124,12 @@ export const userService = {
         return mapToUserDTO(updatedUser);
     },
 
+    async findUsersByEmails(emails: string[]) {
+        const unique = [...new Set(emails.map((e) => e.trim()).filter(Boolean))];
+        if (unique.length === 0) return [];
+        return userRepository.findManyByEmails(unique, DEFAULT_TENANT_ID);
+    },
+
     async getUsersByIds(user_ids: string[]): Promise<UserSummaryDTO[]> {
         if (user_ids.length === 0) return [];
         return userRepository.findManyByIds(user_ids, DEFAULT_TENANT_ID);

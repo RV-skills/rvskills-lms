@@ -18,13 +18,15 @@ import {
   type CourseSchedule,
   type ScheduleBatch,
 } from "@/lib/batches";
+import { ImportStudents } from "./import-students";
 
 const input = "rounded-md border border-neutral-100 px-3 py-2 text-sm";
 
 // Release schedule and batches for one course. Faculty and admins both use it.
 // The course holds one schedule ("Module 2 opens on day 14"); each batch turns that
 // into real dates from its own start date, and can move single modules earlier or later.
-export function ScheduleManager({ courseId }: { courseId: string }) {
+// canImport adds "Add students from CSV", which creates accounts, so it's for admins only.
+export function ScheduleManager({ courseId, canImport = false }: { courseId: string; canImport?: boolean }) {
   const [schedule, setSchedule] = useState<CourseSchedule | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,6 +76,7 @@ export function ScheduleManager({ courseId }: { courseId: string }) {
 
       <OffsetsSection schedule={schedule} busy={busy} run={run} courseId={courseId} />
       <BatchesSection schedule={schedule} busy={busy} run={run} courseId={courseId} />
+      {canImport && <ImportStudents courseId={courseId} batches={schedule.batches} onDone={load} />}
       <StudentsSection schedule={schedule} busy={busy} run={run} courseId={courseId} />
     </div>
   );

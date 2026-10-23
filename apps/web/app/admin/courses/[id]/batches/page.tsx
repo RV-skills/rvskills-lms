@@ -29,7 +29,7 @@ export default function AdminCourseBatchesPage() {
           ← Back to courses
         </Link>
         <div className="mt-4">
-          <ScheduleManager courseId={courseId} />
+          <ScheduleManager courseId={courseId} canImport />
         </div>
       </main>
     </div>

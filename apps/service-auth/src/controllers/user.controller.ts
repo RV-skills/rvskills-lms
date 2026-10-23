@@ -169,3 +169,13 @@ export const adminResetPassword = catchAsync(async (req: Request, res: Response)
   const result = await userService.adminResetPassword(user_id);
   res.status(200).json({ success: true, data: result });
 });
+
+// For bulk enrolment: which of these emails already have an account.
+export const findUsersByEmails = catchAsync(async (req: Request, res: Response) => {
+  const { emails } = (req.body ?? {}) as { emails?: unknown };
+  if (!Array.isArray(emails) || emails.some((e) => typeof e !== "string") || emails.length > 1000) {
+    throw new ValidationError("emails must be a list of up to 1000 email addresses");
+  }
+  const users = await userService.findUsersByEmails(emails as string[]);
+  res.status(200).json({ success: true, data: users });
+});

@@ -198,6 +198,25 @@ export const userRepository = {
         });
     },
 
+    // Case-insensitive, since people type emails with different capitals.
+    async findManyByEmails(emails: string[], tenant_id: string) {
+        return prisma.user.findMany({
+            where: {
+                tenant_id,
+                deleted_at: null,
+                OR: emails.map((email) => ({ email: { equals: email, mode: "insensitive" as const } })),
+            },
+            select: {
+                user_id: true,
+                first_name: true,
+                last_name: true,
+                username: true,
+                email: true,
+                status: true,
+            },
+        });
+    },
+
     async findManyByIds(user_ids: string[], tenant_id: string) {
         return prisma.user.findMany({
             where: {
@@ -308,3 +327,4 @@ export const userRepository = {
         });
     },
 };
+
