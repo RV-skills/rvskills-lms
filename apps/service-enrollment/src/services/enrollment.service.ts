@@ -5,6 +5,7 @@ import { courseServiceClient } from "../clients/course-service.client";
 import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from "@rv-lms/shared-utils";
 import { EnrollmentStatus } from "../generated/prisma/enums";
 import { lessonProgressService } from "./lesson-progress.service";
+import { toBatchDTO } from "./batch.service";
 
 export const enrollmentService = {
     async enrollCourse(student_id: string, course_id:string, tenant_id:string) {
@@ -98,12 +99,13 @@ export const enrollmentService = {
         const enrollments = await enrollmentRepository.findByStudent(student_id, tenant_id);
 
         return Promise.all(
-            enrollments.map(async (enrollment) => {
+            enrollments.map(async ({ batch, ...enrollment }) => {
                 const progress = await lessonProgressService.getProgress(
                     enrollment.enrollment_id,
                     enrollment.course_id
                 );
-                return { ...enrollment, ...progress };
+                // The batch (with its dates) lets the gateway work out which modules are open.
+                return { ...enrollment, ...progress, batch: batch ? toBatchDTO(batch) : null };
             })
         )
     },

@@ -35,6 +35,7 @@ export const enrollmentRepository = {
     async findByStudent(student_id: string, tenant_id: string, client: Prisma.TransactionClient = prisma) {
         return client.enrollment.findMany({
             where: { student_id, tenant_id },
+            include: { batch: { include: { module_dates: true } } },
         });
     },
 
@@ -94,4 +95,5 @@ export const enrollmentRepository = {
         });
     },
 }
+
 

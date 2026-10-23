@@ -29,6 +29,15 @@ import {
   removeLessonResourceController,
 } from "../../controllers/courses.controller";
 import { getCoursePlayerController } from "../../controllers/course-player.controller";
+import {
+  getCourseScheduleController,
+  createBatchController,
+  updateBatchController,
+  deleteBatchController,
+  setBatchModuleDateController,
+  clearBatchModuleDateController,
+  setStudentBatchController,
+} from "../../controllers/batches.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 
 const coursesRouter: Router = Router();
@@ -36,6 +45,15 @@ const coursesRouter: Router = Router();
 coursesRouter.get("/", publicRouteMiddleware, listCoursesController);
 coursesRouter.get("/mine", authMiddleware, listMyCoursesController);
 coursesRouter.get("/:course_id/player", authMiddleware, getCoursePlayerController);
+
+// Batches and release schedules (admins and the course's faculty; checked downstream).
+coursesRouter.get("/:course_id/schedule", authMiddleware, getCourseScheduleController);
+coursesRouter.post("/:course_id/batches", authMiddleware, createBatchController);
+coursesRouter.patch("/:course_id/batches/:batch_id", authMiddleware, updateBatchController);
+coursesRouter.delete("/:course_id/batches/:batch_id", authMiddleware, deleteBatchController);
+coursesRouter.put("/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, setBatchModuleDateController);
+coursesRouter.delete("/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, clearBatchModuleDateController);
+coursesRouter.patch("/:course_id/enrollments/:enrollment_id/batch", authMiddleware, setStudentBatchController);
 coursesRouter.get("/:course_id/ratings", publicRouteMiddleware, listCourseRatingsController);
 coursesRouter.get("/:course_id/ratings/average", publicRouteMiddleware, getAverageRatingController);
 coursesRouter.post("/:course_id/ratings", authMiddleware, submitRatingController);

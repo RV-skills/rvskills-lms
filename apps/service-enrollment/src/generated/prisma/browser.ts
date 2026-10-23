@@ -32,3 +32,13 @@ export type LessonProgress = Prisma.LessonProgressModel
  * 
  */
 export type CourseRating = Prisma.CourseRatingModel
+/**
+ * Model Batch
+ * 
+ */
+export type Batch = Prisma.BatchModel
+/**
+ * Model BatchModuleDate
+ * 
+ */
+export type BatchModuleDate = Prisma.BatchModuleDateModel

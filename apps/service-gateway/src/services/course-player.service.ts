@@ -1,6 +1,7 @@
 import { getCourseDetail } from "./courses.service";
 import { getCompletedLessonIds, getMyEnrollments } from "./enrollment.service";
 import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import { isOpen, moduleUnlockDate } from "../utils/release-schedule";
 
 export interface PlayerResource {
   resource_id: string;
@@ -24,6 +25,8 @@ export interface PlayerModule {
   module_id: string;
   title: string;
   is_locked: boolean;
+  // For students in a batch: the day a locked module opens ("2026-11-15"). Otherwise null.
+  unlocks_on: string | null;
   lessons: PlayerLesson[];
 }
 
@@ -53,12 +56,24 @@ export async function getCoursePlayerData(
 
   const completedIds = await getCompletedLessonIds(enrollment.enrollment_id, accessToken);
   const completedSet = new Set(completedIds);
+  const batch = enrollment.batch ?? null;
+  const now = new Date();
   let foundCurrent = false;
 
-    let previousModuleComplete = true;
+  // Without a batch, a module opens once the previous one is finished (as before).
+  // In a batch, a module opens on its date only, whatever the student has finished.
+  let previousModuleComplete = true;
 
   const modules: PlayerModule[] = course.modules.map((module) => {
-    const moduleUnlocked = previousModuleComplete;
+    let moduleUnlocked: boolean;
+    let unlocksOn: string | null = null;
+    if (batch) {
+      const { date } = moduleUnlockDate(batch, module.module_id, module.unlock_after_days);
+      moduleUnlocked = isOpen(date, now);
+      unlocksOn = moduleUnlocked ? null : date;
+    } else {
+      moduleUnlocked = previousModuleComplete;
+    }
 
     const lessons = module.lessons.map((lesson) => {
       const isCompleted = completedSet.has(lesson.lesson_id);
@@ -66,7 +81,7 @@ export async function getCoursePlayerData(
 
       if (isCompleted) {
         status = "completed";
-      } else if (!foundCurrent) {
+      } else if (!foundCurrent && moduleUnlocked) {
         status = "current";
         foundCurrent = true;
       } else {
@@ -77,6 +92,7 @@ export async function getCoursePlayerData(
         lesson_id: lesson.lesson_id,
         title: lesson.title,
         estimated_duration_mins: lesson.estimated_duration_mins,
+        // Locked content never leaves the server: no video or file links.
         video_url: moduleUnlocked ? lesson.video_url : null,
         content_type: lesson.content_type,
         description: lesson.description,
@@ -91,12 +107,16 @@ export async function getCoursePlayerData(
       module_id: module.module_id,
       title: module.title,
       is_locked: !moduleUnlocked,
+      unlocks_on: unlocksOn,
       lessons,
     };
   });
 
   const allLessons = modules.flatMap((m) => m.lessons);
-  const currentLesson = allLessons.find((l) => l.status === "current") ?? allLessons[0];
+  const openLessons = modules.filter((m) => !m.is_locked).flatMap((m) => m.lessons);
+  // All open lessons done (or nothing open yet): land on the last open lesson, else the first.
+  const currentLesson =
+    allLessons.find((l) => l.status === "current") ?? openLessons[openLessons.length - 1] ?? allLessons[0];
 
   if (!currentLesson) {
     throw new NotFoundError("This course has no lessons yet");

@@ -9,10 +9,32 @@ import {
     getAverageRating,
 } from "../controllers/course-rating.controller";
 import { requirePermission } from "../middlewares/rbac.middleware";
+import { requireCourseEditor } from "../middlewares/course-editor.middleware";
+import {
+    listBatches,
+    createBatch,
+    updateBatch,
+    deleteBatch,
+    setModuleDate,
+    clearModuleDate,
+    getRoster,
+    setEnrollmentBatch,
+} from "../controllers/batch.controller";
 
 const enrollmentRouter: Router = Router();
 
 enrollmentRouter.get("/my-enrollments", authMiddleware, getMyEnrollments);
+
+// Batches and release schedules: admins and the course's own faculty.
+const canWrite = requirePermission("course:write");
+enrollmentRouter.get("/courses/:course_id/batches", authMiddleware, canWrite, requireCourseEditor, listBatches);
+enrollmentRouter.post("/courses/:course_id/batches", authMiddleware, canWrite, requireCourseEditor, createBatch);
+enrollmentRouter.patch("/courses/:course_id/batches/:batch_id", authMiddleware, canWrite, requireCourseEditor, updateBatch);
+enrollmentRouter.delete("/courses/:course_id/batches/:batch_id", authMiddleware, canWrite, requireCourseEditor, deleteBatch);
+enrollmentRouter.put("/courses/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, canWrite, requireCourseEditor, setModuleDate);
+enrollmentRouter.delete("/courses/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, canWrite, requireCourseEditor, clearModuleDate);
+enrollmentRouter.get("/courses/:course_id/roster", authMiddleware, canWrite, requireCourseEditor, getRoster);
+enrollmentRouter.patch("/courses/:course_id/enrollments/:enrollment_id/batch", authMiddleware, canWrite, requireCourseEditor, setEnrollmentBatch);
 
 // Enrollment routes
 enrollmentRouter.post("/", authMiddleware, enrollCourse);

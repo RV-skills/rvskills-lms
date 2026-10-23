@@ -25,6 +25,8 @@ export interface PlayerModule {
   module_id: string;
   title: string;
   is_locked: boolean;
+  // Set for students in a batch: the day a locked module opens ("2026-11-15").
+  unlocks_on?: string | null;
   lessons: PlayerLesson[];
 }
 

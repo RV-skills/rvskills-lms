@@ -284,6 +284,9 @@ export default function FacultyCourseEditorPage() {
               <Link href={`/faculty/courses/${courseId}/assessments`} className="mt-1 inline-block text-sm text-primary-700 hover:underline">
                 Assessments →
               </Link>
+              <Link href={`/faculty/courses/${courseId}/batches`} className="mt-1 block text-sm text-primary-700 hover:underline">
+                Batches &amp; schedule →
+              </Link>
             </button>
             <span
               className={`ml-2 mt-2 self-start rounded-full px-2.5 py-1 text-xs ${

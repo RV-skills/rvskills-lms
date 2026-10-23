@@ -30,11 +30,14 @@ model Enrollment {
     enrolled_at DateTime @default(now())
     completed_at DateTime?
     dropped_at DateTime?
+    batch_id String?
+    batch Batch? @relation(fields: [batch_id], references: [batch_id], onDelete: SetNull)
     rating CourseRating?
     lesson_progress LessonProgress[]
     @@unique([student_id, course_id])
     @@index([tenant_id, course_id])
     @@index([tenant_id, student_id])
+    @@index([batch_id])
 }
 
 model LessonProgress {
@@ -56,4 +59,31 @@ model CourseRating {
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
     enrollment Enrollment @relation(fields: [enrollment_id], references: [enrollment_id], onDelete: Cascade)
+}
+
+// A group of students taking a course together, e.g. "PU Commerce - Nov 2026".
+// Module i opens on start_date + that module's unlock_after_days (set on the course),
+// unless the batch has its own date for that module in BatchModuleDate.
+model Batch {
+    batch_id String @id @default(uuid())
+    tenant_id String
+    course_id String
+    name String
+    start_date DateTime @db.Date
+    end_date DateTime? @db.Date
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    enrollments Enrollment[]
+    module_dates BatchModuleDate[]
+    @@unique([course_id, name])
+    @@index([tenant_id, course_id])
+}
+
+// A per-batch date for one module, replacing the date worked out from the course schedule.
+model BatchModuleDate {
+    batch_id String
+    module_id String
+    unlock_date DateTime @db.Date
+    batch Batch @relation(fields: [batch_id], references: [batch_id], onDelete: Cascade)
+    @@id([batch_id, module_id])
 }

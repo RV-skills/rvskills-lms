@@ -11,4 +11,6 @@
 export type * from './models/Enrollment'
 export type * from './models/LessonProgress'
 export type * from './models/CourseRating'
+export type * from './models/Batch'
+export type * from './models/BatchModuleDate'
 export type * from './commonInputTypes'
