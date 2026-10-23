@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/user-session";
@@ -195,6 +196,12 @@ export default function AdminCoursesPage() {
                         >
                           {expandedCourseId === course.course_id ? "Hide faculty" : "Manage faculty"}
                         </button>
+                        <Link
+                          href={`/admin/courses/${course.course_id}/batches`}
+                          className="ml-3 text-xs text-primary-700 underline"
+                        >
+                          Batches
+                        </Link>
                       </td>
                     </tr>
                     {expandedCourseId === course.course_id && (

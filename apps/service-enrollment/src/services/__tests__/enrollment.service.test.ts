@@ -311,12 +311,14 @@ describe("enrollmentService.getStudentEnrollments", () => {
     expect(result).toEqual([
       {
         enrollment_id: "enr-1",
+        batch: null,
         course_id: "course-1",
         completedCount: 1,
         totalLessons: 4,
       },
       {
         enrollment_id: "enr-2",
+        batch: null,
         course_id: "course-2",
         completedCount: 0,
         totalLessons: 2,

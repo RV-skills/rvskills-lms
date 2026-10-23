@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ValidationError } from "@rv-lms/shared-utils";
 import { getCoursePlayerData } from "../course-player.service";
 import { getCourseDetail } from "../courses.service";
@@ -33,8 +33,8 @@ function aCourse() {
     course_id: "course-1",
     title: "System Design",
     modules: [
-      { module_id: "m-1", title: "Basics", is_locked: false, lessons: [aLesson("a"), aLesson("b")] },
-      { module_id: "m-2", title: "Advanced", is_locked: false, lessons: [aLesson("c")] },
+      { module_id: "m-1", title: "Basics", is_locked: false, unlock_after_days: 0, lessons: [aLesson("a"), aLesson("b")] },
+      { module_id: "m-2", title: "Advanced", is_locked: false, unlock_after_days: 14, lessons: [aLesson("c")] },
     ],
   };
 }
@@ -111,5 +111,75 @@ describe("getCoursePlayerData", () => {
     mockDetail.mockResolvedValue(null);
 
     expect(await getCoursePlayerData("course-1", "token")).toBeNull();
+  });
+});
+
+// A batch that starts on 1 Nov 2026: m-1 opens on 1 Nov, m-2 on day 14 (15 Nov).
+function inBatch(module_dates: { module_id: string; unlock_date: string }[] = []) {
+  mockEnrollments.mockResolvedValue([
+    {
+      course_id: "course-1",
+      enrollment_id: "e-1",
+      batch: { batch_id: "b-1", name: "Nov 2026", start_date: "2026-11-01", end_date: null, module_dates },
+    },
+  ] as never);
+}
+
+describe("getCoursePlayerData for a student in a batch", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("opens a module on its date even if the previous module isn't finished", async () => {
+    inBatch();
+    vi.useFakeTimers({ now: new Date("2026-11-15T00:00:00+05:30") });
+
+    const data = await getCoursePlayerData("course-1", "token");
+
+    expect(data!.modules[1].is_locked).toBe(false);
+    expect(data!.modules[1].unlocks_on).toBeNull();
+    expect(data!.modules[1].lessons[0].video_url).toBe("https://cdn.example.com/c.mp4");
+  });
+
+  it("keeps a module locked until midnight India time on its date, without content links", async () => {
+    inBatch();
+    vi.useFakeTimers({ now: new Date("2026-11-14T23:59:00+05:30") });
+    mockCompleted.mockResolvedValue(["a", "b"]);
+
+    const data = await getCoursePlayerData("course-1", "token");
+
+    expect(data!.modules[1].is_locked).toBe(true);
+    expect(data!.modules[1].unlocks_on).toBe("2026-11-15");
+    expect(data!.modules[1].lessons[0].video_url).toBeNull();
+    expect(data!.modules[1].lessons[0].resources).toEqual([]);
+    // Finished everything that's open: stay on the last open lesson, not the locked one.
+    expect(data!.currentLesson.lesson_id).toBe("b");
+  });
+
+  it("uses the batch's own date for a module when one is set", async () => {
+    inBatch([{ module_id: "m-2", unlock_date: "2026-11-05" }]);
+    vi.useFakeTimers({ now: new Date("2026-11-06T10:00:00+05:30") });
+
+    const data = await getCoursePlayerData("course-1", "token");
+
+    expect(data!.modules[1].is_locked).toBe(false);
+  });
+
+  it("locks everything before the batch starts", async () => {
+    inBatch();
+    vi.useFakeTimers({ now: new Date("2026-10-20T10:00:00+05:30") });
+
+    const data = await getCoursePlayerData("course-1", "token");
+
+    expect(data!.modules.map((m) => m.unlocks_on)).toEqual(["2026-11-01", "2026-11-15"]);
+    expect(data!.modules.every((m) => m.lessons.every((l) => l.video_url === null))).toBe(true);
+  });
+
+  it("gives a late joiner every module already open for the batch", async () => {
+    inBatch();
+    vi.useFakeTimers({ now: new Date("2026-12-20T10:00:00+05:30") });
+
+    const data = await getCoursePlayerData("course-1", "token");
+
+    expect(data!.modules.every((m) => !m.is_locked)).toBe(true);
+    expect(data!.currentLesson.lesson_id).toBe("a");
   });
 });

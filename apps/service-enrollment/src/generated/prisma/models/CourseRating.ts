@@ -462,10 +462,6 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type CourseRatingCreateWithoutEnrollmentInput = {
   rating_id?: string
   course_id: string

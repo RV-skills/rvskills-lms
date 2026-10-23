@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.8.0
- * Query Engine version: 3c6e192761c0362d496ed980de936e2f3cebcd3a
+ * Prisma Client JS version: 7.10.0
+ * Query Engine version: 0edf323efd1d98336f3f0a68684b56f689b900d3
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.8.0",
-  engine: "3c6e192761c0362d496ed980de936e2f3cebcd3a"
+  client: "7.10.0",
+  engine: "0edf323efd1d98336f3f0a68684b56f689b900d3"
 }
 
 /**
@@ -156,6 +156,19 @@ export type Subset<T, U> = {
 };
 
 /**
+ * Resolved type of the argument passed to the `PrismaClient` constructor.
+ *
+ * When called without a narrower options type (the common case), this resolves
+ * to `PrismaClientOptions` directly, which produces a clear TypeScript error
+ * message (`not assignable to parameter of type 'PrismaClientOptions'`) when
+ * the argument is missing or incomplete. When the user supplies a narrower
+ * options type (e.g. via a literal), it falls back to `Subset` to keep
+ * filtering out unknown properties.
+ */
+export type PrismaClientConstructorArgs<Options extends PrismaClientOptions> =
+  [PrismaClientOptions] extends [Options] ? PrismaClientOptions : Subset<Options, PrismaClientOptions>;
+
+/**
  * SelectSubset
  * @desc From `T` pick properties that exist in `U`. Simple version of Intersection.
  * Additionally, it validates, if both select and include are present. If the case, it errors.
@@ -187,7 +200,7 @@ type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
 export type XOR<T, U> =
   T extends object ?
   U extends object ?
-    (Without<T, U> & U) | (Without<U, T> & T)
+    ((Without<T, U> & U) | (Without<U, T> & T)) & object
   : U : T
 
 
@@ -386,7 +399,9 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Enrollment: 'Enrollment',
   LessonProgress: 'LessonProgress',
-  CourseRating: 'CourseRating'
+  CourseRating: 'CourseRating',
+  Batch: 'Batch',
+  BatchModuleDate: 'BatchModuleDate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -402,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "enrollment" | "lessonProgress" | "courseRating"
+    modelProps: "enrollment" | "lessonProgress" | "courseRating" | "batch" | "batchModuleDate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -628,6 +643,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Batch: {
+      payload: Prisma.$BatchPayload<ExtArgs>
+      fields: Prisma.BatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        findFirst: {
+          args: Prisma.BatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        findMany: {
+          args: Prisma.BatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>[]
+        }
+        create: {
+          args: Prisma.BatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        createMany: {
+          args: Prisma.BatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>[]
+        }
+        delete: {
+          args: Prisma.BatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        update: {
+          args: Prisma.BatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.BatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.BatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchPayload>
+        }
+        aggregate: {
+          args: Prisma.BatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBatch>
+        }
+        groupBy: {
+          args: Prisma.BatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BatchCountAggregateOutputType> | number
+        }
+      }
+    }
+    BatchModuleDate: {
+      payload: Prisma.$BatchModuleDatePayload<ExtArgs>
+      fields: Prisma.BatchModuleDateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BatchModuleDateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BatchModuleDateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        findFirst: {
+          args: Prisma.BatchModuleDateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BatchModuleDateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        findMany: {
+          args: Prisma.BatchModuleDateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>[]
+        }
+        create: {
+          args: Prisma.BatchModuleDateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        createMany: {
+          args: Prisma.BatchModuleDateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BatchModuleDateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>[]
+        }
+        delete: {
+          args: Prisma.BatchModuleDateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        update: {
+          args: Prisma.BatchModuleDateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        deleteMany: {
+          args: Prisma.BatchModuleDateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BatchModuleDateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BatchModuleDateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>[]
+        }
+        upsert: {
+          args: Prisma.BatchModuleDateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BatchModuleDatePayload>
+        }
+        aggregate: {
+          args: Prisma.BatchModuleDateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBatchModuleDate>
+        }
+        groupBy: {
+          args: Prisma.BatchModuleDateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BatchModuleDateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BatchModuleDateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BatchModuleDateCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -676,7 +839,8 @@ export const EnrollmentScalarFieldEnum = {
   payment_status: 'payment_status',
   enrolled_at: 'enrolled_at',
   completed_at: 'completed_at',
-  dropped_at: 'dropped_at'
+  dropped_at: 'dropped_at',
+  batch_id: 'batch_id'
 } as const
 
 export type EnrollmentScalarFieldEnum = (typeof EnrollmentScalarFieldEnum)[keyof typeof EnrollmentScalarFieldEnum]
@@ -704,6 +868,29 @@ export const CourseRatingScalarFieldEnum = {
 } as const
 
 export type CourseRatingScalarFieldEnum = (typeof CourseRatingScalarFieldEnum)[keyof typeof CourseRatingScalarFieldEnum]
+
+
+export const BatchScalarFieldEnum = {
+  batch_id: 'batch_id',
+  tenant_id: 'tenant_id',
+  course_id: 'course_id',
+  name: 'name',
+  start_date: 'start_date',
+  end_date: 'end_date',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type BatchScalarFieldEnum = (typeof BatchScalarFieldEnum)[keyof typeof BatchScalarFieldEnum]
+
+
+export const BatchModuleDateScalarFieldEnum = {
+  batch_id: 'batch_id',
+  module_id: 'module_id',
+  unlock_date: 'unlock_date'
+} as const
+
+export type BatchModuleDateScalarFieldEnum = (typeof BatchModuleDateScalarFieldEnum)[keyof typeof BatchModuleDateScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -829,19 +1016,10 @@ export type BatchPayload = {
 export const defineExtension = runtime.Extensions.defineExtension as unknown as runtime.Types.Extensions.ExtendsHook<"define", TypeMapCb, runtime.Types.Extensions.DefaultArgs>
 export type DefaultPrismaClient = PrismaClient
 export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
-export type PrismaClientOptions = ({
-  /**
-   * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.
-   */
-  adapter: runtime.SqlDriverAdapterFactory
-  accelerateUrl?: never
-} | {
-  /**
-   * Prisma Accelerate URL allowing the client to connect through Accelerate instead of a direct database.
-   */
-  accelerateUrl: string
-  adapter?: never
-}) & {
+/**
+ * Options common to all variants of `PrismaClientOptions`, regardless of whether you connect to your database through a driver adapter or through Prisma Accelerate.
+ */
+export interface PrismaClientBaseOptions {
   /**
    * @default "colorless"
    */
@@ -928,10 +1106,62 @@ export type PrismaClientOptions = ({
    */
   queryPlanCacheMaxSize?: number
 }
+
+/**
+ * `PrismaClient` options for connecting to your database through Prisma Accelerate instead of a driver adapter.
+ * 
+ * Learn more: https://pris.ly/d/accelerate
+ */
+export interface PrismaClientOptionsWithAccelerateUrl extends PrismaClientBaseOptions {
+  /**
+   * The Prisma Accelerate connection URL. Use this option to connect to your database through Prisma Accelerate instead of using a driver adapter to connect directly.
+   * 
+   * Learn more: https://pris.ly/d/accelerate
+   */
+  accelerateUrl: string
+  adapter?: never
+}
+
+/**
+ * `PrismaClient` options for connecting to your database through a driver adapter. This is the common case in Prisma 7.
+ * 
+ * Learn more: https://pris.ly/d/driver-adapters
+ */
+export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions {
+  /**
+   * A driver adapter that PrismaClient uses to connect to your database, such as the ones provided by `@prisma/adapter-pg`, `@prisma/adapter-libsql`, `@prisma/adapter-planetscale`, etc.
+   * 
+   * A driver adapter is **required** unless you connect to your database through Prisma Accelerate (in which case use `accelerateUrl` instead).
+   * 
+   * Learn more: https://pris.ly/d/driver-adapters
+   * 
+   * @example
+   * ```ts
+   * import { PrismaPg } from '@prisma/adapter-pg'
+   * import { PrismaClient } from './generated/prisma/client'
+   * 
+   * const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+   * const prisma = new PrismaClient({ adapter })
+   * ```
+   */
+  adapter: runtime.SqlDriverAdapterFactory
+  accelerateUrl?: never
+}
+
+/**
+ * Options passed to the `PrismaClient` constructor.
+ * 
+ * A driver adapter (or, alternatively, a Prisma Accelerate URL) is **required**. See {@link PrismaClientOptionsWithAdapter} and {@link PrismaClientOptionsWithAccelerateUrl} for the two variants. All other properties live in {@link PrismaClientBaseOptions} and are optional.
+ * 
+ * Learn more about driver adapters: https://pris.ly/d/driver-adapters
+ */
+export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   enrollment?: Prisma.EnrollmentOmit
   lessonProgress?: Prisma.LessonProgressOmit
   courseRating?: Prisma.CourseRatingOmit
+  batch?: Prisma.BatchOmit
+  batchModuleDate?: Prisma.BatchModuleDateOmit
 }
 
 /* Types for Logging */

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CoursePlayerData, PlayerLesson } from "@/lib/course-player";
+import { formatDay } from "@/lib/batches";
 import { AssessmentsTab } from "./assessments-tab";
 import { LessonStage } from "./lesson-stage";
 
@@ -43,7 +44,7 @@ export function PlayerView({
   const { courseTitle, modules, currentLesson } = data;
 
   const lessonsWithModuleLock = modules.flatMap((m) =>
-    m.lessons.map((l) => ({ ...l, moduleLocked: m.is_locked }))
+    m.lessons.map((l) => ({ ...l, moduleLocked: m.is_locked, unlocksOn: m.unlocks_on ?? null }))
   );
   const completedCount = lessonsWithModuleLock.filter((l) => l.status === "completed").length;
   const totalCount = lessonsWithModuleLock.length;
@@ -51,7 +52,12 @@ export function PlayerView({
   const courseComplete = totalCount > 0 && completedCount === totalCount;
 
   const displayedLesson =
-    lessonsWithModuleLock.find((l) => l.lesson_id === selectedLessonId) ?? currentLesson;
+    lessonsWithModuleLock.find((l) => l.lesson_id === selectedLessonId) ??
+    lessonsWithModuleLock.find((l) => l.lesson_id === currentLesson.lesson_id) ?? {
+      ...currentLesson,
+      moduleLocked: false,
+      unlocksOn: null,
+    };
   const displayedResource = displayedLesson.resources.find(
     (r) => r.resource_id === selectedResourceId
   );
@@ -68,7 +74,8 @@ export function PlayerView({
       const currentIndex = lessonsWithModuleLock.findIndex(
         (l) => l.lesson_id === displayedLesson.lesson_id
       );
-      const nextLesson = lessonsWithModuleLock[currentIndex + 1];
+      // Move on to the next lesson the student can actually open.
+      const nextLesson = lessonsWithModuleLock.slice(currentIndex + 1).find((l) => !l.moduleLocked);
       await onMarkComplete(displayedLesson.lesson_id);
       if (nextLesson) {
         selectLesson(nextLesson.lesson_id);
@@ -103,13 +110,24 @@ export function PlayerView({
           </button>
         )}
 
-        <LessonStage
-          content={
-            displayedResource
-              ? { kind: "resource", resource: displayedResource }
-              : { kind: "lesson", lesson: displayedLesson }
-          }
-        />
+        {displayedLesson.moduleLocked && !preview ? (
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg bg-neutral-50 text-neutral-500">
+            <Lock size={24} />
+            <p className="text-sm">
+              {displayedLesson.unlocksOn
+                ? `This module unlocks on ${formatDay(displayedLesson.unlocksOn)}.`
+                : "Finish the previous module to unlock this one."}
+            </p>
+          </div>
+        ) : (
+          <LessonStage
+            content={
+              displayedResource
+                ? { kind: "resource", resource: displayedResource }
+                : { kind: "lesson", lesson: displayedLesson }
+            }
+          />
+        )}
 
         <h2 className="mt-4 text-lg text-neutral-900">{displayedLesson.title}</h2>
         {displayedLesson.estimated_duration_mins !== null && (
@@ -119,6 +137,7 @@ export function PlayerView({
         )}
 
         {displayedLesson.status !== "completed" &&
+          !(displayedLesson.moduleLocked && !preview) &&
           (preview ? (
             <div className="mt-4 flex items-center gap-3">
               <Button size="sm" disabled>
@@ -211,8 +230,13 @@ export function PlayerView({
                   {module.title}
                   {module.is_locked && <Lock size={12} />}
                 </h2>
+                {module.is_locked && !preview && module.unlocks_on && (
+                  <p className="mt-1 text-xs text-neutral-500">Unlocks on {formatDay(module.unlocks_on)}</p>
+                )}
                 {module.is_locked && preview && (
-                  <p className="mt-1 text-xs text-neutral-500">Locked for students until the previous module is done.</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Locked for students until the previous module is done, or until its date for students in a batch.
+                  </p>
                 )}
                 <div className="mt-2 flex flex-col gap-1">
                   {module.lessons.map((lesson) => (
@@ -249,3 +273,4 @@ export function PlayerView({
     </div>
   );
 }
+

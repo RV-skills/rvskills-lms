@@ -1,6 +1,7 @@
 import { serverConfig } from "../config";
 import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
 import { ConflictError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
+import type { BatchSchedule } from "../utils/release-schedule";
 
 export interface EnrollmentRecord {
   enrollment_id: string;
@@ -10,6 +11,7 @@ export interface EnrollmentRecord {
   enrolled_at: string;
   completedCount: number;
   totalLessons: number;
+  batch?: BatchSchedule | null;
 }
 
 export interface EnrollCourseInput {

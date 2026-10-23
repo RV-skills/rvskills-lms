@@ -25,6 +25,7 @@ export interface CourseDetail {
     module_id: string;
     title: string;
     is_locked: boolean;
+    unlock_after_days: number;
     lessons: {
       lesson_id: string;
       title: string;
@@ -176,7 +177,9 @@ async function loadCourseDetail(
       module_id: m.module_id,
       title: m.title,
       is_locked: m.is_locked,
-         lessons: m.lessons.map((l) => ({
+      // Not in the shared ModuleDTO type yet; service-courses sends it on every module.
+      unlock_after_days: (m as { unlock_after_days?: number }).unlock_after_days ?? 0,
+      lessons: m.lessons.map((l) => ({
         lesson_id: l.lesson_id,
         title: l.title,
         content_type: l.content_type,

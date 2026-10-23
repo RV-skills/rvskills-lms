@@ -53,7 +53,9 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Enrollment: 'Enrollment',
   LessonProgress: 'LessonProgress',
-  CourseRating: 'CourseRating'
+  CourseRating: 'CourseRating',
+  Batch: 'Batch',
+  BatchModuleDate: 'BatchModuleDate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -81,7 +83,8 @@ export const EnrollmentScalarFieldEnum = {
   payment_status: 'payment_status',
   enrolled_at: 'enrolled_at',
   completed_at: 'completed_at',
-  dropped_at: 'dropped_at'
+  dropped_at: 'dropped_at',
+  batch_id: 'batch_id'
 } as const
 
 export type EnrollmentScalarFieldEnum = (typeof EnrollmentScalarFieldEnum)[keyof typeof EnrollmentScalarFieldEnum]
@@ -109,6 +112,29 @@ export const CourseRatingScalarFieldEnum = {
 } as const
 
 export type CourseRatingScalarFieldEnum = (typeof CourseRatingScalarFieldEnum)[keyof typeof CourseRatingScalarFieldEnum]
+
+
+export const BatchScalarFieldEnum = {
+  batch_id: 'batch_id',
+  tenant_id: 'tenant_id',
+  course_id: 'course_id',
+  name: 'name',
+  start_date: 'start_date',
+  end_date: 'end_date',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type BatchScalarFieldEnum = (typeof BatchScalarFieldEnum)[keyof typeof BatchScalarFieldEnum]
+
+
+export const BatchModuleDateScalarFieldEnum = {
+  batch_id: 'batch_id',
+  module_id: 'module_id',
+  unlock_date: 'unlock_date'
+} as const
+
+export type BatchModuleDateScalarFieldEnum = (typeof BatchModuleDateScalarFieldEnum)[keyof typeof BatchModuleDateScalarFieldEnum]
 
 
 export const SortOrder = {

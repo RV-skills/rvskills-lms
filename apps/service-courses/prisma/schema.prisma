@@ -72,6 +72,8 @@ model Module {
   description String?
   order_index Int
   is_locked Boolean @default(false)
+  // For batches: the module opens this many days after a batch starts (0 = on day one).
+  unlock_after_days Int @default(0)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   deleted_at DateTime?
@@ -125,4 +127,5 @@ model ContentMetadata {
 
   lesson Lesson @relation(fields: [lesson_id], references: [lesson_id])
 }
+
 

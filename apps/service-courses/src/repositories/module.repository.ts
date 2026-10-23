@@ -5,6 +5,7 @@ export interface CreateModuleInput {
     title: string;
     description?: string;
     order_index: number;
+    unlock_after_days?: number;
 }
 
 export interface UpdateModuleInput {
@@ -12,6 +13,7 @@ export interface UpdateModuleInput {
     description?: string;
     order_index?: number;
     is_locked?: boolean;
+    unlock_after_days?: number;
 }
 
 export const moduleRepository = {
