@@ -9,6 +9,7 @@ import {
   clearBatchModuleDate,
   setStudentBatch,
 } from "../services/batches.service";
+import { importRoster } from "../services/roster-import.service";
 
 type Handler = (req: AuthenticatedRequest) => Promise<{ status: number; data?: unknown }>;
 
@@ -70,3 +71,15 @@ export const setStudentBatchController = handle(async (req) => ({
     req.accessToken!
   ),
 }));
+
+export const importRosterController = handle(async (req) => {
+  const body = (req.body ?? {}) as { rows?: unknown; batch_id?: string | null; dry_run?: boolean };
+  return {
+    status: 200,
+    data: await importRoster(
+      p(req, "course_id"),
+      { rows: body.rows as never, batch_id: body.batch_id ?? null, dry_run: body.dry_run !== false },
+      req.accessToken!
+    ),
+  };
+});

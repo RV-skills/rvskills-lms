@@ -19,6 +19,7 @@ import {
     clearModuleDate,
     getRoster,
     setEnrollmentBatch,
+    addToRoster,
 } from "../controllers/batch.controller";
 
 const enrollmentRouter: Router = Router();
@@ -34,6 +35,8 @@ enrollmentRouter.delete("/courses/:course_id/batches/:batch_id", authMiddleware,
 enrollmentRouter.put("/courses/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, canWrite, requireCourseEditor, setModuleDate);
 enrollmentRouter.delete("/courses/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, canWrite, requireCourseEditor, clearModuleDate);
 enrollmentRouter.get("/courses/:course_id/roster", authMiddleware, canWrite, requireCourseEditor, getRoster);
+// Adding other people to a course is an admin action (same permission as bulk enrol).
+enrollmentRouter.post("/courses/:course_id/roster", authMiddleware, requirePermission("user:write"), canWrite, requireCourseEditor, addToRoster);
 enrollmentRouter.patch("/courses/:course_id/enrollments/:enrollment_id/batch", authMiddleware, canWrite, requireCourseEditor, setEnrollmentBatch);
 
 // Enrollment routes

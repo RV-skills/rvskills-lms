@@ -1,5 +1,7 @@
 import { ConflictError, NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 import { Prisma } from "../generated/prisma/client";
+import { EnrollmentStatus } from "../generated/prisma/enums";
+import { prisma } from "../db/prisma";
 import { batchRepository } from "../repositories/batch.repository";
 import { enrollmentRepository } from "../repositories/enrollment.repository";
 import { courseServiceClient } from "../clients/course-service.client";
@@ -144,5 +146,71 @@ export const batchService = {
         // Progress lives on the enrolment, so moving between batches keeps it.
         const updated = await batchRepository.setEnrollmentBatch(enrollment_id, batch_id);
         return { enrollment_id: updated.enrollment_id, student_id: updated.student_id, batch_id: updated.batch_id };
+    },
+
+    // Admin bulk enrolment. Enrols each student in the course (or re-enrols a dropped one)
+    // and, if a batch is given, puts every one of them in it, including students who were
+    // already enrolled. Progress is kept for anyone already enrolled.
+    async addToRoster(
+        course_id: string,
+        tenant_id: string,
+        student_ids: string[],
+        batch_id: string | null,
+        authorization: string
+    ) {
+        if (batch_id) {
+            await batchInCourse(course_id, batch_id);
+        }
+        const course = await courseServiceClient.getCourse(course_id, authorization);
+        const ids = [...new Set(student_ids)];
+
+        return prisma.$transaction(async (tx) => {
+            // Same lock as single enrolment, so seat counts can't race.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${course_id}))`;
+
+            const existing = await tx.enrollment.findMany({ where: { course_id, student_id: { in: ids } } });
+            const byStudent = new Map(existing.map((e) => [e.student_id, e]));
+            const toCreate = ids.filter((id) => !byStudent.has(id));
+            const toReactivate = existing.filter((e) => e.status === EnrollmentStatus.DROPPED);
+
+            if (course.max_seats !== null && course.max_seats !== undefined) {
+                const active = await tx.enrollment.count({ where: { course_id, status: EnrollmentStatus.ACTIVE } });
+                const needed = toCreate.length + toReactivate.length;
+                if (active + needed > course.max_seats) {
+                    throw new ConflictError(
+                        `Not enough seats: ${course.max_seats - active} left, ${needed} needed`
+                    );
+                }
+            }
+
+            if (toCreate.length > 0) {
+                await tx.enrollment.createMany({
+                    data: toCreate.map((student_id) => ({ student_id, course_id, tenant_id, batch_id })),
+                    skipDuplicates: true,
+                });
+            }
+            if (toReactivate.length > 0) {
+                await tx.enrollment.updateMany({
+                    where: { enrollment_id: { in: toReactivate.map((e) => e.enrollment_id) } },
+                    data: { status: EnrollmentStatus.ACTIVE, dropped_at: null },
+                });
+            }
+            if (batch_id && existing.length > 0) {
+                await tx.enrollment.updateMany({
+                    where: { enrollment_id: { in: existing.map((e) => e.enrollment_id) } },
+                    data: { batch_id },
+                });
+            }
+
+            const reactivated = new Set(toReactivate.map((e) => e.student_id));
+            return ids.map((student_id) => ({
+                student_id,
+                result: !byStudent.has(student_id)
+                    ? ("enrolled" as const)
+                    : reactivated.has(student_id)
+                      ? ("re_enrolled" as const)
+                      : ("already_enrolled" as const),
+            }));
+        });
     },
 };

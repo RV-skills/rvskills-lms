@@ -37,6 +37,7 @@ import {
   setBatchModuleDateController,
   clearBatchModuleDateController,
   setStudentBatchController,
+  importRosterController,
 } from "../../controllers/batches.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 
@@ -54,6 +55,8 @@ coursesRouter.delete("/:course_id/batches/:batch_id", authMiddleware, deleteBatc
 coursesRouter.put("/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, setBatchModuleDateController);
 coursesRouter.delete("/:course_id/batches/:batch_id/modules/:module_id", authMiddleware, clearBatchModuleDateController);
 coursesRouter.patch("/:course_id/enrollments/:enrollment_id/batch", authMiddleware, setStudentBatchController);
+// Admins only (checked downstream): create accounts from a CSV and enrol them.
+coursesRouter.post("/:course_id/roster/import", authMiddleware, importRosterController);
 coursesRouter.get("/:course_id/ratings", publicRouteMiddleware, listCourseRatingsController);
 coursesRouter.get("/:course_id/ratings/average", publicRouteMiddleware, getAverageRatingController);
 coursesRouter.post("/:course_id/ratings", authMiddleware, submitRatingController);

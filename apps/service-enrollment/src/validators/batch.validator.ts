@@ -36,5 +36,10 @@ export const EnrollmentBatchSchema = z.object({
     batch_id: z.string().uuid("Invalid batch_id").nullable(),
 });
 
+export const AddToRosterSchema = z.object({
+    student_ids: z.array(z.string().uuid("Invalid student_id")).min(1, "No students to add").max(1000),
+    batch_id: z.string().uuid("Invalid batch_id").nullable().optional(),
+});
+
 export type CreateBatchInput = z.infer<typeof CreateBatchSchema>;
 export type UpdateBatchInput = z.infer<typeof UpdateBatchSchema>;

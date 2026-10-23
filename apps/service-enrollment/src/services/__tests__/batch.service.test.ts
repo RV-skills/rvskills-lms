@@ -9,6 +9,16 @@ vi.mock("../../generated/prisma/client", () => {
   }
   return { Prisma: { PrismaClientKnownRequestError } };
 });
+const tx = {
+  $executeRaw: vi.fn(),
+  enrollment: { findMany: vi.fn(), count: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() },
+};
+vi.mock("../../db/prisma", () => ({
+  prisma: { $transaction: (fn: (t: typeof tx) => unknown) => fn(tx) },
+}));
+vi.mock("../../generated/prisma/enums", () => ({
+  EnrollmentStatus: { ACTIVE: "ACTIVE", COMPLETED: "COMPLETED", DROPPED: "DROPPED" },
+}));
 vi.mock("../../repositories/batch.repository", () => ({
   batchRepository: {
     findByCourse: vi.fn(),
@@ -107,6 +117,47 @@ describe("batchService", () => {
       enrollment_id: "e-1",
       student_id: "s",
       batch_id: "b-1",
+    });
+  });
+
+  describe("addToRoster", () => {
+    beforeEach(() => {
+      vi.mocked(courseServiceClient.getCourse).mockResolvedValue({ max_seats: null, modules: [] } as never);
+      tx.enrollment.findMany.mockResolvedValue([
+        { enrollment_id: "e-a", student_id: "a", status: "ACTIVE" },
+        { enrollment_id: "e-d", student_id: "d", status: "DROPPED" },
+      ]);
+      tx.enrollment.count.mockResolvedValue(5);
+    });
+
+    it("enrols new students, re-enrols dropped ones and moves everyone into the batch", async () => {
+      const result = await batchService.addToRoster("c-1", "t", ["a", "d", "n", "n"], "b-1", "Bearer x");
+
+      expect(tx.enrollment.createMany).toHaveBeenCalledWith({
+        data: [{ student_id: "n", course_id: "c-1", tenant_id: "t", batch_id: "b-1" }],
+        skipDuplicates: true,
+      });
+      expect(tx.enrollment.updateMany).toHaveBeenCalledWith({
+        where: { enrollment_id: { in: ["e-d"] } },
+        data: { status: "ACTIVE", dropped_at: null },
+      });
+      expect(tx.enrollment.updateMany).toHaveBeenCalledWith({
+        where: { enrollment_id: { in: ["e-a", "e-d"] } },
+        data: { batch_id: "b-1" },
+      });
+      expect(result).toEqual([
+        { student_id: "a", result: "already_enrolled" },
+        { student_id: "d", result: "re_enrolled" },
+        { student_id: "n", result: "enrolled" },
+      ]);
+    });
+
+    it("refuses when the course doesn't have enough seats left", async () => {
+      vi.mocked(courseServiceClient.getCourse).mockResolvedValue({ max_seats: 6, modules: [] } as never);
+      await expect(batchService.addToRoster("c-1", "t", ["a", "d", "n"], null, "Bearer x")).rejects.toBeInstanceOf(
+        ConflictError
+      );
+      expect(tx.enrollment.createMany).not.toHaveBeenCalled();
     });
   });
 });

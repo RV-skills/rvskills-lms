@@ -6,6 +6,7 @@ import {
     UpdateBatchSchema,
     ModuleDateSchema,
     EnrollmentBatchSchema,
+    AddToRosterSchema,
 } from "../validators/batch.validator";
 
 const DEFAULT_TENANT_ID = "rv-skills-tenant";
@@ -66,4 +67,16 @@ export const setEnrollmentBatch = catchAsync(async (req: Request, res: Response)
         batch_id
     );
     res.status(200).json({ success: true, data: result });
+});
+
+export const addToRoster = catchAsync(async (req: Request, res: Response) => {
+    const { student_ids, batch_id } = AddToRosterSchema.parse(req.body);
+    const results = await batchService.addToRoster(
+        req.params.course_id as string,
+        DEFAULT_TENANT_ID,
+        student_ids,
+        batch_id ?? null,
+        req.headers.authorization as string
+    );
+    res.status(200).json({ success: true, data: results });
 });
