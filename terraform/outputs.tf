@@ -94,3 +94,8 @@ output "task_definition_arns" {
     "web"                = aws_ecs_task_definition.web.arn
   }
 }
+
+output "video_cdn_domain" {
+  description = "CloudFront domain for course videos. Lesson links look like https://<this>/excel/<file>.mp4"
+  value       = aws_cloudfront_distribution.videos.domain_name
+}

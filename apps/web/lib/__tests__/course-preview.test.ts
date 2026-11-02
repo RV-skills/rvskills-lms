@@ -47,7 +47,7 @@ describe("getPreviewCourse", () => {
   it("loads the course detail", async () => {
     mockFetch.mockResolvedValue(course());
     await expect(getPreviewCourse("c1")).resolves.toEqual(course());
-    expect(mockFetch).toHaveBeenCalledWith("/api/v1/courses/c1");
+    expect(mockFetch).toHaveBeenCalledWith("/api/v1/courses/c1?playback=1");
   });
 
   it("returns null for a missing course", async () => {

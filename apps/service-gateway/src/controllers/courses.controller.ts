@@ -38,7 +38,9 @@ export async function getCourseDetailController(req: AuthenticatedRequest, res: 
     const viewer = req.user
       ? { user_id: req.user.user_id, isAdmin: req.user.roles.some((r) => r.role_name === "Admin") }
       : undefined;
-    const course = await getCourseDetailForViewer(course_id, req.accessToken, viewer);
+    const course = await getCourseDetailForViewer(course_id, req.accessToken, viewer, {
+      playback: req.query?.playback === "1",
+    });
     if (!course) {
       throw new NotFoundError("Course not found");
     }

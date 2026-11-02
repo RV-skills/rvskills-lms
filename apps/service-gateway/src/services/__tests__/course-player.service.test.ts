@@ -5,6 +5,13 @@ import { getCourseDetail } from "../courses.service";
 import { getCompletedLessonIds, getMyEnrollments } from "../enrollment.service";
 
 vi.mock("../courses.service", () => ({ getCourseDetail: vi.fn() }));
+// Marks links as signed, so the tests can see which lessons got playable links.
+vi.mock("../content-links.service", () => ({
+  playableLinks: <T extends { video_url: string | null }>(l: T): T => ({
+    ...l,
+    video_url: l.video_url && `${l.video_url}#signed`,
+  }),
+}));
 vi.mock("../enrollment.service", () => ({
   getMyEnrollments: vi.fn(),
   getCompletedLessonIds: vi.fn(),
@@ -52,7 +59,7 @@ describe("getCoursePlayerData", () => {
     const lessonA = data!.modules[0].lessons[0];
 
     expect(data!.modules[0].is_locked).toBe(false);
-    expect(lessonA.video_url).toBe("https://cdn.example.com/a.mp4");
+    expect(lessonA.video_url).toBe("https://cdn.example.com/a.mp4#signed");
     expect(lessonA.resources).toHaveLength(1);
   });
 
@@ -80,7 +87,7 @@ describe("getCoursePlayerData", () => {
     const lessonC = data!.modules[1].lessons[0];
 
     expect(data!.modules[1].is_locked).toBe(false);
-    expect(lessonC.video_url).toBe("https://cdn.example.com/c.mp4");
+    expect(lessonC.video_url).toBe("https://cdn.example.com/c.mp4#signed");
   });
 
   it("keeps the next module locked while the previous one is only partly done", async () => {
@@ -98,7 +105,7 @@ describe("getCoursePlayerData", () => {
     const data = await getCoursePlayerData("course-1", "token");
 
     expect(data!.currentLesson.lesson_id).toBe("b");
-    expect(data!.currentLesson.video_url).toBe("https://cdn.example.com/b.mp4");
+    expect(data!.currentLesson.video_url).toBe("https://cdn.example.com/b.mp4#signed");
   });
 
   it("refuses a student who is not enrolled", async () => {
@@ -136,7 +143,7 @@ describe("getCoursePlayerData for a student in a batch", () => {
 
     expect(data!.modules[1].is_locked).toBe(false);
     expect(data!.modules[1].unlocks_on).toBeNull();
-    expect(data!.modules[1].lessons[0].video_url).toBe("https://cdn.example.com/c.mp4");
+    expect(data!.modules[1].lessons[0].video_url).toBe("https://cdn.example.com/c.mp4#signed");
   });
 
   it("keeps a module locked until midnight India time on its date, without content links", async () => {

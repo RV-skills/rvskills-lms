@@ -265,10 +265,14 @@ resource "aws_ecs_task_definition" "service_gateway" {
         { name = "SERVICE_ENROLLMENT_URL", value = "http://localhost:3003" },
         { name = "SERVICE_ASSESSMENT_URL", value = "http://localhost:3004" },
         { name = "COOKIE_SECURE", value = "true" },
+        { name = "CLOUDFRONT_VIDEO_DOMAIN", value = aws_cloudfront_distribution.videos.domain_name },
+        { name = "CLOUDFRONT_KEY_PAIR_ID", value = aws_cloudfront_public_key.videos.id },
+        { name = "VIDEO_LINK_TTL_MINUTES", value = "360" },
       ]
 
       secrets = [
         { name = "COOKIE_SECRET", valueFrom = aws_ssm_parameter.cookie_secret.arn },
+        { name = "CLOUDFRONT_PRIVATE_KEY", valueFrom = aws_ssm_parameter.cloudfront_private_key.arn },
       ]
 
       logConfiguration = {

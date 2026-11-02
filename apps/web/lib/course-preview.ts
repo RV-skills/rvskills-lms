@@ -21,7 +21,7 @@ export interface PreviewCourse extends Omit<CourseDetail, "modules"> {
 
 export async function getPreviewCourse(courseId: string): Promise<PreviewCourse | null> {
   try {
-    return await gatewayFetch<PreviewCourse>(`/api/v1/courses/${courseId}`);
+    return await gatewayFetch<PreviewCourse>(`/api/v1/courses/${courseId}?playback=1`);
   } catch (err) {
     if (err instanceof GatewayError && err.statusCode === 404) return null;
     throw err;

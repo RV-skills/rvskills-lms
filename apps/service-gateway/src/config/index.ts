@@ -27,6 +27,12 @@ const gatewayEnvSchema = z.object({
   COOKIE_SECRET: z
     .string({ required_error: 'COOKIE_SECRET is required' })
     .min(32, 'COOKIE_SECRET should be at least 32 characters'),
+  // Private course videos served by CloudFront. Links on this host are signed per
+  // request so they only work for a few hours. Leave unset to turn signing off.
+  CLOUDFRONT_VIDEO_DOMAIN: z.string().optional(),
+  CLOUDFRONT_KEY_PAIR_ID: z.string().optional(),
+  CLOUDFRONT_PRIVATE_KEY: z.string().optional(),
+  VIDEO_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(360),
 });
 
 function validateEnv() {

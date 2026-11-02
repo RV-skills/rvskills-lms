@@ -2,6 +2,7 @@ import { getCourseDetail } from "./courses.service";
 import { getCompletedLessonIds, getMyEnrollments } from "./enrollment.service";
 import { NotFoundError, ValidationError } from "@rv-lms/shared-utils";
 import { isOpen, moduleUnlockDate } from "../utils/release-schedule";
+import { playableLinks } from "./content-links.service";
 
 export interface PlayerResource {
   resource_id: string;
@@ -88,7 +89,7 @@ export async function getCoursePlayerData(
         status = "upcoming";
       }
 
-      return {
+      const playerLesson: PlayerLesson = {
         lesson_id: lesson.lesson_id,
         title: lesson.title,
         estimated_duration_mins: lesson.estimated_duration_mins,
@@ -99,6 +100,8 @@ export async function getCoursePlayerData(
         resources: moduleUnlocked ? lesson.resources : [],
         status,
       };
+      // Private files get a short-lived signed link, made fresh each time the player loads.
+      return moduleUnlocked ? playableLinks(playerLesson, now) : playerLesson;
     });
 
     previousModuleComplete = lessons.every((l) => l.status === "completed");
