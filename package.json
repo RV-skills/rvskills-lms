@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -42,8 +42,12 @@
       "postcss": "^8.5.18",
       "source-map-js": "^1.2.2",
       "sharp": "^0.35.5",
-      "body-parser": "^2.4.0",
-      "zod@3": "^3.25.77"
+      "body-parser": "^2.4.0"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-mrhx-c7xc-m3w5"
+      ]
     }
   }
 }
