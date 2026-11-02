@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ScheduleManager } from "../schedule-manager";
 import * as batches from "@/lib/batches";
@@ -55,8 +55,11 @@ describe("ScheduleManager", () => {
     render(<ScheduleManager courseId="c1" />);
     const days = await screen.findByLabelText("Opens on day, Formulas");
     fireEvent.change(days, { target: { value: "21" } });
-    await userEvent.click(screen.getByText("Save schedule"));
-    expect(batches.setModuleOffset).toHaveBeenCalledTimes(1);
+    const save = screen.getByText("Save schedule").closest("button") as HTMLButtonElement;
+    // On a slow runner the button can still be disabled for a moment after the edit.
+    await waitFor(() => expect(save.disabled).toBe(false));
+    await userEvent.click(save);
+    await waitFor(() => expect(batches.setModuleOffset).toHaveBeenCalledTimes(1));
     expect(batches.setModuleOffset).toHaveBeenCalledWith("c1", "m2", 21);
   });
 
