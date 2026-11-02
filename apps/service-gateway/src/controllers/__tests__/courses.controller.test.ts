@@ -108,7 +108,7 @@ describe("getCourseDetailController", () => {
 
     await getCourseDetailController(req, res, next);
 
-    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, undefined);
+    expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, undefined, { playback: false });
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
@@ -124,7 +124,7 @@ describe("getCourseDetailController", () => {
     expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
       user_id: "u-admin",
       isAdmin: true,
-    });
+    }, { playback: false });
   });
 
   it("marks any other logged-in user as a non-admin viewer", async () => {
@@ -139,7 +139,7 @@ describe("getCourseDetailController", () => {
     expect(courses.getCourseDetailForViewer).toHaveBeenCalledWith("course-1", TOKEN, {
       user_id: "u-faculty",
       isAdmin: false,
-    });
+    }, { playback: false });
   });
 
   it("turns a null result into a real NotFoundError", async () => {

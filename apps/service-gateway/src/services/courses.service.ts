@@ -2,6 +2,7 @@ import { serverConfig } from "../config";
 import { fetchWithTimeout, correlationHeaders, throwForFailedResponse } from "../utils/http-client.util";
 import type { CourseDTO } from "@rv-lms/shared-types";
 import { getUsersByIds } from "./users.service";
+import { playableLinks } from "./content-links.service";
 
 export interface AggregatedCourse {
   course_id: string;
@@ -214,10 +215,14 @@ export interface CourseViewer {
 
 // For the public course page. Content links go only to people who manage the course;
 // everyone else sees the outline, plus the content of lessons marked as free previews.
+// options.playback: return links the browser can play now (private files signed, for
+// a few hours). Used by the course page and the faculty preview. The course editor
+// leaves it off, so it sees and saves the plain stored links.
 export async function getCourseDetailForViewer(
   course_id: string,
   accessToken: string | undefined,
-  viewer: CourseViewer | undefined
+  viewer: CourseViewer | undefined,
+  options: { playback?: boolean } = {}
 ): Promise<CourseDetail | null> {
   const loaded = await loadCourseDetail(course_id, accessToken);
   if (!loaded) {
@@ -226,7 +231,16 @@ export async function getCourseDetailForViewer(
 
   const { detail, facultyIds } = loaded;
   const canManage = viewer !== undefined && (viewer.isAdmin || facultyIds.includes(viewer.user_id));
-  return canManage ? detail : withoutContentLinks(detail);
+  const visible = canManage ? detail : withoutContentLinks(detail);
+  return options.playback ? withPlayableLinks(visible) : visible;
+}
+
+function withPlayableLinks(detail: CourseDetail): CourseDetail {
+  const now = new Date();
+  return {
+    ...detail,
+    modules: detail.modules.map((m) => ({ ...m, lessons: m.lessons.map((l) => playableLinks(l, now)) })),
+  };
 }
 
 function withoutContentLinks(detail: CourseDetail): CourseDetail {

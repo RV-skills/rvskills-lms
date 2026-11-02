@@ -26,7 +26,7 @@ export interface CourseDetail {
 
 export async function getCourseDetail(courseId: string): Promise<CourseDetail | null> {
   try {
-    return await gatewayFetch<CourseDetail>(`/api/v1/courses/${courseId}`);
+    return await gatewayFetch<CourseDetail>(`/api/v1/courses/${courseId}?playback=1`);
   } catch (err) {
     if (err instanceof GatewayError && err.statusCode === 404) {
       return null;
