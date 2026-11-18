@@ -98,16 +98,21 @@ export const enrollmentService = {
     async getStudentEnrollments(student_id: string, tenant_id: string) {
         const enrollments = await enrollmentRepository.findByStudent(student_id, tenant_id);
 
-        return Promise.all(
+        const rows = await Promise.all(
             enrollments.map(async ({ batch, ...enrollment }) => {
-                const progress = await lessonProgressService.getProgress(
-                    enrollment.enrollment_id,
-                    enrollment.course_id
-                );
+                let progress;
+                try {
+                    progress = await lessonProgressService.getProgress(enrollment.enrollment_id, enrollment.course_id);
+                } catch (err) {
+                    // The course is gone or unpublished: leave it out of the list instead of failing every course.
+                    if (err instanceof NotFoundError) return null;
+                    throw err;
+                }
                 // The batch (with its dates) lets the gateway work out which modules are open.
                 return { ...enrollment, ...progress, batch: batch ? toBatchDTO(batch) : null };
             })
-        )
+        );
+        return rows.filter((r): r is NonNullable<typeof r> => r !== null);
     },
 
     async getCompletedLessonIds(enrollment_id: string, student_id: string) {
