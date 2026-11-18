@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Suspense, useState } from "react";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,8 @@ function LoginForm() {
 
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-center text-2xl text-neutral-900">RV Skills LMS</h1>
+      <Image src="/brand/rv-crest.png" alt="" width={72} height={72} className="mx-auto" priority />
+      <h1 className="text-center text-2xl text-neutral-900">RV-SKILLS LMS</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <FormField

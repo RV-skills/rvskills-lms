@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ReactElement } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -41,6 +42,11 @@ beforeEach(() => {
 afterEach(() => {
   Object.defineProperty(window, "location", { writable: true, value: originalLocation });
 });
+
+vi.mock("next/image", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  default: ({ priority, ...props }: { priority?: boolean; src: string; alt: string }): ReactElement => <img {...props} />,
+}));
 
 describe("SidebarNav: loading state", () => {
   it("renders neither the nav links nor the login prompt while loading", () => {
