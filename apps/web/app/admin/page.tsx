@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
       <AdminSidebarNav />
       <main className="flex-1 overflow-x-hidden px-10 py-12">
         <p className="text-sm text-neutral-500">Overview</p>
-        <h1 className="mt-1 text-2xl text-neutral-900">RV-Skills LMS</h1>
+        <h1 className="mt-1 text-2xl text-neutral-900">RV-SKILLS LMS</h1>
 
         {!stats ? (
           <p className="mt-8 text-sm text-neutral-500">Loading...</p>

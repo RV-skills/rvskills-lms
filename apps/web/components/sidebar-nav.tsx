@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -27,8 +28,8 @@ export function SidebarNav() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col self-start border-r border-neutral-100 px-6 py-8">
-      <Link href="/" className="text-lg text-neutral-900">
-        RV Skills
+      <Link href="/" aria-label="RV-SKILLS home" className="block">
+        <Image src="/brand/rv-skills-logo-horizontal.png" alt="RV-SKILLS" width={118} height={60} />
       </Link>
 
       {loading ? null : user ? (

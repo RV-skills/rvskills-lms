@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/user-session";
@@ -21,13 +22,7 @@ function SiteHeader({ loggedIn, loading }: { loggedIn: boolean; loading: boolean
     <header className="border-b border-neutral-100 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
         <Link href="/" className="flex items-center gap-2.5 text-neutral-900">
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-500 text-sm font-bold text-white"
-          >
-            RV
-          </span>
-          <span className="text-lg font-semibold">RV Skills</span>
+          <Image src="/brand/rv-skills-logo-horizontal.png" alt="RV-SKILLS" width={118} height={60} priority />
         </Link>
 
         <nav aria-label="Main" className="flex flex-wrap items-center gap-6 text-sm">
@@ -104,7 +99,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 pb-8 pt-12">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
-            <span className="text-lg font-semibold text-neutral-900">RV Skills</span>
+            <Image src="/brand/rv-skills-logo-horizontal.png" alt="RV-SKILLS" width={118} height={60} />
           </div>
           <div className="flex flex-col gap-2 text-sm">
             <span className="font-semibold text-neutral-900">Learn</span>
@@ -144,7 +139,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
           )}
         </div>
         <div className="border-t border-neutral-100 pt-5 text-xs text-neutral-500">
-          © {new Date().getFullYear()} RV Skills. All rights reserved.
+          © {new Date().getFullYear()} RV-SKILLS. All rights reserved.
         </div>
       </div>
     </footer>
